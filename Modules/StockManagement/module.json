@@ -1,0 +1,11 @@
+{
+    "name": "StockManagement",
+    "alias": "stockmanagement",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\StockManagement\\Providers\\StockManagementServiceProvider"
+    ],
+    "files": []
+}

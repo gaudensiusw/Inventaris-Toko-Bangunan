@@ -1,0 +1,11 @@
+{
+    "name": "TagihanSupplier",
+    "alias": "tagihansupplier",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\TagihanSupplier\\Providers\\TagihanSupplierServiceProvider"
+    ],
+    "files": []
+}

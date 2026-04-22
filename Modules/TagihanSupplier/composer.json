@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/tagihansupplier",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\TagihanSupplier\\": "app/",
+            "Modules\\TagihanSupplier\\Database\\Factories\\": "database/factories/",
+            "Modules\\TagihanSupplier\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\TagihanSupplier\\Tests\\": "tests/"
+        }
+    }
+}

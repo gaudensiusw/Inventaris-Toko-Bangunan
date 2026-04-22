@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/stockmanagement",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\StockManagement\\": "app/",
+            "Modules\\StockManagement\\Database\\Factories\\": "database/factories/",
+            "Modules\\StockManagement\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\StockManagement\\Tests\\": "tests/"
+        }
+    }
+}

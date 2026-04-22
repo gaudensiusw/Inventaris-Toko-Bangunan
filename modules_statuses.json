@@ -1,5 +1,17 @@
 {
     "Test1": true,
     "Test2": true,
-    "Test3": true
+    "Test3": true,
+    "Dashboard": true,
+    "POS": true,
+    "TagihanSupplier": true,
+    "StockManagement": true,
+    "StockOpname": true,
+    "Supplier": true,
+    "Product": true,
+    "Employee": true,
+    "Customer": true,
+    "OperationalItem": true,
+    "Notification": true,
+    "Report": true
 }

@@ -1,0 +1,11 @@
+{
+    "name": "StockOpname",
+    "alias": "stockopname",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\StockOpname\\Providers\\StockOpnameServiceProvider"
+    ],
+    "files": []
+}
