@@ -11,32 +11,34 @@ class EmployeeController extends Controller
     {
         $employees = [
             [
+                'name' => 'Budi Santoso',
+                'role' => 'Supervisor',
+                'join_date' => '01 Jan 2023',
+                'status' => 'Aktif',
+            ],
+            [
                 'name' => 'Ahmad Faisal',
                 'role' => 'Kasir',
-                'phone' => '0812-3456-7890',
+                'join_date' => '12 Jan 2024',
                 'status' => 'Aktif',
-                'join_date' => '12 Jan 2024'
             ],
             [
                 'name' => 'Siti Nurhaliza',
-                'role' => 'Admin Gudang',
-                'phone' => '0821-9876-5432',
-                'status' => 'Aktif',
-                'join_date' => '05 Feb 2024'
+                'role' => 'Staff Gudang',
+                'join_date' => '05 Feb 2024',
+                'status' => 'Izin',
             ],
             [
                 'name' => 'Bambang Pamungkas',
-                'role' => 'Driver',
-                'phone' => '0857-1122-3344',
-                'status' => 'Cuti',
-                'join_date' => '20 Mar 2023'
+                'role' => 'Supir',
+                'join_date' => '20 Mar 2023',
+                'status' => 'Alpa',
             ],
             [
                 'name' => 'Dewi Sartika',
-                'role' => 'Sales',
-                'phone' => '0813-5566-7788',
+                'role' => 'Staff Gudang',
+                'join_date' => '15 Aug 2023',
                 'status' => 'Aktif',
-                'join_date' => '15 Aug 2023'
             ],
         ];
 
