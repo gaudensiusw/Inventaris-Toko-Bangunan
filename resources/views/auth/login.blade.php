@@ -1,116 +1,146 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="en">
+
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Toko Bangunan IMS</title>
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
-    <!-- Scripts & Styles -->
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
 </head>
-<body class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 font-sans antialiased text-slate-900">
-    <div class="w-full max-w-md">
-        <!-- Logo and Title -->
-        <div class="text-center mb-8">
-            <div class="flex justify-center mb-4">
-                <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center">
-                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                </div>
-            </div>
-            <h1 class="text-3xl font-bold text-white mb-2">Toko Bangunan IMS</h1>
-            <p class="text-slate-400">Inventory Management System</p>
+
+<body class="bg-[#0f172a] min-h-screen flex flex-col items-center justify-center p-6">
+
+    <!-- Header Section -->
+    <div class="mb-8 text-center">
+        <div
+            class="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-900/20">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4">
+                </path>
+            </svg>
+        </div>
+        <h1 class="text-3xl font-bold text-white tracking-tight">Toko Bangunan Rajawali</h1>
+        <p class="text-slate-400 mt-1">Inventory Management System</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 mb-6">
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold text-slate-800">Sign In</h2>
+            <p class="text-slate-500 mt-1">Enter your credentials to access the system</p>
         </div>
 
-        <!-- Login Card -->
-        <div class="bg-white rounded-xl shadow-lg border border-slate-200">
-            <div class="p-6 pb-2">
-                <h3 class="text-xl font-semibold leading-none tracking-tight">Sign In</h3>
-                <p class="text-sm text-slate-500 mt-1.5">Enter your credentials to access the system</p>
+        @if($errors->any())
+            <div class="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">
+                {{ $errors->first() }}
             </div>
-            <div class="p-6 pt-4">
-                <!-- Ensure this points to the correct route in the future -->
-                <form method="POST" action="/login" class="space-y-4">
-                    @csrf
-                    
-                    <div class="space-y-2">
-                        <label for="email" class="text-sm rounded font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Email</label>
-                        <div class="relative">
-                            <svg class="absolute left-3 top-3 h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                            <input id="email" type="email" name="email" value="{{ old('email') }}" placeholder="user@tokobangunan.com" class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 pl-10" required autofocus>
-                        </div>
-                        @error('email')
-                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
+        @endif
 
-                    <div class="space-y-2">
-                        <label for="password" class="text-sm rounded font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Password</label>
-                        <div class="relative">
-                            <svg class="absolute left-3 top-3 h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                            <input id="password" type="password" name="password" placeholder="••••••••" class="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 pl-10" required>
-                        </div>
-                        @error('password')
-                            <p class="text-sm text-red-500 mt-1">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <div class="flex items-center space-x-2 py-1">
-                        <input id="remember" type="checkbox" name="remember" class="h-4 w-4 shrink-0 rounded border-slate-200 text-blue-600 focus:ring-blue-500">
-                        <label for="remember" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-600">
-                            Remember Me
-                        </label>
-                    </div>
-
-                    <button type="submit" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 bg-blue-600 text-white hover:bg-blue-700 h-10 px-4 py-2 w-full">
-                        Sign In
-                    </button>
-                </form>
-
-                <!-- Quick Login Options -->
-                <div class="mt-8">
+        <form action="{{ route('login.post') }}" method="POST" id="loginForm">
+            @csrf
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Email</label>
                     <div class="relative">
-                        <div class="absolute inset-0 flex items-center">
-                            <span class="w-full border-t border-slate-200"></span>
-                        </div>
-                        <div class="relative flex justify-center text-xs uppercase">
-                            <span class="bg-white px-2 text-slate-500">Quick Login (Demo)</span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-3 gap-2 mt-4">
-                        <button type="button" onclick="fillDemo('operator@tokobangunan.com')" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900 h-8 px-3 transition-colors">
-                            Operator
-                        </button>
-                        <button type="button" onclick="fillDemo('supervisor@tokobangunan.com')" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900 h-8 px-3 transition-colors">
-                            Supervisor
-                        </button>
-                        <button type="button" onclick="fillDemo('owner@tokobangunan.com')" class="inline-flex items-center justify-center rounded-md text-xs font-medium border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900 h-8 px-3 transition-colors">
-                            Owner
-                        </button>
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207">
+                                </path>
+                            </svg>
+                        </span>
+                        <input type="email" name="email" id="emailField" required
+                            class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                            placeholder="user@tokobangunan.com">
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <!-- Demo Info Card -->
-        <div class="mt-4 bg-blue-50 border border-blue-200 rounded-xl shadow-sm p-6 text-sm">
-            <p class="text-blue-900"><strong>Demo Accounts:</strong></p>
-            <ul class="text-blue-800 mt-2 space-y-1 text-xs">
-                <li>• <strong>Operator:</strong> operator@tokobangunan.com</li>
-                <li>• <strong>Supervisor:</strong> supervisor@tokobangunan.com</li>
-                <li>• <strong>Owner:</strong> owner@tokobangunan.com</li>
-            </ul>
-            <p class="mt-3 text-xs text-blue-800">Password: <strong>demo123</strong> (any password works for demo)</p>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                                </path>
+                            </svg>
+                        </span>
+                        <input type="password" name="password" id="passwordField" required
+                            class="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                            placeholder="••••••••">
+                    </div>
+                </div>
+
+                <button type="submit"
+                    class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl transition-colors shadow-lg shadow-slate-900/20 active:scale-[0.98]">
+                    Sign In
+                </button>
+            </div>
+        </form>
+
+        <!-- Quick Login Section -->
+        <div class="mt-8">
+            <div class="relative flex items-center mb-6">
+                <div class="flex-grow border-t border-slate-100"></div>
+                <span class="flex-shrink mx-4 text-xs font-bold text-slate-300 uppercase tracking-widest">Quick Login
+                    (Demo)</span>
+                <div class="flex-grow border-t border-slate-100"></div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+                <button onclick="quickLogin('operator@tokobangunan.com')"
+                    class="py-2.5 px-2 bg-white border border-slate-100 hover:border-blue-500 hover:text-blue-600 rounded-xl text-xs font-bold text-slate-600 transition-all shadow-sm">
+                    Operator
+                </button>
+                <button onclick="quickLogin('supervisor@tokobangunan.com')"
+                    class="py-2.5 px-2 bg-white border border-slate-100 hover:border-blue-500 hover:text-blue-600 rounded-xl text-xs font-bold text-slate-600 transition-all shadow-sm">
+                    Supervisor
+                </button>
+                <button onclick="quickLogin('owner@tokobangunan.com')"
+                    class="py-2.5 px-2 bg-white border border-slate-100 hover:border-blue-500 hover:text-blue-600 rounded-xl text-xs font-bold text-slate-600 transition-all shadow-sm">
+                    Owner
+                </button>
+            </div>
         </div>
     </div>
 
+    <!-- Info Box -->
+    <div class="w-full max-w-md bg-blue-50/50 border border-blue-100 rounded-3xl p-6">
+        <h3 class="text-sm font-bold text-blue-900 mb-3">Demo Accounts:</h3>
+        <ul class="space-y-2 text-xs font-medium text-blue-800/80">
+            <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                <strong class="text-blue-900">Operator:</strong> operator@tokobangunan.com
+            </li>
+            <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                <strong class="text-blue-900">Supervisor:</strong> supervisor@tokobangunan.com
+            </li>
+            <li class="flex items-center gap-2">
+                <span class="w-1.5 h-1.5 bg-blue-400 rounded-full"></span>
+                <strong class="text-blue-900">Owner:</strong> owner@tokobangunan.com
+            </li>
+        </ul>
+        <p class="mt-4 text-[10px] font-bold text-blue-400 uppercase tracking-wider">Password: demo123 (any password
+            works)</p>
+    </div>
+
     <script>
-        function fillDemo(email) {
-            document.getElementById('email').value = email;
-            document.getElementById('password').value = 'demo123';
+        function quickLogin(email) {
+            document.getElementById('emailField').value = email;
+            document.getElementById('passwordField').value = 'demo123';
+            // Optional: Auto submit
+            // document.getElementById('loginForm').submit();
         }
     </script>
 </body>
+
 </html>
