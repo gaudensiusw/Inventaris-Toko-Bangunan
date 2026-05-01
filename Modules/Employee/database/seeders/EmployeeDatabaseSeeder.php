@@ -11,6 +11,9 @@ class EmployeeDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // $this->call([]);
+        $this->call([
+            JabatanSeeder::class,
+            KaryawanSeeder::class,
+        ]);
     }
 }
