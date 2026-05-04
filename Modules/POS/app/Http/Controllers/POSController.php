@@ -17,14 +17,17 @@ class POSController extends Controller
     {
         $products = Product::with('category')->where('stok', '>', 0)->get();
         $categories = Category::all();
+        $customers = Customer::select('id', 'nama', 'kode', 'telp')->get();
 
-        return view('pos::index', compact('products', 'categories'));
+        return view('pos::index', compact('products', 'categories', 'customers'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'nama_pelanggan'  => 'nullable|string|max:255',
+            'telp_pelanggan'  => 'nullable|string|max:20',
+            'jatuh_tempo'     => 'nullable|date',
             'items'           => 'required|array|min:1',
             'items.*.produk_id' => 'required|exists:produk,id',
             'items.*.qty'     => 'required|integer|min:1',
@@ -38,17 +41,39 @@ class POSController extends Controller
         try {
             DB::beginTransaction();
 
-            // If payment is Bon, auto-save customer record
+            // If payment is Bon, handle debt logic
+            $status_pembayaran = 'lunas';
+            $jatuh_tempo = null;
+            $jumlah_bayar = $request->total_tagihan;
             $pelanggan_id = null;
             $nama_pelanggan = $request->nama_pelanggan ?: 'Umum';
 
-            if ($request->metode_pembayaran === 'Bon' && $request->nama_pelanggan) {
+            if ($request->metode_pembayaran === 'Bon') {
+                if (!$request->nama_pelanggan) {
+                    throw new \Exception("Pembayaran BON wajib menyertakan Nama Pelanggan.");
+                }
+
                 // Find existing or create new customer
                 $customer = Customer::firstOrCreate(
                     ['nama' => $request->nama_pelanggan],
-                    ['nama' => $request->nama_pelanggan]
+                    [
+                        'nama' => $request->nama_pelanggan,
+                        'telp' => $request->telp_pelanggan,
+                        'kode' => 'CUST-' . strtoupper(bin2hex(random_bytes(2))),
+                        'tenor_bayar' => 30
+                    ]
                 );
+
+                // If customer exists but has no phone, update it
+                if ($request->telp_pelanggan && !$customer->telp) {
+                    $customer->update(['telp' => $request->telp_pelanggan]);
+                }
+
                 $pelanggan_id = $customer->id;
+                $nama_pelanggan = $customer->nama;
+                $status_pembayaran = 'belum_bayar';
+                $jumlah_bayar = 0; 
+                $jatuh_tempo = $request->jatuh_tempo ?: now()->addDays($customer->tenor_bayar ?: 30);
             }
 
             $no_transaksi = 'TRX-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
@@ -61,10 +86,13 @@ class POSController extends Controller
                 'subtotal'         => $request->subtotal,
                 'pajak'            => $request->pajak,
                 'total_tagihan'    => $request->total_tagihan,
+                'jumlah_bayar'    => $jumlah_bayar,
+                'jatuh_tempo'      => $jatuh_tempo,
                 'metode_pembayaran'=> $request->metode_pembayaran,
                 'opsi_pengiriman'  => $request->opsi_pengiriman,
                 'catatan'          => $request->catatan,
                 'status'           => 'checkout',
+                'status_pembayaran'=> $status_pembayaran,
             ]);
 
             foreach ($request->items as $item) {

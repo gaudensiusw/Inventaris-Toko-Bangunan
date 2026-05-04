@@ -12,8 +12,19 @@ class Customer extends Model
     protected $table = 'pelanggan';
 
     protected $fillable = [
+        'kode',
         'nama',
+        'email',
+        'kategori',
         'telp',
-        'alamat'
+        'alamat',
+        'limit_kredit',
+        'tenor_bayar',
+        'status'
     ];
+
+    public function transactions()
+    {
+        return $this->hasMany(\Modules\POS\Models\POS::class, 'pelanggan_id');
+    }
 }

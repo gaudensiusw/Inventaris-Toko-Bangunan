@@ -4,88 +4,133 @@
 @section('header_title', 'Stock Opname')
 
 @section('content')
+<!-- Alert Messages -->
+@if(session('success'))
+    <div class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
+        <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        <span class="text-sm font-medium">{{ session('success') }}</span>
+    </div>
+@endif
+@if(session('error'))
+    <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        <span class="text-sm font-medium">{{ session('error') }}</span>
+    </div>
+@endif
+
 <!-- Stats Row -->
-<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Progress</p>
-        <h3 class="text-xl font-bold text-[#2563eb]">0/6</h3>
-        <p class="text-xs text-slate-500">(0%)</p>
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Produk</p>
+        <h3 class="text-xl font-bold text-[#2563eb]">{{ $products->count() }}</h3>
     </div>
-    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Sesuai</p>
-        <h3 class="text-xl font-bold text-green-600">6 produk</h3>
+    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center text-green-600">
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tersedia</p>
+        <h3 class="text-xl font-bold">{{ $products->where('stok', '>', 0)->count() }}</h3>
     </div>
-    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Selisih</p>
-        <h3 class="text-xl font-bold text-red-500">0 produk</h3>
+    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center text-red-500">
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Stok Habis</p>
+        <h3 class="text-xl font-bold">{{ $products->where('stok', '<=', 0)->count() }}</h3>
     </div>
-    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Surplus</p>
-        <h3 class="text-xl font-bold text-slate-800">0</h3>
-    </div>
-    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Kekurangan</p>
-        <h3 class="text-xl font-bold text-slate-800">0</h3>
-    </div>
-    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
-        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 line-clamp-1">Nilai Selisih</p>
-        <h3 class="text-xl font-bold text-slate-800">Rp 0</h3>
+    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center text-orange-500">
+        <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Menipis</p>
+        <h3 class="text-xl font-bold">{{ $products->where('stok', '<=', 5)->where('stok', '>', 0)->count() }}</h3>
     </div>
 </div>
 
-<!-- Filter Bar -->
-<div class="bg-white border border-slate-200 rounded-xl shadow-sm mb-6 p-4 flex flex-wrap gap-4 items-center justify-between">
-    <div class="relative w-full md:w-96">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-        </div>
-        <input type="text" placeholder="Cari produk (nama, SKU, barcode)..." class="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-slate-50">
+<!-- Opname Section -->
+<div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6" x-data="{ 
+    selectedProduct: null,
+    stokFisik: 0,
+    stokSistem: 0,
+    selisih: 0,
+    updateProduct(id, currentStok) {
+        this.selectedProduct = id;
+        this.stokSistem = currentStok;
+        this.stokFisik = currentStok;
+        this.calculate();
+    },
+    calculate() {
+        this.selisih = this.stokFisik - this.stokSistem;
+    }
+}">
+    <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+        <h3 class="text-base font-bold text-slate-800">Catat Stock Opname</h3>
     </div>
-    <div class="flex items-center gap-4">
-        <label class="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" class="w-4 h-4 text-[#2563eb] rounded border-slate-300 focus:ring-blue-500">
-            <span class="text-sm font-medium text-slate-700">Hanya Selisih</span>
-        </label>
-        <button class="bg-[#0f172a] hover:bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-            Export
-        </button>
+    <div class="p-6">
+        <form action="{{ route('stockopname.store') }}" method="POST" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            @csrf
+            <div class="md:col-span-1">
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Pilih Produk</label>
+                <select name="produk_id" required class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500" 
+                        @change="let opt = $event.target.selectedOptions[0]; updateProduct(opt.value, opt.dataset.stok)">
+                    <option value="">Pilih Produk...</option>
+                    @foreach($products as $p)
+                    <option value="{{ $p->id }}" data-stok="{{ $p->stok }}">{{ $p->nama }} (SKU: {{ $p->sku ?: '-' }})</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Stok Sistem</label>
+                <input type="text" x-model="stokSistem" readonly class="w-full border border-slate-200 rounded-lg text-sm p-2.5 bg-slate-50 text-slate-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Stok Fisik <span class="text-red-500">*</span></label>
+                <input type="number" name="stok_fisik" x-model="stokFisik" @input="calculate()" required class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <button type="submit" :disabled="!selectedProduct" class="w-full bg-[#0f172a] hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                    Simpan Opname
+                </button>
+            </div>
+            <div class="md:col-span-3">
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Keterangan / Alasan Selisih</label>
+                <input type="text" name="keterangan" placeholder="Contoh: Barang rusak, salah hitung sebelumnya, dll" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="text-center">
+                <div class="px-4 py-2 rounded-lg text-xs font-bold border uppercase tracking-widest" 
+                     :class="selisih == 0 ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'">
+                    Selisih: <span x-text="selisih"></span>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Opname Table -->
+<!-- List Produk Section -->
 <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="p-4 border-b border-slate-200 bg-slate-50">
+        <h3 class="text-base font-bold text-slate-800">Daftar Stok Produk Saat Ini</h3>
+    </div>
     <div class="overflow-x-auto">
         <table class="w-full text-left text-sm whitespace-nowrap">
             <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
                 <tr>
                     <th class="p-4 font-semibold uppercase tracking-wider text-xs">Produk</th>
-                    <th class="p-4 font-semibold uppercase tracking-wider text-xs">Stok Sistem</th>
-                    <th class="p-4 font-semibold uppercase tracking-wider text-xs">Stok Fisik</th>
-                    <th class="p-4 font-semibold uppercase tracking-wider text-xs">Selisih</th>
-                    <th class="p-4 font-semibold uppercase tracking-wider text-xs">Nilai Selisih</th>
+                    <th class="p-4 font-semibold uppercase tracking-wider text-xs text-center">Stok Saat Ini</th>
+                    <th class="p-4 font-semibold uppercase tracking-wider text-xs">Satuan</th>
+                    <th class="p-4 font-semibold uppercase tracking-wider text-xs">Kategori</th>
                     <th class="p-4 font-semibold uppercase tracking-wider text-xs">Status</th>
-                    <th class="p-4 font-semibold uppercase tracking-wider text-xs text-center">Aksi</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-                @foreach($opnames as $op)
+                @foreach($products as $p)
                 <tr class="hover:bg-slate-50 transition-colors">
-                    <td class="p-4 font-medium text-slate-800">{{ $op['product'] }}</td>
-                    <td class="p-4 text-slate-500">{{ $op['system'] }}</td>
                     <td class="p-4">
-                        <input type="number" value="{{ $op['physical'] }}" class="w-24 border border-slate-300 rounded px-2 py-1 text-sm focus:ring-blue-500 focus:border-blue-500 text-center">
+                        <div class="font-bold text-slate-800">{{ $p->nama }}</div>
+                        <div class="text-[10px] text-slate-500">SKU: {{ $p->sku ?: '-' }}</div>
                     </td>
-                    <td class="p-4 font-medium {{ $op['diff'] != '0' ? 'text-red-500' : 'text-slate-500' }}">{{ $op['diff'] }}</td>
-                    <td class="p-4 font-medium {{ $op['value_diff'] != 'Rp 0' ? 'text-red-500' : 'text-slate-500' }}">{{ $op['value_diff'] }}</td>
+                    <td class="p-4 text-center font-black text-slate-800">{{ number_format($p->stok, 0) }}</td>
+                    <td class="p-4 text-slate-500">{{ $p->unit }}</td>
+                    <td class="p-4 text-slate-700 font-medium">{{ $p->category->nama ?? '-' }}</td>
                     <td class="p-4">
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                            Sesuai
-                        </span>
-                    </td>
-                    <td class="p-4 text-center">
-                        <button class="text-blue-500 hover:text-blue-700 font-bold text-xs uppercase tracking-wider">Simpan</button>
+                        @if($p->stok <= 0)
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 uppercase border border-red-200">Habis</span>
+                        @elseif($p->stok <= 5)
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-orange-100 text-orange-700 uppercase border border-orange-200">Menipis</span>
+                        @else
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 uppercase border border-green-200">Aman</span>
+                        @endif
                     </td>
                 </tr>
                 @endforeach

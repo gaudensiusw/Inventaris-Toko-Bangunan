@@ -15,7 +15,8 @@
             'unit' => old('unit'),
             'min_stok' => old('min_stok'),
             'harga_beli' => old('harga_beli'),
-            'harga_jual' => old('harga_jual')
+            'harga_jual' => old('harga_jual'),
+            'merk' => old('merk')
         ] : new \stdClass();
     @endphp
 
@@ -176,7 +177,7 @@
                         <select name="supplier" onchange="this.form.submit()" class="pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all appearance-none cursor-pointer" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px;">
                             <option value="">All Suppliers</option>
                             @foreach($suppliers as $sup)
-                                <option value="{{ $sup->id }}" {{ request('supplier') == $sup->id ? 'selected' : '' }}>{{ $sup->nama }}</option>
+                                <option value="{{ $sup->id }}" {{ request('supplier') == $sup->id ? 'selected' : '' }}>{{ $sup->company_name }}</option>
                             @endforeach
                         </select>
                         <select name="per_page" onchange="this.form.submit()" class="pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 transition-all appearance-none cursor-pointer font-medium" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px;">
@@ -211,14 +212,19 @@
                                 class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-slate-50/50' }} hover:bg-blue-50/30 transition-colors">
                                 <td class="py-4 px-5">
                                     <div class="font-bold text-slate-800">{{ $product->nama }}</div>
-                                    <div class="text-[11px] text-slate-500 mt-0.5">SKU: {{ $product->sku }}</div>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <span class="text-[11px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-medium">SKU: {{ $product->sku }}</span>
+                                        @if($product->merk)
+                                            <span class="text-[11px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-bold uppercase tracking-wider">{{ $product->merk }}</span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="py-4 px-5 font-medium text-slate-700">
                                     {{ $product->category->nama ?? 'Uncategorized' }}
                                 </td>
                                 <td class="py-4 px-5">
                                     <div class="text-slate-600 text-[13px]">
-                                        {{ $product->supplier->nama ?? 'No Supplier' }}
+                                        {{ $product->supplier->company_name ?? 'No Supplier' }}
                                     </div>
                                 </td>
                                 <td class="py-4 px-5">
@@ -322,6 +328,15 @@
                             </div>
                             <div>
                                 <label
+                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Merk / Brand</label>
+                                <input type="text" name="merk" value="{{ old('merk') }}"
+                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                    placeholder="Contoh: Holcim, Rucika, dll">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1">
+                            <div>
+                                <label
                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">SKU</label>
                                 <input type="text" name="sku" value="{{ old('sku') }}"
                                     class="w-full border rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white {{ $errors->has('sku') ? 'border-red-400' : 'border-slate-300' }}"
@@ -348,7 +363,7 @@
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                                     <option value="">Select Supplier</option>
                                     @foreach($suppliers as $supplier)
-                                        <option value="{{ $supplier->id }}">{{ $supplier->nama }}</option>
+                                        <option value="{{ $supplier->id }}">{{ $supplier->company_name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -458,6 +473,15 @@
                             </div>
                             <div>
                                 <label
+                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Merk / Brand</label>
+                                <input type="text" name="merk" x-model="editForm.merk"
+                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                                    placeholder="Contoh: Holcim, Rucika, dll">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1">
+                            <div>
+                                <label
                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">SKU</label>
                                 <input type="text" name="sku" x-model="editForm.sku"
                                     class="w-full border rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white {{ $errors->has('sku') && old('edit_id') ? 'border-red-400' : 'border-slate-300' }}">
@@ -484,7 +508,7 @@
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                                     <option value="">Select Supplier</option>
                                     @foreach($suppliers as $supplier)
-                                        <option value="{{ $supplier->id }}">{{ $supplier->nama }}</option>
+                                        <option value="{{ $supplier->id }}">{{ $supplier->company_name }}</option>
                                     @endforeach
                                 </select>
                             </div>

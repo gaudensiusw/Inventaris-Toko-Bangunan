@@ -33,7 +33,10 @@
                             <svg class="w-10 h-10 text-slate-300 group-hover:text-blue-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
                         </div>
                         <div class="p-3 flex-1 flex flex-col">
-                            <h3 class="text-sm font-bold text-slate-800 line-clamp-2 leading-tight mb-1" x-text="product.nama"></h3>
+                            <h3 class="text-sm font-bold text-slate-800 line-clamp-2 leading-tight mb-0.5" x-text="product.nama"></h3>
+                            <template x-if="product.merk">
+                                <p class="text-[10px] font-black text-blue-600 uppercase tracking-tighter mb-1" x-text="product.merk"></p>
+                            </template>
                             <p class="text-[11px] text-slate-500 mb-2">Stok: <span class="font-bold" :class="product.stok <= 10 ? 'text-red-500' : 'text-slate-700'" x-text="product.stok + ' ' + product.unit"></span></p>
                             <div class="mt-auto flex items-center justify-between">
                                 <p class="text-sm font-bold text-[#2563eb]" x-text="formatCurrency(product.harga_jual)"></p>
@@ -62,14 +65,44 @@
             <!-- Customer (free text) -->
             <div class="flex items-center gap-3">
                 <label class="text-xs font-bold text-slate-500 uppercase w-24 flex-shrink-0">Pelanggan</label>
-                <div class="relative flex-1">
-                    <input type="text" x-model="nama_pelanggan" placeholder="Ketik nama pelanggan..." 
+                <div class="relative flex-1" @click.away="showCustomerDropdown = false">
+                    <input type="text" x-model="nama_pelanggan" 
+                        @input="showCustomerDropdown = true"
+                        @focus="showCustomerDropdown = true"
+                        placeholder="Nama pelanggan..." 
                         class="w-full border border-slate-300 rounded-lg text-sm py-1.5 px-3 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                    
+                    <!-- Search Results Dropdown -->
+                    <div x-show="showCustomerDropdown && filteredCustomersSearch.length > 0" 
+                        class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden"
+                        style="display: none;">
+                        <template x-for="c in filteredCustomersSearch" :key="c.id">
+                            <button @click="selectCustomer(c)" class="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors border-b border-slate-50 last:border-0">
+                                <div class="font-bold text-xs text-slate-800" x-text="c.nama"></div>
+                                <div class="text-[10px] text-slate-400" x-text="(c.kode || '') + ' • ' + (c.telp || '')"></div>
+                            </button>
+                        </template>
+                    </div>
+
                     <template x-if="metode_pembayaran === 'Bon' && nama_pelanggan">
-                        <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded">DISIMPAN</span>
+                        <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded">AUTO-SAVE</span>
                     </template>
                 </div>
             </div>
+            <!-- Phone Number (Optional) -->
+            <div class="flex items-center gap-3">
+                <label class="text-xs font-bold text-slate-500 uppercase w-24 flex-shrink-0">No. Telp</label>
+                <input type="text" x-model="telp_pelanggan" placeholder="08..." 
+                    class="flex-1 border border-slate-300 rounded-lg text-sm py-1.5 px-3 focus:ring-blue-500 focus:border-blue-500 bg-white">
+            </div>
+            <!-- Jatuh Tempo (Only for Bon) -->
+            <template x-if="metode_pembayaran === 'Bon'">
+                <div class="flex items-center gap-3">
+                    <label class="text-xs font-bold text-slate-500 uppercase w-24 flex-shrink-0">Jatuh Tempo</label>
+                    <input type="date" x-model="jatuh_tempo" 
+                        class="flex-1 border border-slate-300 rounded-lg text-sm py-1.5 px-3 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                </div>
+            </template>
             <!-- Date & Time -->
             <div class="flex items-center gap-3">
                 <label class="text-xs font-bold text-slate-500 uppercase w-24 flex-shrink-0">Waktu</label>
@@ -232,6 +265,8 @@ function posSystem() {
         search: '',
         categoryFilter: '',
         nama_pelanggan: '',
+        telp_pelanggan: '',
+        jatuh_tempo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         metode_pembayaran: 'Cash',
         opsi_pengiriman: 'Ambil Sendiri',
         catatan: '',
@@ -288,6 +323,24 @@ function posSystem() {
             this.cart.splice(idx, 1);
         },
 
+        // Customer Search
+        customers: @json($customers),
+        showCustomerDropdown: false,
+        get filteredCustomersSearch() {
+            if (!this.nama_pelanggan) return [];
+            return this.customers.filter(c => 
+                c.nama.toLowerCase().includes(this.nama_pelanggan.toLowerCase()) || 
+                (c.kode && c.kode.toLowerCase().includes(this.nama_pelanggan.toLowerCase()))
+            ).slice(0, 5);
+        },
+        selectCustomer(c) {
+            this.nama_pelanggan = c.nama;
+            this.telp_pelanggan = c.telp || '';
+            const tenor = c.tenor_bayar || 30;
+            this.jatuh_tempo = new Date(Date.now() + tenor * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            this.showCustomerDropdown = false;
+        },
+
         clearCart() {
             if (this.cart.length === 0) return;
             if (confirm('Kosongkan semua item di keranjang?')) {
@@ -326,6 +379,8 @@ function posSystem() {
                     headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
                     body: JSON.stringify({
                         nama_pelanggan:   this.nama_pelanggan || null,
+                        telp_pelanggan:   this.telp_pelanggan || null,
+                        jatuh_tempo:      this.metode_pembayaran === 'Bon' ? this.jatuh_tempo : null,
                         items:            this.cart,
                         subtotal:         this.subtotal,
                         pajak:            0,

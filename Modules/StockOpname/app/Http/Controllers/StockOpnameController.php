@@ -5,33 +5,49 @@ namespace Modules\StockOpname\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
+use Modules\Product\Models\Product;
+use Modules\StockOpname\Models\StockOpname;
+use Illuminate\Support\Facades\DB;
+
 class StockOpnameController extends Controller
 {
     public function index()
     {
-        $opnames = [
-            [
-                'product' => 'Semen Portland - Gresik (CEM-001, kg)',
-                'system' => '850', 'physical' => '850', 'diff' => '0',
-                'value_diff' => 'Rp 0', 'status' => 'Sesuai'
-            ],
-            [
-                'product' => 'Besi Beton 10mm x 12m (STL-002, piece)',
-                'system' => '180', 'physical' => '180', 'diff' => '0',
-                'value_diff' => 'Rp 0', 'status' => 'Sesuai'
-            ],
-            [
-                'product' => 'Bata Merah Press (BRK-003, piece)',
-                'system' => '15000', 'physical' => '15000', 'diff' => '0',
-                'value_diff' => 'Rp 0', 'status' => 'Sesuai'
-            ],
-            [
-                'product' => 'Pipa PVC 3" x 4m (PLB-005, piece)',
-                'system' => '45', 'physical' => '45', 'diff' => '0',
-                'value_diff' => 'Rp 0', 'status' => 'Sesuai'
-            ]
-        ];
+        $products = Product::orderBy('nama')->get();
+        return view('stockopname::index', compact('products'));
+    }
 
-        return view('stockopname::index', compact('opnames'));
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'produk_id'  => 'required|exists:produk,id',
+            'stok_fisik' => 'required|integer|min:0',
+            'keterangan' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $product = Product::findOrFail($request->produk_id);
+            $selisih = $request->stok_fisik - $product->stok;
+
+            StockOpname::create([
+                'produk_id'   => $request->produk_id,
+                'stok_sistem' => $product->stok,
+                'stok_fisik'  => $request->stok_fisik,
+                'selisih'     => $selisih,
+                'keterangan'  => $request->keterangan,
+            ]);
+
+            // Update product stock to match physical stock
+            $product->update(['stok' => $request->stok_fisik]);
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Stock opname berhasil dicatat.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal mencatat opname: ' . $e->getMessage());
+        }
     }
 }

@@ -59,6 +59,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'nama'        => 'required|string|max:255',
+            'merk'        => 'nullable|string|max:255',
             'sku'         => 'nullable|string|unique:produk,sku',
             'kategori_id' => 'nullable|exists:kategori,id',
             'supplier_id' => 'nullable|exists:supplier,id',
@@ -80,6 +81,7 @@ class ProductController extends Controller
         
         $validated = $request->validate([
             'nama'        => 'required|string|max:255',
+            'merk'        => 'nullable|string|max:255',
             'sku'         => 'nullable|string|unique:produk,sku,' . $product->id,
             'kategori_id' => 'nullable|exists:kategori,id',
             'supplier_id' => 'nullable|exists:supplier,id',

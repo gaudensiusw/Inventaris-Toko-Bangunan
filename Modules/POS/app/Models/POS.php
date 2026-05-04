@@ -20,10 +20,13 @@ class POS extends Model
         'subtotal',
         'pajak',
         'total_tagihan',
+        'jumlah_bayar',
+        'jatuh_tempo',
         'metode_pembayaran',
         'opsi_pengiriman',
         'catatan',
-        'status'
+        'status',
+        'status_pembayaran'
     ];
 
     public function details()
