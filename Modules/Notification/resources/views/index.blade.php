@@ -4,21 +4,7 @@
 @section('header_title', 'Notifikasi')
 
 @section('content')
-<div x-data='{ 
-    activeCategory: new URLSearchParams(window.location.search).get("category") || "all",
-    setCategory(cat) {
-        this.activeCategory = cat;
-        const url = new URL(window.location);
-        url.searchParams.set("category", cat);
-        window.history.pushState({}, "", url);
-    },
-    notifications: @json($notifications),
-    get filteredNotifications() {
-        var cat = this.activeCategory;
-        if (cat === "all") return this.notifications;
-        return this.notifications.filter(function(n) { return n.category === cat; });
-    }
-}' class="max-w-6xl mx-auto space-y-8">
+<div x-data="notificationData()" class="max-w-6xl mx-auto space-y-8">
 
     <div class="mb-4">
         <h3 class="text-lg font-bold text-slate-800">Filter Notifikasi</h3>
@@ -165,9 +151,9 @@
         </div>
 
         <div class="divide-y divide-slate-100 min-h-[300px]">
-            <template x-for="(notif, index) in filteredNotifications" :key="index">
+            <template x-for="(notif, index) in filteredNotifications" :key="notif.id">
                 <div class="p-6 hover:bg-slate-50/80 transition-all flex items-start gap-5" 
-                    :class="notif.unread ? 'bg-blue-50/30' : ''">
+                    :class="!notif.is_read ? 'bg-blue-50/30' : ''">
                     <div class="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm"
                         :class="{
                             'bg-red-100 text-red-600': notif.category === 'stok_rendah',
@@ -198,16 +184,16 @@
                                     'text-green-600': notif.category === 'penjualan'
                                 }"
                                 x-text="notif.type"></span>
-                            <span class="text-[11px] text-slate-400 font-bold" x-text="notif.time"></span>
+                            <span class="text-[11px] text-slate-400 font-bold" x-text="new Date(notif.created_at).toLocaleDateString()"></span>
                         </div>
                         <p class="text-[15px] text-slate-700 leading-relaxed font-medium" x-text="notif.message"></p>
                         <div class="mt-3 flex items-center gap-2">
-                            <button class="text-xs font-bold text-slate-500 hover:text-[#2563eb] transition-colors">Tandai dibaca</button>
-                            <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
+                            <button @click="markAsRead(notif.id)" x-show="!notif.is_read" class="text-xs font-bold text-slate-500 hover:text-[#2563eb] transition-colors">Tandai dibaca</button>
+                            <span x-show="!notif.is_read" class="w-1 h-1 bg-slate-300 rounded-full"></span>
                             <button class="text-xs font-bold text-slate-500 hover:text-red-500 transition-colors">Hapus</button>
                         </div>
                     </div>
-                    <div x-show="notif.unread" class="w-2.5 h-2.5 bg-blue-500 rounded-full mt-2 ring-4 ring-blue-100"></div>
+                    <div x-show="!notif.is_read" class="w-2.5 h-2.5 bg-blue-500 rounded-full mt-2 ring-4 ring-blue-100"></div>
                 </div>
             </template>
 
@@ -227,4 +213,43 @@
         </div>
     </div>
 </div>
+
+<script>
+function notificationData() {
+    return {
+        activeCategory: new URLSearchParams(window.location.search).get("category") || "all",
+        notifications: @json($notifications),
+        setCategory(cat) {
+            this.activeCategory = cat;
+            const url = new URL(window.location);
+            url.searchParams.set("category", cat);
+            window.history.pushState({}, "", url);
+        },
+        get filteredNotifications() {
+            var cat = this.activeCategory;
+            if (cat === "all") return this.notifications;
+            return this.notifications.filter(function(n) { return n.category === cat; });
+        },
+        markAsRead(id) {
+            fetch(`/notifications/${id}/read`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const index = this.notifications.findIndex(n => n.id === id);
+                    if (index !== -1) {
+                        this.notifications[index].is_read = true;
+                    }
+                }
+            });
+        }
+    }
+}
+</script>
 @endsection

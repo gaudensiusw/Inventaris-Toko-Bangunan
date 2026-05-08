@@ -24,9 +24,9 @@ class DummyDataSeeder extends Seeder
         }
 
         $suppliers = [
-            ['nama' => 'PT Semen Indonesia', 'telp' => '021-123456', 'alamat' => 'Gresik'],
-            ['nama' => 'CV Karya Besi', 'telp' => '021-654321', 'alamat' => 'Jakarta'],
-            ['nama' => 'TB Makmur Jaya', 'telp' => '021-789012', 'alamat' => 'Bandung']
+            ['company_name' => 'PT Semen Indonesia', 'phone' => '021-123456', 'address' => 'Gresik'],
+            ['company_name' => 'CV Karya Besi', 'phone' => '021-654321', 'address' => 'Jakarta'],
+            ['company_name' => 'TB Makmur Jaya', 'phone' => '021-789012', 'address' => 'Bandung']
         ];
 
         foreach ($suppliers as $sup) {

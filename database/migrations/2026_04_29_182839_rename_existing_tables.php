@@ -11,6 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::rename('m_kategori', 'kategori');
+        Schema::rename('m_supplier', 'supplier');
+        Schema::rename('m_pelanggan', 'pelanggan');
+        Schema::rename('m_produk', 'produk');
+        Schema::rename('t_pos', 'pos');
+        Schema::rename('t_pos_detail', 'pos_detail');
         Schema::rename('t_stock_management', 'stock_management');
         Schema::rename('t_stock_opname', 'stock_opname');
     }

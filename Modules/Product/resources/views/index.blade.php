@@ -348,7 +348,8 @@
                             <div>
                                 <label
                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Category</label>
-                                <select name="kategori_id"
+                                <select name="kategori_id" id="add_kategori_id"
+                                    onchange="loadSubCategories(this.value, 'add_sub_category_id')"
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                                     <option value="">Select Category</option>
                                     @foreach($categories as $category)
@@ -358,15 +359,23 @@
                             </div>
                             <div>
                                 <label
-                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Supplier</label>
-                                <select name="supplier_id"
+                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Sub Category</label>
+                                <select name="sub_category_id" id="add_sub_category_id"
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                                    <option value="">Select Supplier</option>
-                                    @foreach($suppliers as $supplier)
-                                        <option value="{{ $supplier->id }}">{{ $supplier->company_name }}</option>
-                                    @endforeach
+                                    <option value="">— pilih kategori dulu —</option>
                                 </select>
                             </div>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Supplier</label>
+                            <select name="supplier_id"
+                                class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                                <option value="">Select Supplier</option>
+                                @foreach($suppliers as $supplier)
+                                    <option value="{{ $supplier->id }}">{{ $supplier->company_name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="grid grid-cols-3 gap-4">
                             <div>
@@ -494,6 +503,7 @@
                                 <label
                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Category</label>
                                 <select name="kategori_id" x-model="editForm.kategori_id"
+                                    @change="loadSubCategories($event.target.value, 'edit_sub_category_id')"
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                                     <option value="">Select Category</option>
                                     @foreach($categories as $category)
@@ -503,15 +513,23 @@
                             </div>
                             <div>
                                 <label
-                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Supplier</label>
-                                <select name="supplier_id" x-model="editForm.supplier_id"
+                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Sub Category</label>
+                                <select name="sub_category_id" id="edit_sub_category_id"
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                                    <option value="">Select Supplier</option>
-                                    @foreach($suppliers as $supplier)
-                                        <option value="{{ $supplier->id }}">{{ $supplier->company_name }}</option>
-                                    @endforeach
+                                    <option value="">— pilih kategori dulu —</option>
                                 </select>
                             </div>
+                        </div>
+                        <div>
+                            <label
+                                class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Supplier</label>
+                            <select name="supplier_id" x-model="editForm.supplier_id"
+                                class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                                <option value="">Select Supplier</option>
+                                @foreach($suppliers as $supplier)
+                                    <option value="{{ $supplier->id }}">{{ $supplier->company_name }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="grid grid-cols-3 gap-4">
                             <div>
@@ -615,3 +633,26 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+function loadSubCategories(categoryId, targetId) {
+    const select = document.getElementById(targetId);
+    if (!categoryId) {
+        select.innerHTML = '<option value="">— pilih kategori dulu —</option>';
+        return;
+    }
+    select.innerHTML = '<option value="">Memuat...</option>';
+    fetch(`/products/sub-categories?category_id=${categoryId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.length === 0) {
+                select.innerHTML = '<option value="">Tidak ada subkategori</option>';
+            } else {
+                select.innerHTML = '<option value="">Pilih Sub Kategori</option>' +
+                    data.map(s => `<option value="${s.id}">${s.nama}</option>`).join('');
+            }
+        });
+}
+</script>
+@endpush

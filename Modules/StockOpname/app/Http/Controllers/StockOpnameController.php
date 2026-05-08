@@ -17,6 +17,12 @@ class StockOpnameController extends Controller
         return view('stockopname::index', compact('products'));
     }
 
+    public function history()
+    {
+        $history = StockOpname::with('product')->latest()->paginate(20);
+        return view('stockopname::history', compact('history'));
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

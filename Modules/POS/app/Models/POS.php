@@ -13,6 +13,7 @@ class POS extends Model
     protected $table = 'pos';
 
     protected $fillable = [
+        'user_id',
         'no_transaksi',
         'tgl_transaksi',
         'pelanggan_id',
@@ -28,6 +29,16 @@ class POS extends Model
         'status',
         'status_pembayaran'
     ];
+
+    protected $casts = [
+        'tgl_transaksi' => 'datetime',
+        'jatuh_tempo'   => 'date',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'user_id');
+    }
 
     public function details()
     {

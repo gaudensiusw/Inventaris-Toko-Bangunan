@@ -10,7 +10,7 @@ class AuthController extends Controller
     public function showLogin()
     {
         if (Auth::check()) {
-            return redirect()->intended('/product');
+            return redirect()->intended('/dashboard');
         }
         return view('auth.login');
     }
@@ -30,11 +30,11 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             $user = Auth::user();
-            if ($user->role === 'kasir') {
-                return redirect()->intended('/pos');
+            if ($user->role === 'operator') {
+                return redirect('/pos');
             }
 
-            return redirect()->intended('/products');
+            return redirect('/dashboard');
         }
 
         return back()->withErrors([

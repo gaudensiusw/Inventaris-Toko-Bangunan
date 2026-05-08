@@ -22,6 +22,11 @@ class TagihanSupplier extends Model
         'catatan'
     ];
 
+    protected $casts = [
+        'tgl_invoice' => 'date',
+        'jatuh_tempo' => 'date',
+    ];
+
     public function supplier()
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');

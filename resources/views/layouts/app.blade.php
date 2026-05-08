@@ -74,7 +74,7 @@
                         <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mt-4 mb-3">Main
                         </div>
 
-                        @if(in_array(auth()->user()->role, ['owner', 'admin']))
+                        @if(in_array(auth()->user()->role, ['owner', 'supervisor']))
                             <a href="{{ url('/dashboard') }}"
                                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('dashboard') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,6 +83,18 @@
                                     </path>
                                 </svg>
                                 <span class="flex-1 text-sm font-medium">Dashboard</span>
+                            </a>
+                        @endif
+
+                        @if(auth()->user()->role === 'operator')
+                            <a href="{{ url('/dashboard') }}"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('dashboard') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z">
+                                    </path>
+                                </svg>
+                                <span class="flex-1 text-sm font-medium">Dashboard Operator</span>
                             </a>
                         @endif
 
@@ -96,7 +108,7 @@
                             <span class="flex-1 text-sm font-medium">POS / Cashier</span>
                         </a>
 
-                        @if(in_array(auth()->user()->role, ['owner', 'admin']))
+                        @if(in_array(auth()->user()->role, ['owner', 'supervisor']))
                             <a href="{{ route('product.index') }}"
                                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('products*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                                 <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,7 +130,7 @@
                         @endif
 
                         <!-- MANAGEMENT -->
-                        @if(in_array(auth()->user()->role, ['owner', 'admin']))
+                        @if(in_array(auth()->user()->role, ['owner', 'supervisor']))
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mt-6 mb-3">
                                 Management</div>
 

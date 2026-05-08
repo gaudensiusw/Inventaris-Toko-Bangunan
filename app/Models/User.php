@@ -46,4 +46,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function pos()
+    {
+        return $this->hasMany(\Modules\POS\Models\POS::class, 'user_id');
+    }
 }

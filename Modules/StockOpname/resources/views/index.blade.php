@@ -97,6 +97,13 @@
     </div>
 </div>
 
+<div class="flex justify-center mb-6">
+    <a href="{{ route('stockopname.history') }}" class="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold hover:bg-slate-50 transition-all shadow-sm">
+        <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        Lihat Riwayat Stock Opname Lengkap
+    </a>
+</div>
+
 <!-- List Produk Section -->
 <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
     <div class="p-4 border-b border-slate-200 bg-slate-50">

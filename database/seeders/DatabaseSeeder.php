@@ -30,7 +30,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Supervisor',
                 'username' => 'supervisor',
                 'password' => \Illuminate\Support\Facades\Hash::make('demo123'),
-                'role' => 'admin',
+                'role' => 'supervisor',
                 'aktif' => true
             ]
         );
@@ -41,7 +41,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Operator',
                 'username' => 'operator',
                 'password' => \Illuminate\Support\Facades\Hash::make('demo123'),
-                'role' => 'kasir',
+                'role' => 'operator',
                 'aktif' => true
             ]
         );

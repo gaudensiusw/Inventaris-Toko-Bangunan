@@ -22,6 +22,20 @@ class POSController extends Controller
         return view('pos::index', compact('products', 'categories', 'customers'));
     }
 
+    public function history()
+    {
+        $user = auth()->user();
+        $query = POS::with('pelanggan')->latest();
+
+        // If operator, only show their own transactions
+        if ($user->role === 'operator') {
+            $query->where('user_id', $user->id);
+        }
+
+        $transactions = $query->paginate(20);
+        return view('pos::history', compact('transactions'));
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -79,6 +93,7 @@ class POSController extends Controller
             $no_transaksi = 'TRX-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
 
             $pos = POS::create([
+                'user_id'          => auth()->id(),
                 'no_transaksi'     => $no_transaksi,
                 'tgl_transaksi'    => now(),
                 'pelanggan_id'     => $pelanggan_id,

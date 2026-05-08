@@ -5,5 +5,6 @@ use Modules\StockOpname\Http\Controllers\StockOpnameController;
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/stock-opname', [StockOpnameController::class, 'index'])->name('stockopname.index');
+    Route::get('/stock-opname/history', [StockOpnameController::class, 'history'])->name('stockopname.history');
     Route::post('/stock-opname', [StockOpnameController::class, 'store'])->name('stockopname.store');
 });

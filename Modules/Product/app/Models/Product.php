@@ -16,6 +16,7 @@ class Product extends Model
         'nama',
         'merk',
         'kategori_id',
+        'sub_category_id',
         'supplier_id',
         'stok',
         'unit',
@@ -34,5 +35,10 @@ class Product extends Model
     public function supplier()
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
+    }
+
+    public function subCategory()
+    {
+        return $this->belongsTo(SubCategory::class, 'sub_category_id');
     }
 }
