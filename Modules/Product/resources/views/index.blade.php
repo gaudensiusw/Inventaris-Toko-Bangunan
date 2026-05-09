@@ -16,68 +16,223 @@
             'min_stok' => old('min_stok'),
             'harga_beli' => old('harga_beli'),
             'harga_jual' => old('harga_jual'),
-            'merk' => old('merk')
-        ] : new \stdClass();
+            'merk' => old('merk'),
+            'units' => old('units', [])
+        ] : (object)['units' => []];
+
+        $productMap = [];
+        foreach ($products as $p) {
+            $productMap[$p->id] = [
+                'id'              => $p->id,
+                'nama'            => $p->nama,
+                'sku'             => $p->sku,
+                'merk'            => $p->merk,
+                'kategori_id'     => $p->kategori_id,
+                'sub_kategori_id' => $p->sub_kategori_id,
+                'supplier_id'     => $p->supplier_id,
+                'unit'            => $p->unit,
+                'harga_beli'      => (int)$p->harga_beli,
+                'harga_jual'      => (int)$p->harga_jual,
+                'stok'            => (int)$p->stok,
+                'min_stok'        => (int)$p->min_stok,
+                'image'           => $p->image,
+                'units'           => $p->units->map(function($u) {
+                    return [
+                        'id'         => $u->id,
+                        'nama'       => $u->nama,
+                        'isi'        => $u->isi,
+                        'harga_jual' => (int)$u->harga_jual,
+                        'is_base'    => (bool)$u->is_base,
+                    ];
+                })->values()->all(),
+            ];
+        }
     @endphp
 
-    <div x-data="{ 
-            addModalOpen: {{ $errors->any() && !old('edit_id') ? 'true' : 'false' }}, 
-            editModalOpen: {{ $errors->any() && old('edit_id') ? 'true' : 'false' }}, 
-            deleteModalOpen: false,
-            editForm: @json($editFormData),
-            addForm: {
-                harga_beli: {{ old('harga_beli', 0) }},
-                harga_jual: {{ old('harga_jual', 0) }},
-                margin: 10
-            },
-            deleteForm: {},
+    <script>
+        window.productManagerConfig = {
+            initialAddModal: {{ $errors->any() && !old('edit_id') ? 'true' : 'false' }},
+            initialEditModal: {{ $errors->any() && old('edit_id') ? 'true' : 'false' }},
+            editFormData: {!! json_encode($editFormData) !!},
+            oldHargaBeli: {{ old('harga_beli', 0) }},
+            oldHargaJual: {{ old('harga_jual', 0) }},
+            oldKategoriId: {!! json_encode(old('kategori_id')) !!},
+            oldSubKategoriId: {!! json_encode(old('sub_kategori_id')) !!},
+            oldUnits: {!! json_encode(old('units', [])) !!},
+            availableUnits: {!! json_encode($availableUnits) !!}
+        };
 
-            formatNumber(val) {
-                if (val === undefined || val === null || val === '') return '';
-                return val.toString().replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-            },
+        // Product data map (built safely server-side)
+        window.productData = {!! json_encode(isset($productMap) ? $productMap : [], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE) !!};
 
-            unformatNumber(val) {
-                if (!val) return 0;
-                return parseInt(val.toString().replace(/\./g, '')) || 0;
-            },
+        // Available units for dropdowns
+        const availableUnitsData = window.productManagerConfig.availableUnits;
 
-            updatePrices(type, source) {
-                let form = type === 'add' ? this.addForm : this.editForm;
-                
-                if (source === 'beli' || source === 'margin') {
-                    // Update Harga Jual based on Margin
-                    form.harga_jual = Math.round(form.harga_beli * (1 + form.margin / 100));
-                } else if (source === 'jual') {
-                    // Update Margin based on Harga Jual
-                    if (form.harga_beli > 0) {
-                        form.margin = parseFloat(((form.harga_jual / form.harga_beli - 1) * 100).toFixed(2));
+        function productManager(config = window.productManagerConfig) {
+            return {
+                // State
+                addModalOpen: config.initialAddModal,
+                editModalOpen: config.initialEditModal,
+                deleteModalOpen: false,
+                editForm: {
+                    id: null, nama: '', sku: '', merk: '', unit: '',
+                    harga_beli: 0, harga_jual: 0, margin: 0,
+                    stok: 0, min_stok: 0, units: [],
+                    kategori_id: null, sub_kategori_id: null,
+                    supplier_id: null, imagePreview: null
+                },
+                addForm: {
+                    harga_beli: 0, harga_jual: 0, margin: 0,
+                    kategori_id: null, sub_kategori_id: null,
+                    units: [], unit: '', imagePreview: null
+                },
+                editSubCategories: [],
+                addSubCategories: [],
+                availableUnits: availableUnitsData,
+                deleteForm: {},
+
+                // Called automatically by Alpine on startup
+                init() {
+                    try {
+                        this.addModalOpen = config.initialAddModal || false;
+                        this.editModalOpen = config.initialEditModal;
+                        this.availableUnits = config.availableUnits;
+                        this.addForm.harga_beli = config.oldHargaBeli;
+                        this.addForm.harga_jual = config.oldHargaJual;
+                        this.addForm.margin = config.oldHargaBeli > 0
+                            ? parseFloat(((config.oldHargaJual / config.oldHargaBeli - 1) * 100).toFixed(2)) : 0;
+                        this.addForm.kategori_id = config.oldKategoriId;
+                        this.addForm.sub_kategori_id = config.oldSubKategoriId;
+                        this.addForm.units = (config.oldUnits && config.oldUnits.length > 0) ? config.oldUnits : [];
+
+                        if (config.editFormData && config.editFormData.id) {
+                            this.editForm = Object.assign(this.editForm, config.editFormData);
+                            if (this.editForm.harga_beli > 0) {
+                                this.editForm.margin = parseFloat(((this.editForm.harga_jual / this.editForm.harga_beli - 1) * 100).toFixed(2));
+                            }
+                        }
+
+                        if (config.initialAddModal && config.oldKategoriId) {
+                            this.fetchSubCategories('add', config.oldKategoriId);
+                        }
+                        if (config.initialEditModal && config.editFormData && config.editFormData.kategori_id) {
+                            this.fetchSubCategories('edit', config.editFormData.kategori_id);
+                        }
+                    } catch (e) {
+                        console.error('Error during productManager init:', e);
                     }
-                }
-            },
+                },
 
-            openEditModal(product) {
-                this.editForm = JSON.parse(JSON.stringify(product));
-                // Cast to integers to remove decimals
-                this.editForm.harga_beli = Math.floor(this.editForm.harga_beli);
-                this.editForm.harga_jual = Math.floor(this.editForm.harga_jual);
-                this.editForm.stok = Math.floor(this.editForm.stok);
-                this.editForm.min_stok = Math.floor(this.editForm.min_stok);
-                
-                // Calculate initial margin
-                if (this.editForm.harga_beli > 0) {
-                    this.editForm.margin = parseFloat(((this.editForm.harga_jual / this.editForm.harga_beli - 1) * 100).toFixed(2));
-                } else {
-                    this.editForm.margin = 0;
+                async fetchSubCategories(type, categoryId) {
+                    if (!categoryId) {
+                        if (type === 'add') this.addSubCategories = [];
+                        else this.editSubCategories = [];
+                        return;
+                    }
+                    try {
+                        const response = await fetch(`/api/sub-categories/${categoryId}`);
+                        const data = await response.json();
+                        if (type === 'add') this.addSubCategories = data;
+                        else this.editSubCategories = data;
+                    } catch (error) {
+                        console.error('Error fetching sub-categories:', error);
+                    }
+                },
+
+                addUnit(type) {
+                    let form = type === 'add' ? this.addForm : this.editForm;
+                    if (!form.units) form.units = [];
+                    const isBase = form.units.length === 0;
+                    form.units.push({
+                        nama: isBase ? (form.unit || '') : '',
+                        isi: 1,
+                        harga_jual: isBase ? (form.harga_jual || 0) : 0,
+                        is_base: isBase
+                    });
+                    if (isBase) {
+                        form.unit = form.units[0].nama;
+                        form.harga_jual = form.units[0].harga_jual;
+                    }
+                },
+
+                removeUnit(type, index) {
+                    let form = type === 'add' ? this.addForm : this.editForm;
+                    form.units.splice(index, 1);
+                },
+
+                formatNumber(val) {
+                    if (val === undefined || val === null || val === '') return '';
+                    return val.toString().replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                },
+
+                unformatNumber(val) {
+                    if (!val) return 0;
+                    return parseInt(val.toString().replace(/\./g, '')) || 0;
+                },
+
+                updatePrices(type, source) {
+                    let form = type === 'add' ? this.addForm : this.editForm;
+                    if (source === 'beli' || source === 'margin') {
+                        form.harga_jual = Math.round(form.harga_beli * (1 + form.margin / 100));
+                        if (form.units) {
+                            form.units.forEach(unit => {
+                                unit.harga_jual = Math.round((form.harga_beli * unit.isi) * (1 + form.margin / 100));
+                            });
+                        }
+                    } else if (source === 'jual') {
+                        if (form.harga_beli > 0) {
+                            form.margin = parseFloat(((form.harga_jual / form.harga_beli - 1) * 100).toFixed(2));
+                        }
+                    }
+                },
+
+                async openEditModal(product) {
+                    this.editForm = Object.assign({
+                        id: null, nama: '', sku: '', merk: '', unit: '',
+                        harga_beli: 0, harga_jual: 0, margin: 0,
+                        stok: 0, min_stok: 0, units: [],
+                        kategori_id: null, sub_kategori_id: null,
+                        supplier_id: null, imagePreview: null
+                    }, JSON.parse(JSON.stringify(product)));
+
+                    this.editForm.harga_beli = Math.floor(this.editForm.harga_beli);
+                    this.editForm.harga_jual = Math.floor(this.editForm.harga_jual);
+                    this.editForm.stok = Math.floor(this.editForm.stok);
+                    this.editForm.min_stok = Math.floor(this.editForm.min_stok);
+
+                    if (this.editForm.harga_beli > 0) {
+                        this.editForm.margin = parseFloat(((this.editForm.harga_jual / this.editForm.harga_beli - 1) * 100).toFixed(2));
+                    } else {
+                        this.editForm.margin = 0;
+                    }
+
+                    if (this.editForm.kategori_id) {
+                        await this.fetchSubCategories('edit', this.editForm.kategori_id);
+                    } else {
+                        this.editSubCategories = [];
+                    }
+
+                    this.editForm.units = product.units || [];
+                    if (this.editForm.units.length === 0 && this.editForm.unit) {
+                        this.editForm.units.push({
+                            nama: this.editForm.unit,
+                            isi: 1,
+                            harga_jual: this.editForm.harga_jual,
+                            is_base: true
+                        });
+                    }
+
+                    this.editModalOpen = true;
+                },
+
+                openDeleteModal(product) {
+                    this.deleteForm = product;
+                    this.deleteModalOpen = true;
                 }
-                
-                this.editModalOpen = true;
-            },
-            openDeleteModal(product) {
-                this.deleteForm = product;
-                this.deleteModalOpen = true;
-            }
-        }">
+            };
+        }
+    </script>
+    <div x-data="productManager()">
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
@@ -151,13 +306,22 @@
                     <h3 class="text-lg font-bold text-slate-800">Product Catalog</h3>
                     <p class="text-sm text-slate-500 mt-0.5">Manage your inventory and pricing</p>
                 </div>
-                <button @click="addModalOpen = true"
-                    class="bg-[#0f172a] hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Add Product
-                </button>
+                <div class="flex gap-2">
+                    <a href="{{ route('category.index') }}"
+                        class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        Kategori & Sub
+                    </a>
+                    <button @click="addForm.units = []; addUnit('add'); addModalOpen = true"
+                        class="bg-[#0f172a] hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Add Product
+                    </button>
+                </div>
             </div>
             <div class="p-4 border-b border-slate-200 bg-white flex flex-wrap gap-3">
                 <form action="{{ route('product.index') }}" method="GET" class="flex flex-wrap gap-3 flex-1">
@@ -198,7 +362,9 @@
                 <table class="w-full text-left text-sm whitespace-nowrap">
                     <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
                         <tr>
+                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">IMG</th>
                             <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Product Info</th>
+                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Brand</th>
                             <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Category</th>
                             <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Supplier</th>
                             <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Stock</th>
@@ -211,16 +377,35 @@
                             <tr
                                 class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-slate-50/50' }} hover:bg-blue-50/30 transition-colors">
                                 <td class="py-4 px-5">
-                                    <div class="font-bold text-slate-800">{{ $product->nama }}</div>
-                                    <div class="flex items-center gap-2 mt-0.5">
-                                        <span class="text-[11px] px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded font-medium">SKU: {{ $product->sku }}</span>
-                                        @if($product->merk)
-                                            <span class="text-[11px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-bold uppercase tracking-wider">{{ $product->merk }}</span>
+                                    <div class="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0">
+                                        @if($product->image)
+                                            <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->nama }}" class="w-full h-full object-cover">
+                                        @else
+                                            <div class="w-full h-full flex items-center justify-center text-slate-400">
+                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            </div>
                                         @endif
                                     </div>
                                 </td>
-                                <td class="py-4 px-5 font-medium text-slate-700">
-                                    {{ $product->category->nama ?? 'Uncategorized' }}
+                                <td class="py-4 px-5">
+                                    <div class="font-bold text-slate-800">{{ $product->nama }}</div>
+                                    <div class="text-[11px] text-slate-500 mt-0.5">SKU: {{ $product->sku }}</div>
+                                </td>
+                                <td class="py-4 px-5">
+                                    @if($product->merk)
+                                        <span class="text-[11px] px-2 py-1 bg-blue-50 text-blue-700 rounded-lg font-bold uppercase tracking-wider border border-blue-100 shadow-sm">{{ $product->merk }}</span>
+                                    @else
+                                        <span class="text-xs text-slate-400 italic">No Brand</span>
+                                    @endif
+                                </td>
+                                <td class="py-4 px-5">
+                                    <div class="font-bold text-slate-700 text-[13px]">{{ $product->category->nama ?? 'Uncategorized' }}</div>
+                                    @if($product->subCategory)
+                                        <div class="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
+                                            <span class="w-3 h-px bg-slate-200"></span>
+                                            <span>Sub: <span class="font-medium text-slate-600">{{ $product->subCategory->nama }}</span></span>
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="py-4 px-5">
                                     <div class="text-slate-600 text-[13px]">
@@ -245,7 +430,7 @@
                                     </div>
                                 </td>
                                 <td class="py-4 px-5 text-right space-x-2">
-                                    <button @click="openEditModal({{ $product->toJson() }})"
+                                    <button @click="openEditModal(productData[{{ $product->id }}])"
                                         class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block"
                                         title="Edit">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -254,7 +439,7 @@
                                             </path>
                                         </svg>
                                     </button>
-                                    <button @click="openDeleteModal({{ $product->toJson() }})"
+                                    <button @click="openDeleteModal(productData[{{ $product->id }}])"
                                         class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-block"
                                         title="Delete">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -267,7 +452,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="py-12 text-center text-slate-500">
+                                <td colspan="8" class="py-12 text-center text-slate-500">
                                     <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -315,7 +500,7 @@
                         </svg>
                     </button>
                 </div>
-                <form action="{{ route('product.store') }}" method="POST">
+                <form action="{{ route('product.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                         <div class="grid grid-cols-2 gap-4">
@@ -334,21 +519,40 @@
                                     placeholder="Contoh: Holcim, Rucika, dll">
                             </div>
                         </div>
-                        <div class="grid grid-cols-1">
+                        <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label
-                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">SKU</label>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">SKU</label>
                                 <input type="text" name="sku" value="{{ old('sku') }}"
                                     class="w-full border rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white {{ $errors->has('sku') ? 'border-red-400' : 'border-slate-300' }}"
                                     placeholder="Kosongkan jika otomatis">
                                 @error('sku')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                             </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Product Image</label>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center text-slate-400 group hover:border-blue-300 transition-colors cursor-pointer relative">
+                                        <template x-if="!addForm.imagePreview">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                                        </template>
+                                        <template x-if="addForm.imagePreview">
+                                            <img :src="addForm.imagePreview" class="w-full h-full object-cover">
+                                        </template>
+                                        <input type="file" name="image" class="absolute inset-0 opacity-0 cursor-pointer" 
+                                            @change="const file = $event.target.files[0]; if(file) { addForm.imagePreview = URL.createObjectURL(file); }">
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-[9px] text-slate-500 leading-tight">JPG, PNG. Max 2MB.</p>
+                                        <button type="button" x-show="addForm.imagePreview" @click="addForm.imagePreview = null;" class="text-[9px] text-red-500 font-bold uppercase">Hapus</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label
-                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Category</label>
-                                <select name="kategori_id"
+                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Category</label>
+                                <select name="kategori_id" x-model="addForm.kategori_id"
+                                    @change="fetchSubCategories('add', $event.target.value)"
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                                     <option value="">Select Category</option>
                                     @foreach($categories as $category)
@@ -357,6 +561,26 @@
                                 </select>
                             </div>
                             <div>
+                                <label
+                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Sub Category</label>
+                                <select name="sub_kategori_id" x-model="addForm.sub_kategori_id"
+                                    :disabled="!addForm.kategori_id"
+                                    :class="!addForm.kategori_id ? 'bg-slate-50 cursor-not-allowed opacity-60' : 'bg-white'"
+                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                                    <template x-if="!addForm.kategori_id">
+                                        <option value="">Silahkan pilih kategori dulu</option>
+                                    </template>
+                                    <template x-if="addForm.kategori_id">
+                                        <option value="">Select Sub Category</option>
+                                    </template>
+                                    <template x-for="sub in addSubCategories" :key="sub.id">
+                                        <option :value="sub.id" x-text="sub.nama"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1">
+                             <div>
                                 <label
                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Supplier</label>
                                 <select name="supplier_id"
@@ -368,28 +592,94 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-4">
+
+                        <!-- MULTIPLE UNITS SECTION -->
+                        <div class="border-t border-slate-100 pt-4 mt-2">
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-widest">Multi-Satuan & Harga</h4>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">Gunakan ini jika barang dijual dalam berbagai satuan (Contoh: Dus, Box, dll)</p>
+                                    <div class="mt-1 flex items-center gap-1.5">
+                                        <span class="flex w-2 h-2 rounded-full bg-blue-500"></span>
+                                        <p class="text-[9px] text-blue-600 font-bold uppercase italic">PENTING: Centang "Utama" pada satuan dasar (misal: Pcs) untuk harga standar.</p>
+                                    </div>
+                                </div>
+                                <button type="button" @click="addUnit('add')" class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm">
+                                    + Tambah Satuan
+                                </button>
+                            </div>
+                            
+                            <div class="space-y-3">
+                                <template x-for="(unit, index) in addForm.units" :key="index">
+                                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative group hover:border-blue-300 transition-all">
+                                        <button type="button" @click="removeUnit('add', index)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-lg">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                        <div class="grid grid-cols-12 gap-4">
+                                            <div class="col-span-4">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Pilih Satuan</label>
+                                                <select :name="`units[${index}][nama]`" x-model="unit.nama"
+                                                    @change="if(unit.is_base) addForm.unit = $event.target.value"
+                                                    class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-50/50">
+                                                    <option value="">Pilih Satuan...</option>
+                                                    <template x-for="std in availableUnits" :key="std.id">
+                                                        <option :value="std.nama" x-text="std.nama"></option>
+                                                    </template>
+                                                    <template x-if="unit.nama && !availableUnits.find(u => u.nama === unit.nama)">
+                                                        <option :value="unit.nama" x-text="unit.nama" selected></option>
+                                                    </template>
+                                                </select>
+                                            </div>
+                                            <div class="col-span-3">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jumlah Isi</label>
+                                                <div class="relative">
+                                                    <input type="number" step="0.01" :name="`units[${index}][isi]`" x-model="unit.isi" 
+                                                        @input="unit.harga_jual = Math.round((addForm.harga_beli * unit.isi) * (1 + addForm.margin / 100))"
+                                                        class="w-full border-slate-200 rounded text-xs p-2 pr-12 focus:ring-blue-500 bg-slate-50/50 font-bold">
+                                                    <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold" x-text="addForm.unit || 'Unit'"></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-span-4">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga Jual (Rp)</label>
+                                                <input type="number" :name="`units[${index}][harga_jual]`" x-model="unit.harga_jual" 
+                                                    @input="if(unit.is_base) { addForm.harga_jual = $event.target.value; updatePrices('add', 'jual') }"
+                                                    class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 font-mono bg-slate-50/50 font-bold text-blue-600">
+                                            </div>
+                                            <div class="col-span-1 flex flex-col items-center justify-center pt-1">
+                                                <label class="text-[8px] font-black text-slate-400 uppercase mb-1 text-center leading-none">Utama?</label>
+                                                <input type="checkbox" :name="`units[${index}][is_base]`" value="1" x-model="unit.is_base" 
+                                                    @change="if($event.target.checked) { 
+                                                        addForm.units.forEach((u, i) => { if(i !== index) u.is_base = false });
+                                                        addForm.unit = unit.nama;
+                                                        addForm.harga_jual = unit.harga_jual;
+                                                    }"
+                                                    class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 shadow-sm" title="Jadikan sebagai satuan harga utama">
+                                            </div>
+                                        </div>
+                                        <!-- Helpful Summary -->
+                                        <div class="mt-2 flex items-center gap-2">
+                                            <div class="h-px flex-1 bg-slate-100"></div>
+                                            <div class="px-2 py-0.5 bg-blue-50 rounded text-[9px] font-bold text-blue-700 italic border border-blue-100">
+                                                Artinya: 1 <span x-text="unit.nama || '...'"></span> berisi <span x-text="unit.isi || '0'"></span> <span x-text="addForm.unit || 'Unit Dasar'"></span>
+                                            </div>
+                                            <div class="h-px flex-1 bg-slate-100"></div>
+                                        </div>
+                                    </div>
+                                </template>
+                                <template x-if="addForm.units.length === 0">
+                                    <div class="text-center py-6 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/30">
+                                        <svg class="w-8 h-8 text-slate-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                                        <p class="text-[11px] text-slate-400 font-medium px-10">Belum ada pengaturan multi-satuan. Gunakan tombol di atas jika barang ini memiliki satuan jual grosir/box.</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Stock
                                     <span class="text-red-500">*</span></label>
                                 <input type="number" name="stok" value="{{ old('stok', 0) }}" @focus="$event.target.select()" required
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Unit
-                                    <span class="text-red-500">*</span></label>
-                                <select name="unit" required
-                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                                    <option value="">Select Unit</option>
-                                    @foreach($unitOptions as $group => $options)
-                                        <optgroup label="{{ $group }}">
-                                            @foreach($options as $option)
-                                                <option value="{{ $option }}" {{ old('unit') == $option ? 'selected' : '' }}>
-                                                    {{ $option }}</option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endforeach
-                                </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Min
@@ -398,7 +688,7 @@
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-4">
+                        <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label
                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Purchase
@@ -416,16 +706,10 @@
                                     @focus="$event.target.select()"
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 font-bold text-blue-600">
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Selling
-                                    Price (Rp) <span class="text-red-500">*</span></label>
-                                <input type="text" :value="formatNumber(addForm.harga_jual)"
-                                    @input="addForm.harga_jual = unformatNumber($event.target.value); updatePrices('add', 'jual')"
-                                    @focus="$event.target.select()" required
-                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white font-mono">
-                                <input type="hidden" name="harga_jual" :value="addForm.harga_jual">
-                            </div>
                         </div>
+                        <!-- Hidden but synced fields -->
+                        <input type="hidden" name="unit" :value="addForm.unit">
+                        <input type="hidden" name="harga_jual" :value="addForm.harga_jual">
                     </div>
                     <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
                         <button type="button" @click="addModalOpen = false"
@@ -457,7 +741,7 @@
                         </svg>
                     </button>
                 </div>
-                <form :action="`/products/${editForm.id}`" method="POST">
+                <form :action="`{{ url('/products') }}/${editForm.id}`" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     <input type="hidden" name="edit_id" :value="editForm.id">
@@ -479,14 +763,34 @@
                                     placeholder="Contoh: Holcim, Rucika, dll">
                             </div>
                         </div>
-                        <div class="grid grid-cols-1">
+                        <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label
-                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">SKU</label>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">SKU</label>
                                 <input type="text" name="sku" x-model="editForm.sku"
-                                    class="w-full border rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white {{ $errors->has('sku') && old('edit_id') ? 'border-red-400' : 'border-slate-300' }}">
-                                @if(old('edit_id')) @error('sku')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                                @enderror @endif
+                                    class="w-full border rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white {{ $errors->has('sku') ? 'border-red-400' : 'border-slate-300' }}">
+                                @error('sku')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Product Image</label>
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center text-slate-400 group hover:border-blue-300 transition-colors cursor-pointer relative">
+                                        <template x-if="!editForm.imagePreview && !editForm.image">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                                        </template>
+                                        <template x-if="!editForm.imagePreview && editForm.image">
+                                            <img :src="`{{ asset('storage') }}/${editForm.image}`" class="w-full h-full object-cover">
+                                        </template>
+                                        <template x-if="editForm.imagePreview">
+                                            <img :src="editForm.imagePreview" class="w-full h-full object-cover">
+                                        </template>
+                                        <input type="file" name="image" class="absolute inset-0 opacity-0 cursor-pointer" 
+                                            @change="const file = $event.target.files[0]; if(file) { editForm.imagePreview = URL.createObjectURL(file); }">
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-[9px] text-slate-500 leading-tight">JPG, PNG. Max 2MB.</p>
+                                        <button type="button" x-show="editForm.imagePreview || editForm.image" @click="editForm.imagePreview = null; editForm.image = null;" class="text-[9px] text-red-500 font-bold uppercase">Hapus</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
@@ -494,6 +798,7 @@
                                 <label
                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Category</label>
                                 <select name="kategori_id" x-model="editForm.kategori_id"
+                                    @change="fetchSubCategories('edit', $event.target.value)"
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                                     <option value="">Select Category</option>
                                     @foreach($categories as $category)
@@ -502,6 +807,26 @@
                                 </select>
                             </div>
                             <div>
+                                <label
+                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Sub Category</label>
+                                <select name="sub_kategori_id" x-model="editForm.sub_kategori_id"
+                                    :disabled="!editForm.kategori_id"
+                                    :class="!editForm.kategori_id ? 'bg-slate-50 cursor-not-allowed opacity-60' : 'bg-white'"
+                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                                    <template x-if="!editForm.kategori_id">
+                                        <option value="">Silahkan pilih kategori dulu</option>
+                                    </template>
+                                    <template x-if="editForm.kategori_id">
+                                        <option value="">Select Sub Category</option>
+                                    </template>
+                                    <template x-for="sub in editSubCategories" :key="sub.id">
+                                        <option :value="sub.id" :selected="sub.id == editForm.sub_kategori_id" x-text="sub.nama"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1">
+                             <div>
                                 <label
                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Supplier</label>
                                 <select name="supplier_id" x-model="editForm.supplier_id"
@@ -513,27 +838,94 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-4">
+
+                        <!-- MULTIPLE UNITS SECTION -->
+                        <div class="border-t border-slate-100 pt-4 mt-2">
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-widest">Multi-Satuan & Harga</h4>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">Gunakan ini jika barang dijual dalam berbagai satuan (Contoh: Dus, Box, dll)</p>
+                                    <div class="mt-1 flex items-center gap-1.5">
+                                        <span class="flex w-2 h-2 rounded-full bg-blue-500"></span>
+                                        <p class="text-[9px] text-blue-600 font-bold uppercase italic">PENTING: Centang "Utama" pada satuan dasar (misal: Pcs) untuk harga standar.</p>
+                                    </div>
+                                </div>
+                                <button type="button" @click="addUnit('edit')" class="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm">
+                                    + Tambah Satuan
+                                </button>
+                            </div>
+                            
+                            <div class="space-y-3">
+                                <template x-for="(unit, index) in editForm.units" :key="index">
+                                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm relative group hover:border-blue-300 transition-all">
+                                        <button type="button" @click="removeUnit('edit', index)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-lg">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                        <div class="grid grid-cols-12 gap-4">
+                                            <div class="col-span-4">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Pilih Satuan</label>
+                                                <select :name="`units[${index}][nama]`" x-model="unit.nama"
+                                                    @change="if(unit.is_base) editForm.unit = $event.target.value"
+                                                    class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-50/50">
+                                                    <option value="">Pilih Satuan...</option>
+                                                    <template x-for="std in availableUnits" :key="std.id">
+                                                        <option :value="std.nama" x-text="std.nama"></option>
+                                                    </template>
+                                                    <template x-if="unit.nama && !availableUnits.find(u => u.nama === unit.nama)">
+                                                        <option :value="unit.nama" x-text="unit.nama" selected></option>
+                                                    </template>
+                                                </select>
+                                            </div>
+                                            <div class="col-span-3">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jumlah Isi</label>
+                                                <div class="relative">
+                                                    <input type="number" step="0.01" :name="`units[${index}][isi]`" x-model="unit.isi" 
+                                                        @input="unit.harga_jual = Math.round((editForm.harga_beli * unit.isi) * (1 + editForm.margin / 100))"
+                                                        class="w-full border-slate-200 rounded text-xs p-2 pr-12 focus:ring-blue-500 bg-slate-50/50 font-bold">
+                                                    <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold" x-text="editForm.unit || 'Unit'"></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-span-4">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga Jual (Rp)</label>
+                                                <input type="number" :name="`units[${index}][harga_jual]`" x-model="unit.harga_jual" 
+                                                    @input="if(unit.is_base) { editForm.harga_jual = $event.target.value; updatePrices('edit', 'jual') }"
+                                                    class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 font-mono bg-slate-50/50 font-bold text-blue-600">
+                                            </div>
+                                            <div class="col-span-1 flex flex-col items-center justify-center pt-1">
+                                                <label class="text-[8px] font-black text-slate-400 uppercase mb-1 text-center leading-none">Utama?</label>
+                                                <input type="checkbox" :name="`units[${index}][is_base]`" value="1" x-model="unit.is_base" 
+                                                    @change="if($event.target.checked) { 
+                                                        editForm.units.forEach((u, i) => { if(i !== index) u.is_base = false });
+                                                        editForm.unit = unit.nama;
+                                                        editForm.harga_jual = unit.harga_jual;
+                                                    }"
+                                                    class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 shadow-sm" title="Jadikan sebagai satuan harga utama">
+                                            </div>
+                                        </div>
+                                        <!-- Helpful Summary -->
+                                        <div class="mt-2 flex items-center gap-2">
+                                            <div class="h-px flex-1 bg-slate-100"></div>
+                                            <div class="px-2 py-0.5 bg-blue-50 rounded text-[9px] font-bold text-blue-700 italic border border-blue-100">
+                                                Artinya: 1 <span x-text="unit.nama || '...'"></span> berisi <span x-text="unit.isi || '0'"></span> <span x-text="editForm.unit || 'Unit Dasar'"></span>
+                                            </div>
+                                            <div class="h-px flex-1 bg-slate-100"></div>
+                                        </div>
+                                    </div>
+                                </template>
+                                <template x-if="!editForm.units || editForm.units.length === 0">
+                                    <div class="text-center py-6 border-2 border-dashed border-slate-100 rounded-xl bg-slate-50/30">
+                                        <svg class="w-8 h-8 text-slate-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                                        <p class="text-[11px] text-slate-400 font-medium px-10">Belum ada pengaturan multi-satuan. Gunakan tombol di atas jika barang ini memiliki satuan jual grosir/box.</p>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Stock
                                     <span class="text-red-500">*</span></label>
                                 <input type="number" name="stok" x-model="editForm.stok" @focus="$event.target.select()" required
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Unit
-                                    <span class="text-red-500">*</span></label>
-                                <select name="unit" x-model="editForm.unit" required
-                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
-                                    <option value="">Select Unit</option>
-                                    @foreach($unitOptions as $group => $options)
-                                        <optgroup label="{{ $group }}">
-                                            @foreach($options as $option)
-                                                <option value="{{ $option }}">{{ $option }}</option>
-                                            @endforeach
-                                        </optgroup>
-                                    @endforeach
-                                </select>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Min
@@ -542,7 +934,7 @@
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                             </div>
                         </div>
-                        <div class="grid grid-cols-3 gap-4">
+                        <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label
                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Purchase
@@ -560,16 +952,10 @@
                                     @focus="$event.target.select()"
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 font-bold text-blue-600">
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Selling
-                                    Price (Rp) <span class="text-red-500">*</span></label>
-                                <input type="text" :value="formatNumber(editForm.harga_jual)"
-                                    @input="editForm.harga_jual = unformatNumber($event.target.value); updatePrices('edit', 'jual')"
-                                    @focus="$event.target.select()" required
-                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white font-mono">
-                                <input type="hidden" name="harga_jual" :value="editForm.harga_jual">
-                            </div>
                         </div>
+                        <!-- Hidden but synced fields -->
+                        <input type="hidden" name="unit" :value="editForm.unit">
+                        <input type="hidden" name="harga_jual" :value="editForm.harga_jual">
                     </div>
                     <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
                         <button type="button" @click="editModalOpen = false"
@@ -614,4 +1000,8 @@
             </div>
         </div>
     </div>
+    @php
+        // Moved productMap logic to top
+    @endphp
+
 @endsection

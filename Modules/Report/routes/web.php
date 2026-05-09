@@ -3,4 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Report\Http\Controllers\ReportController;
 
-Route::get('/reports', [ReportController::class, 'index'])->name('report.index');
+Route::middleware(['web', 'auth', 'role:owner'])->group(function () {
+    Route::get('/reports', [ReportController::class, 'index'])->name('report.index');
+    Route::get('/reports/{type}', [ReportController::class, 'show'])->name('report.show');
+});

@@ -38,7 +38,7 @@
                     </div>
                     <div>
                         <h2 class="font-bold tracking-wide">Toko Rajawali</h2>
-                        <p class="text-[11px] text-slate-400 font-medium">IMS v1.0</p>
+                        <p class="text-[11px] text-slate-400 font-medium">IMS</p>
                     </div>
                 </div>
                 <button @click="sidebarOpen = false" class="lg:hidden text-slate-400 hover:text-white">
@@ -104,6 +104,26 @@
                                         d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                                 </svg>
                                 <span class="flex-1 text-sm font-medium">Products</span>
+                            </a>
+
+                            <a href="{{ route('category.index') }}"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('categories*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                                    </path>
+                                </svg>
+                                <span class="flex-1 text-sm font-medium">Kategori & Sub</span>
+                            </a>
+
+                            <a href="{{ route('unit.index') }}"
+                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('units*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z">
+                                    </path>
+                                </svg>
+                                <span class="flex-1 text-sm font-medium">Master Satuan</span>
                             </a>
 
                             <a href="{{ url('/tagihan-supplier') }}"
@@ -210,15 +230,6 @@
                                 <span class="flex-1 text-sm font-medium">Reports</span>
                             </a>
 
-                            <a href="#"
-                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors text-slate-300 hover:bg-slate-800 hover:text-white">
-                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
-                                    </path>
-                                </svg>
-                                <span class="flex-1 text-sm font-medium">Financial Reports</span>
-                            </a>
                         @endif
 
                     </nav>
@@ -266,7 +277,7 @@
                 </div>
 
                 <div class="flex items-center gap-4">
-                    <button
+                    <a href="{{ route('notification.index') }}"
                         class="relative p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -275,7 +286,7 @@
                         </svg>
                         <span
                             class="absolute top-1.5 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-                    </button>
+                    </a>
                 </div>
             </header>
 
@@ -304,6 +315,23 @@
 
         .custom-scrollbar:hover::-webkit-scrollbar-thumb {
             background: #94a3b8;
+        }
+
+        @media print {
+            body, html, #app, main, .flex-1, .h-screen, .overflow-hidden, .overflow-y-auto, .overflow-auto {
+                height: auto !important;
+                min-height: auto !important;
+                overflow: visible !important;
+                position: relative !important;
+                display: block !important;
+            }
+            aside, header.bg-white {
+                display: none !important;
+            }
+            main {
+                padding: 0 !important;
+                margin: 0 !important;
+            }
         }
     </style>
     @stack('scripts')

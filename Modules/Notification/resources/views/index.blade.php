@@ -12,11 +12,50 @@
         url.searchParams.set("category", cat);
         window.history.pushState({}, "", url);
     },
-    notifications: @json($notifications),
+    notifications: [],
+    deletedNotifs: JSON.parse(localStorage.getItem("deletedNotifs") || "[]"),
+    readNotifs: JSON.parse(localStorage.getItem("readNotifs") || "[]"),
+    
+    init() {
+        const rawNotifs = @json($notifications);
+        this.notifications = rawNotifs.filter(n => !this.deletedNotifs.includes(n.message)).map(n => {
+            if (this.readNotifs.includes(n.message)) {
+                n.unread = false;
+            }
+            return n;
+        });
+    },
+
     get filteredNotifications() {
         var cat = this.activeCategory;
         if (cat === "all") return this.notifications;
-        return this.notifications.filter(function(n) { return n.category === cat; });
+        return this.notifications.filter(n => n.category === cat);
+    },
+
+    markAsRead(index) {
+        const notif = this.filteredNotifications[index];
+        notif.unread = false;
+        if (!this.readNotifs.includes(notif.message)) {
+            this.readNotifs.push(notif.message);
+            localStorage.setItem("readNotifs", JSON.stringify(this.readNotifs));
+        }
+    },
+
+    deleteNotification(index) {
+        const notif = this.filteredNotifications[index];
+        this.deletedNotifs.push(notif.message);
+        localStorage.setItem("deletedNotifs", JSON.stringify(this.deletedNotifs));
+        this.notifications = this.notifications.filter(n => n.message !== notif.message);
+    },
+
+    markAllAsRead() {
+        this.notifications.forEach(n => {
+            n.unread = false;
+            if (!this.readNotifs.includes(n.message)) {
+                this.readNotifs.push(n.message);
+            }
+        });
+        localStorage.setItem("readNotifs", JSON.stringify(this.readNotifs));
     }
 }' class="max-w-6xl mx-auto space-y-8">
 
@@ -40,7 +79,7 @@
                 <div class="w-10 h-10 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
                 </div>
-                <span class="text-xl font-black text-slate-800">{{ count($notifications) }}</span>
+                <span class="text-xl font-black text-slate-800" x-text="notifications.length"></span>
             </div>
             <h4 class="font-bold text-slate-700 text-sm">Semua</h4>
             <p class="text-[10px] text-slate-500 mt-1" x-text="activeCategory === 'all' ? 'Filter aktif' : 'Lihat semua'"></p>
@@ -59,7 +98,7 @@
                 <div class="w-10 h-10 bg-red-100 text-red-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                 </div>
-                <span class="text-xl font-black text-slate-800">{{ $counts['stok_rendah'] }}</span>
+                <span class="text-xl font-black text-slate-800" x-text="notifications.filter(n => n.category === 'stok_rendah').length"></span>
             </div>
             <h4 class="font-bold text-slate-700 text-sm">Stok Rendah</h4>
             <p class="text-[10px] text-slate-500 mt-1" x-text="activeCategory === 'stok_rendah' ? 'Filter aktif' : 'Klik utk filter'"></p>
@@ -78,7 +117,7 @@
                 <div class="w-10 h-10 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
-                <span class="text-xl font-black text-slate-800">{{ $counts['tagihan'] }}</span>
+                <span class="text-xl font-black text-slate-800" x-text="notifications.filter(n => n.category === 'tagihan').length"></span>
             </div>
             <h4 class="font-bold text-slate-700 text-sm">Tagihan</h4>
             <p class="text-[10px] text-slate-500 mt-1" x-text="activeCategory === 'tagihan' ? 'Filter aktif' : 'Klik utk filter'"></p>
@@ -97,7 +136,7 @@
                 <div class="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
-                <span class="text-xl font-black text-slate-800">{{ $counts['sistem'] }}</span>
+                <span class="text-xl font-black text-slate-800" x-text="notifications.filter(n => n.category === 'sistem').length"></span>
             </div>
             <h4 class="font-bold text-slate-700 text-sm">Sistem</h4>
             <p class="text-[10px] text-slate-500 mt-1" x-text="activeCategory === 'sistem' ? 'Filter aktif' : 'Klik utk filter'"></p>
@@ -116,7 +155,7 @@
                 <div class="w-10 h-10 bg-green-100 text-green-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                 </div>
-                <span class="text-xl font-black text-slate-800">{{ $counts['penjualan'] }}</span>
+                <span class="text-xl font-black text-slate-800" x-text="notifications.filter(n => n.category === 'penjualan').length"></span>
             </div>
             <h4 class="font-bold text-slate-700 text-sm">Penjualan</h4>
             <p class="text-[10px] text-slate-500 mt-1" x-text="activeCategory === 'penjualan' ? 'Filter aktif' : 'Klik utk filter'"></p>
@@ -160,7 +199,7 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     Reset Filter
                 </button>
-                <button class="text-[#2563eb] hover:text-blue-800 text-sm font-bold">Tandai semua dibaca</button>
+                <button @click="markAllAsRead()" class="text-[#2563eb] hover:text-blue-800 text-sm font-bold">Tandai semua dibaca</button>
             </div>
         </div>
 
@@ -202,9 +241,9 @@
                         </div>
                         <p class="text-[15px] text-slate-700 leading-relaxed font-medium" x-text="notif.message"></p>
                         <div class="mt-3 flex items-center gap-2">
-                            <button class="text-xs font-bold text-slate-500 hover:text-[#2563eb] transition-colors">Tandai dibaca</button>
-                            <span class="w-1 h-1 bg-slate-300 rounded-full"></span>
-                            <button class="text-xs font-bold text-slate-500 hover:text-red-500 transition-colors">Hapus</button>
+                            <button @click="markAsRead(index)" x-show="notif.unread" class="text-xs font-bold text-slate-500 hover:text-[#2563eb] transition-colors">Tandai dibaca</button>
+                            <span x-show="notif.unread" class="w-1 h-1 bg-slate-300 rounded-full"></span>
+                            <button @click="deleteNotification(index)" class="text-xs font-bold text-slate-500 hover:text-red-500 transition-colors">Hapus</button>
                         </div>
                     </div>
                     <div x-show="notif.unread" class="w-2.5 h-2.5 bg-blue-500 rounded-full mt-2 ring-4 ring-blue-100"></div>

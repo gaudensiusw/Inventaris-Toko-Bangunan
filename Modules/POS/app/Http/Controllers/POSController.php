@@ -15,7 +15,7 @@ class POSController extends Controller
 {
     public function index()
     {
-        $products = Product::with('category')->where('stok', '>', 0)->get();
+        $products = Product::with(['category', 'units'])->where('stok', '>', 0)->get();
         $categories = Category::all();
         $customers = Customer::select('id', 'nama', 'kode', 'telp')->get();
 
@@ -25,17 +25,20 @@ class POSController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'nama_pelanggan'  => 'nullable|string|max:255',
-            'telp_pelanggan'  => 'nullable|string|max:20',
-            'jatuh_tempo'     => 'nullable|date',
-            'items'           => 'required|array|min:1',
+            'nama_pelanggan'    => 'nullable|string|max:255',
+            'telp_pelanggan'    => 'nullable|string|max:20',
+            'jatuh_tempo'       => 'nullable|date',
+            'items'             => 'required|array|min:1',
             'items.*.produk_id' => 'required|exists:produk,id',
-            'items.*.qty'     => 'required|integer|min:1',
-            'subtotal'        => 'required|numeric',
-            'pajak'           => 'required|numeric',
-            'total_tagihan'   => 'required|numeric',
+            'items.*.qty'       => 'required|numeric|min:0.01',
+            'items.*.satuan_nama' => 'required|string',
+            'items.*.isi'       => 'required|numeric|min:0.01',
+            'items.*.harga'     => 'required|numeric|min:0',
+            'subtotal'          => 'required|numeric',
+            'pajak'             => 'required|numeric',
+            'total_tagihan'     => 'required|numeric',
             'metode_pembayaran' => 'required|string',
-            'opsi_pengiriman' => 'required|string',
+            'opsi_pengiriman'   => 'required|string',
         ]);
 
         try {
@@ -97,20 +100,26 @@ class POSController extends Controller
 
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['produk_id']);
+                
+                // Calculate stock decrement in base unit
+                $stok_pengurang = $item['qty'] * $item['isi'];
 
-                if ($product->stok < $item['qty']) {
-                    throw new \Exception("Stok produk {$product->nama} tidak mencukupi.");
+                if ($product->stok < $stok_pengurang) {
+                    throw new \Exception("Stok produk {$product->nama} tidak mencukupi. Sisa stok (dasar): {$product->stok}");
                 }
 
                 POSDetail::create([
-                    'pos_id'    => $pos->id,
-                    'produk_id' => $item['produk_id'],
-                    'qty'       => $item['qty'],
-                    'harga'     => $product->harga_jual,
-                    'subtotal'  => $item['qty'] * $product->harga_jual,
+                    'pos_id'       => $pos->id,
+                    'produk_id'    => $item['produk_id'],
+                    'satuan_nama'  => $item['satuan_nama'],
+                    'isi'          => $item['isi'],
+                    'harga_satuan' => $item['harga'],
+                    'qty'          => $item['qty'],
+                    'harga'        => $item['harga'], // this is the selling price per unit chosen
+                    'subtotal'     => $item['qty'] * $item['harga'],
                 ]);
 
-                $product->decrement('stok', $item['qty']);
+                $product->decrement('stok', $stok_pengurang);
             }
 
             DB::commit();

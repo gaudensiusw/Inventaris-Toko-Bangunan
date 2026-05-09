@@ -29,8 +29,20 @@
             <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                 <template x-for="product in filteredProducts" :key="product.id">
                     <div class="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow flex flex-col group cursor-pointer" @click="addToCart(product)">
-                        <div class="h-28 bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center border-b border-slate-100 group-hover:from-blue-50 group-hover:to-blue-100 transition-all">
-                            <svg class="w-10 h-10 text-slate-300 group-hover:text-blue-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                        <div class="h-28 bg-white flex items-center justify-center border-b border-slate-100 group-hover:bg-blue-50 transition-all relative overflow-hidden">
+                            <template x-if="product.image">
+                                <img :src="'{{ asset('storage') }}/' + product.image" :alt="product.nama" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            </template>
+                            <template x-if="!product.image">
+                                <svg class="w-10 h-10 text-slate-200 group-hover:text-blue-200 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                            </template>
+                            
+                            <!-- Multi-Unit Badge -->
+                            <template x-if="product.units && product.units.length > 0">
+                                <div class="absolute top-2 right-2 flex items-center gap-1 z-10">
+                                    <span class="bg-blue-600/90 backdrop-blur-sm text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm tracking-wider uppercase">Multi</span>
+                                </div>
+                            </template>
                         </div>
                         <div class="p-3 flex-1 flex flex-col">
                             <h3 class="text-sm font-bold text-slate-800 line-clamp-2 leading-tight mb-0.5" x-text="product.nama"></h3>
@@ -122,11 +134,14 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-50">
-                    <template x-for="(item, index) in cart" :key="item.produk_id">
+                    <template x-for="(item, index) in cart" :key="item.cartId">
                         <tr class="hover:bg-slate-50/50">
                             <td class="py-2.5">
-                                <div class="font-medium text-slate-800 text-xs leading-tight" x-text="item.nama"></div>
-                                <div class="text-[10px] text-slate-400 mt-0.5" x-text="formatCurrency(item.harga) + ' / satuan'"></div>
+                                <div class="font-bold text-slate-800 text-xs leading-tight" x-text="item.nama"></div>
+                                <div class="flex items-center gap-1.5 mt-0.5">
+                                    <span class="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider" x-text="item.satuan_nama"></span>
+                                    <span class="text-[10px] text-slate-400" x-text="formatCurrency(item.harga)"></span>
+                                </div>
                             </td>
                             <td class="py-2.5 text-center">
                                 <div class="flex items-center justify-center gap-1">
@@ -215,6 +230,64 @@
         </div>
     </div>
 
+    <!-- ── UNIT SELECTION MODAL ────────────────────────────── -->
+    <div x-show="unitModalOpen" class="fixed inset-0 z-[110] flex items-center justify-center" style="display: none;">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="unitModalOpen = false" x-transition.opacity></div>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 m-4 overflow-hidden transform transition-all" x-transition>
+            <div class="p-5 border-b border-slate-100 flex items-center gap-4 bg-slate-50/50">
+                <div class="w-12 h-12 rounded-xl bg-white border border-slate-200 overflow-hidden flex-shrink-0">
+                    <template x-if="selectedProduct?.image">
+                        <img :src="'{{ asset('storage') }}/' + selectedProduct.image" class="w-full h-full object-cover">
+                    </template>
+                    <template x-if="!selectedProduct?.image">
+                        <div class="w-full h-full flex items-center justify-center text-slate-200 bg-slate-50">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </div>
+                    </template>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-base font-bold text-slate-800 truncate" x-text="selectedProduct?.nama"></h3>
+                    <p class="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Pilih Satuan Jual</p>
+                </div>
+                <button @click="unitModalOpen = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-4 space-y-3 max-h-[60vh] overflow-y-auto bg-slate-50">
+                <!-- Base Unit -->
+                <button @click="addUnitToCart(selectedProduct, { nama: selectedProduct.unit, isi: 1, harga_jual: selectedProduct.harga_jual })"
+                    class="w-full bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 p-4 rounded-xl flex items-center justify-between transition-all group">
+                    <div class="text-left">
+                        <div class="font-bold text-slate-800 group-hover:text-blue-700" x-text="selectedProduct?.unit + ' (Satuan Dasar)'"></div>
+                        <div class="text-xs text-slate-500">Harga standar per pcs/unit</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-black text-blue-600" x-text="formatCurrency(selectedProduct?.harga_jual)"></div>
+                        <div class="text-[10px] text-slate-400" x-text="'Stok: ' + Math.floor(selectedProduct?.stok)"></div>
+                    </div>
+                </button>
+
+                <!-- Multi Units -->
+                <template x-for="unit in (selectedProduct?.units || []).filter(u => !u.is_base)" :key="unit.id">
+                    <button @click="addUnitToCart(selectedProduct, unit)"
+                        class="w-full bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 p-4 rounded-xl flex items-center justify-between transition-all group">
+                        <div class="text-left">
+                            <div class="font-bold text-slate-800 group-hover:text-blue-700" x-text="unit.nama"></div>
+                            <div class="text-[10px] text-slate-500" x-text="'Isi: ' + unit.isi + ' ' + selectedProduct?.unit"></div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-black text-blue-600" x-text="formatCurrency(unit.harga_jual)"></div>
+                            <div class="text-[10px] text-slate-400" x-text="'Stok: ' + Math.floor(selectedProduct?.stok / unit.isi)"></div>
+                        </div>
+                    </button>
+                </template>
+            </div>
+            <div class="p-4 border-t border-slate-100 bg-white flex justify-center">
+                <button @click="unitModalOpen = false" class="text-xs font-bold text-slate-500 hover:text-slate-700">Kembali ke Daftar Barang</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ── CHECKOUT CONFIRMATION MODAL ──────────────────────── -->
     <div x-show="checkoutModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center" style="display: none;">
         <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" @click="!loading && (checkoutModalOpen = false)" x-transition.opacity></div>
@@ -272,6 +345,8 @@ function posSystem() {
         catatan: '',
         currentTime: '',
         checkoutModalOpen: false,
+        unitModalOpen: false,
+        selectedProduct: null,
         loading: false,
 
         init() {
@@ -303,20 +378,52 @@ function posSystem() {
         },
 
         addToCart(product) {
-            const idx = this.cart.findIndex(i => i.produk_id === product.id);
+            if (product.stok <= 0) {
+                alert('Stok produk ini habis');
+                return;
+            }
+
+            if (product.units && product.units.length > 0) {
+                this.selectedProduct = JSON.parse(JSON.stringify(product));
+                this.unitModalOpen = true;
+            } else {
+                this.addUnitToCart(product, {
+                    nama: product.unit,
+                    isi: 1,
+                    harga_jual: product.harga_jual
+                });
+            }
+        },
+
+        addUnitToCart(product, unit) {
+            const cartId = product.id + '-' + unit.nama;
+            const idx = this.cart.findIndex(i => i.cartId === cartId);
+            
+            // Calculate available qty in this unit
+            const availableQty = Math.floor(product.stok / unit.isi);
+            
             if (idx > -1) {
-                if (this.cart[idx].qty < product.stok) {
+                if (this.cart[idx].qty < availableQty) {
                     this.cart[idx].qty++;
                 } else {
-                    alert(`Stok ${product.nama} hanya ${product.stok} ${product.unit}`);
+                    alert(`Stok tidak mencukupi untuk unit ${unit.nama}`);
                 }
             } else {
-                if (product.stok <= 0) {
-                    alert('Stok produk ini habis');
+                if (availableQty <= 0) {
+                    alert(`Stok tidak mencukupi untuk unit ${unit.nama}`);
                     return;
                 }
-                this.cart.push({ produk_id: product.id, nama: product.nama, qty: 1, harga: product.harga_jual });
+                this.cart.push({ 
+                    cartId: cartId,
+                    produk_id: product.id, 
+                    nama: product.nama, 
+                    satuan_nama: unit.nama,
+                    isi: unit.isi,
+                    qty: 1, 
+                    harga: unit.harga_jual 
+                });
             }
+            this.unitModalOpen = false;
         },
 
         removeFromCart(idx) {
@@ -351,12 +458,17 @@ function posSystem() {
         },
 
         updateQty(idx, delta) {
-            const newQty = this.cart[idx].qty + delta;
-            const product = this.products.find(p => p.id === this.cart[idx].produk_id);
+            const item = this.cart[idx];
+            const newQty = item.qty + delta;
+            const product = this.products.find(p => p.id === item.produk_id);
+            
+            // Calculate available qty in this unit
+            const availableQty = Math.floor(product.stok / item.isi);
+
             if (newQty <= 0) {
                 this.removeFromCart(idx);
-            } else if (newQty > product.stok) {
-                alert(`Stok tidak mencukupi. Tersedia: ${product.stok} ${product.unit}`);
+            } else if (newQty > availableQty) {
+                alert(`Stok tidak mencukupi untuk unit ${item.satuan_nama}. Maks: ${availableQty}`);
             } else {
                 this.cart[idx].qty = newQty;
             }

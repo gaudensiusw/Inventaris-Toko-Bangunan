@@ -231,7 +231,7 @@
         <div class="item-row">
             <div class="item-name">{{ $detail->product->nama ?? 'Produk Dihapus' }}</div>
             <div class="item-detail">
-                <span>{{ $detail->qty }} {{ $detail->product->unit ?? '' }} × {{ number_format($detail->harga, 0, ',', '.') }}</span>
+                <span>{{ $detail->qty }} {{ $detail->satuan_nama ?? ($detail->product->unit ?? '') }} × {{ number_format($detail->harga_satuan ?: $detail->harga, 0, ',', '.') }}</span>
                 <span class="item-subtotal">{{ number_format($detail->subtotal, 0, ',', '.') }}</span>
             </div>
         </div>
