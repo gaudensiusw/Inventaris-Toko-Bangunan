@@ -34,8 +34,10 @@ class POSController extends Controller
             'items.*.satuan_nama' => 'required|string',
             'items.*.isi'       => 'required|numeric|min:0.01',
             'items.*.harga'     => 'required|numeric|min:0',
+            'items.*.diskon_rp' => 'nullable|numeric|min:0',
             'subtotal'          => 'required|numeric',
             'pajak'             => 'required|numeric',
+            'ongkos_kirim'      => 'nullable|numeric|min:0',
             'total_tagihan'     => 'required|numeric',
             'metode_pembayaran' => 'required|string',
             'opsi_pengiriman'   => 'required|string',
@@ -88,6 +90,7 @@ class POSController extends Controller
                 'nama_pelanggan'   => $nama_pelanggan,
                 'subtotal'         => $request->subtotal,
                 'pajak'            => $request->pajak,
+                'ongkos_kirim'     => $request->ongkos_kirim ?? 0,
                 'total_tagihan'    => $request->total_tagihan,
                 'jumlah_bayar'    => $jumlah_bayar,
                 'jatuh_tempo'      => $jatuh_tempo,
@@ -108,15 +111,19 @@ class POSController extends Controller
                     throw new \Exception("Stok produk {$product->nama} tidak mencukupi. Sisa stok (dasar): {$product->stok}");
                 }
 
+                $diskon_rp = $item['diskon_rp'] ?? 0;
+                $harga_final = max(0, $item['harga'] - $diskon_rp);
+
                 POSDetail::create([
                     'pos_id'       => $pos->id,
                     'produk_id'    => $item['produk_id'],
                     'satuan_nama'  => $item['satuan_nama'],
                     'isi'          => $item['isi'],
                     'harga_satuan' => $item['harga'],
+                    'diskon_rp'    => $diskon_rp,
                     'qty'          => $item['qty'],
-                    'harga'        => $item['harga'], // this is the selling price per unit chosen
-                    'subtotal'     => $item['qty'] * $item['harga'],
+                    'harga'        => $harga_final, // this is the final selling price per unit chosen
+                    'subtotal'     => $item['qty'] * $harga_final,
                 ]);
 
                 $product->decrement('stok', $stok_pengurang);

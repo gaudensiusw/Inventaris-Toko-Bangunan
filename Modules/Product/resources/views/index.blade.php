@@ -76,12 +76,14 @@
                 deleteModalOpen: false,
                 editForm: {
                     id: null, nama: '', sku: '', merk: '', unit: '',
+                    harga_beli_kemasan: 0, isi_kemasan_beli: 1,
                     harga_beli: 0, harga_jual: 0, margin: 0,
                     stok: 0, min_stok: 0, units: [],
                     kategori_id: null, sub_kategori_id: null,
                     supplier_id: null, imagePreview: null
                 },
                 addForm: {
+                    harga_beli_kemasan: 0, isi_kemasan_beli: 1,
                     harga_beli: 0, harga_jual: 0, margin: 0,
                     kategori_id: null, sub_kategori_id: null,
                     units: [], unit: '', imagePreview: null
@@ -98,6 +100,8 @@
                         this.editModalOpen = config.initialEditModal;
                         this.availableUnits = config.availableUnits;
                         this.addForm.harga_beli = config.oldHargaBeli;
+                        this.addForm.harga_beli_kemasan = config.oldHargaBeli;
+                        this.addForm.isi_kemasan_beli = 1;
                         this.addForm.harga_jual = config.oldHargaJual;
                         this.addForm.margin = config.oldHargaBeli > 0
                             ? parseFloat(((config.oldHargaJual / config.oldHargaBeli - 1) * 100).toFixed(2)) : 0;
@@ -107,23 +111,30 @@
 
                         if (config.editFormData && config.editFormData.id) {
                             this.editForm = Object.assign(this.editForm, config.editFormData);
+                            this.editForm.harga_beli_kemasan = Math.floor(this.editForm.harga_beli);
+                            this.editForm.isi_kemasan_beli = 1;
                             if (this.editForm.harga_beli > 0) {
                                 this.editForm.margin = parseFloat(((this.editForm.harga_jual / this.editForm.harga_beli - 1) * 100).toFixed(2));
                             }
                         }
 
                         if (config.initialAddModal && config.oldKategoriId) {
-                            this.fetchSubCategories('add', config.oldKategoriId);
+                            this.fetchSubCategories('add', config.oldKategoriId, false);
                         }
                         if (config.initialEditModal && config.editFormData && config.editFormData.kategori_id) {
-                            this.fetchSubCategories('edit', config.editFormData.kategori_id);
+                            this.fetchSubCategories('edit', config.editFormData.kategori_id, false);
                         }
                     } catch (e) {
                         console.error('Error during productManager init:', e);
                     }
                 },
 
-                async fetchSubCategories(type, categoryId) {
+                async fetchSubCategories(type, categoryId, resetSub = true) {
+                    if (resetSub) {
+                        if (type === 'add') this.addForm.sub_kategori_id = null;
+                        else this.editForm.sub_kategori_id = null;
+                    }
+
                     if (!categoryId) {
                         if (type === 'add') this.addSubCategories = [];
                         else this.editSubCategories = [];
@@ -172,16 +183,21 @@
 
                 updatePrices(type, source) {
                     let form = type === 'add' ? this.addForm : this.editForm;
-                    if (source === 'beli' || source === 'margin') {
+                    
+                    if (source === 'beli' || source === 'jual') {
+                        // Jika harga beli atau harga jual berubah, hitung ulang marginnya
+                        if (form.harga_beli > 0) {
+                            form.margin = parseFloat(((form.harga_jual / form.harga_beli - 1) * 100).toFixed(2));
+                        }
+                    } else if (source === 'margin') {
+                        // Jika margin yang diubah manual, hitung ulang harga jualnya
                         form.harga_jual = Math.round(form.harga_beli * (1 + form.margin / 100));
+                        
+                        // Update harga satuan-satuan lainnya mengikuti margin baru
                         if (form.units) {
                             form.units.forEach(unit => {
                                 unit.harga_jual = Math.round((form.harga_beli * unit.isi) * (1 + form.margin / 100));
                             });
-                        }
-                    } else if (source === 'jual') {
-                        if (form.harga_beli > 0) {
-                            form.margin = parseFloat(((form.harga_jual / form.harga_beli - 1) * 100).toFixed(2));
                         }
                     }
                 },
@@ -196,6 +212,8 @@
                     }, JSON.parse(JSON.stringify(product)));
 
                     this.editForm.harga_beli = Math.floor(this.editForm.harga_beli);
+                    this.editForm.harga_beli_kemasan = this.editForm.harga_beli;
+                    this.editForm.isi_kemasan_beli = 1;
                     this.editForm.harga_jual = Math.floor(this.editForm.harga_jual);
                     this.editForm.stok = Math.floor(this.editForm.stok);
                     this.editForm.min_stok = Math.floor(this.editForm.min_stok);
@@ -633,7 +651,7 @@
                                             <div class="col-span-3">
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jumlah Isi</label>
                                                 <div class="relative">
-                                                    <input type="number" step="0.01" :name="`units[${index}][isi]`" x-model="unit.isi" 
+                                                    <input type="number" step="1" min="1" :name="`units[${index}][isi]`" x-model="unit.isi" 
                                                         @input="unit.harga_jual = Math.round((addForm.harga_beli * unit.isi) * (1 + addForm.margin / 100))"
                                                         class="w-full border-slate-200 rounded text-xs p-2 pr-12 focus:ring-blue-500 bg-slate-50/50 font-bold">
                                                     <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold" x-text="addForm.unit || 'Unit'"></span>
@@ -641,9 +659,10 @@
                                             </div>
                                             <div class="col-span-4">
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga Jual (Rp)</label>
-                                                <input type="number" :name="`units[${index}][harga_jual]`" x-model="unit.harga_jual" 
-                                                    @input="if(unit.is_base) { addForm.harga_jual = $event.target.value; updatePrices('add', 'jual') }"
+                                                <input type="text" :value="formatNumber(unit.harga_jual)" 
+                                                    @input="unit.harga_jual = unformatNumber($event.target.value); if(unit.is_base) { addForm.harga_jual = unit.harga_jual; updatePrices('add', 'jual') }"
                                                     class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 font-mono bg-slate-50/50 font-bold text-blue-600">
+                                                <input type="hidden" :name="`units[${index}][harga_jual]`" :value="unit.harga_jual">
                                             </div>
                                             <div class="col-span-1 flex flex-col items-center justify-center pt-1">
                                                 <label class="text-[8px] font-black text-slate-400 uppercase mb-1 text-center leading-none">Utama?</label>
@@ -660,7 +679,7 @@
                                         <div class="mt-2 flex items-center gap-2">
                                             <div class="h-px flex-1 bg-slate-100"></div>
                                             <div class="px-2 py-0.5 bg-blue-50 rounded text-[9px] font-bold text-blue-700 italic border border-blue-100">
-                                                Artinya: 1 <span x-text="unit.nama || '...'"></span> berisi <span x-text="unit.isi || '0'"></span> <span x-text="addForm.unit || 'Unit Dasar'"></span>
+                                                Artinya: 1 <span x-text="unit.nama || '...'"></span> berisi <span x-text="Number(unit.isi) || '0'"></span> <span x-text="addForm.unit || 'Unit Dasar'"></span>
                                             </div>
                                             <div class="h-px flex-1 bg-slate-100"></div>
                                         </div>
@@ -680,6 +699,7 @@
                                     <span class="text-red-500">*</span></label>
                                 <input type="number" name="stok" value="{{ old('stok', 0) }}" @focus="$event.target.select()" required
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                                <p class="text-[10px] text-slate-500 mt-1 italic">Input jumlah dalam <span class="font-bold text-slate-700" x-text="addForm.unit || 'satuan utama'"></span>.</p>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Min
@@ -688,25 +708,50 @@
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label
-                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Purchase
-                                    Price (Rp) <span class="text-red-500">*</span></label>
-                                <input type="text" :value="formatNumber(addForm.harga_beli)"
-                                    @input="addForm.harga_beli = unformatNumber($event.target.value); updatePrices('add', 'beli')"
-                                    @focus="$event.target.select()" required
-                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white font-mono">
-                                <input type="hidden" name="harga_beli" :value="addForm.harga_beli">
+
+                        <!-- Harga Beli & Jual -->
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-2">
+                            <h4 class="text-[11px] font-black text-slate-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Pengaturan Harga Dasar
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="flex flex-col">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 h-7 flex items-end pb-1">Harga Beli (Modal per Satuan Utama) <span class="text-red-500 ml-1">*</span></label>
+                                    <div class="relative flex-1">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">Rp</span>
+                                        <input type="text" :value="formatNumber(addForm.harga_beli)"
+                                            @input="addForm.harga_beli = unformatNumber($event.target.value); updatePrices('add', 'beli')"
+                                            @focus="$event.target.select()" required
+                                            class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white font-mono font-bold">
+                                        <input type="hidden" name="harga_beli" :value="addForm.harga_beli">
+                                    </div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 h-7 flex items-end pb-1">Target Margin (%)</label>
+                                    <div class="relative flex-1">
+                                        <input type="number" step="0.01" x-model="addForm.margin"
+                                            @input="updatePrices('add', 'margin')"
+                                            @focus="$event.target.select()"
+                                            class="w-full pr-8 pl-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white font-bold text-blue-600">
+                                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">%</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 h-7 flex items-end pb-1">Harga Jual (Satuan Utama)</label>
+                                    <div class="relative flex-1">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-blue-400">Rp</span>
+                                        <input type="text" :value="formatNumber(addForm.harga_jual)"
+                                            @input="addForm.harga_jual = unformatNumber($event.target.value); updatePrices('add', 'jual')"
+                                            @focus="$event.target.select()" required
+                                            class="w-full pl-9 pr-3 py-2.5 border border-blue-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-blue-50 font-mono font-bold text-blue-700">
+                                        <input type="hidden" name="harga_jual" :value="addForm.harga_jual">
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Margin (%)</label>
-                                <input type="number" step="0.01" x-model="addForm.margin"
-                                    @input="updatePrices('add', 'margin')"
-                                    @focus="$event.target.select()"
-                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 font-bold text-blue-600">
-                            </div>
+                            <p class="text-[10px] text-slate-500 mt-3 italic">Catatan: Modal / Harga Beli ini akan diperbarui otomatis (Moving Average Cost) setiap ada Transaksi Pembelian baru.</p>
                         </div>
+
                         <!-- Hidden but synced fields -->
                         <input type="hidden" name="unit" :value="addForm.unit">
                         <input type="hidden" name="harga_jual" :value="addForm.harga_jual">
@@ -879,7 +924,7 @@
                                             <div class="col-span-3">
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jumlah Isi</label>
                                                 <div class="relative">
-                                                    <input type="number" step="0.01" :name="`units[${index}][isi]`" x-model="unit.isi" 
+                                                    <input type="number" step="1" min="1" :name="`units[${index}][isi]`" x-model="unit.isi" 
                                                         @input="unit.harga_jual = Math.round((editForm.harga_beli * unit.isi) * (1 + editForm.margin / 100))"
                                                         class="w-full border-slate-200 rounded text-xs p-2 pr-12 focus:ring-blue-500 bg-slate-50/50 font-bold">
                                                     <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold" x-text="editForm.unit || 'Unit'"></span>
@@ -887,9 +932,10 @@
                                             </div>
                                             <div class="col-span-4">
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga Jual (Rp)</label>
-                                                <input type="number" :name="`units[${index}][harga_jual]`" x-model="unit.harga_jual" 
-                                                    @input="if(unit.is_base) { editForm.harga_jual = $event.target.value; updatePrices('edit', 'jual') }"
+                                                <input type="text" :value="formatNumber(unit.harga_jual)" 
+                                                    @input="unit.harga_jual = unformatNumber($event.target.value); if(unit.is_base) { editForm.harga_jual = unit.harga_jual; updatePrices('edit', 'jual') }"
                                                     class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 font-mono bg-slate-50/50 font-bold text-blue-600">
+                                                <input type="hidden" :name="`units[${index}][harga_jual]`" :value="unit.harga_jual">
                                             </div>
                                             <div class="col-span-1 flex flex-col items-center justify-center pt-1">
                                                 <label class="text-[8px] font-black text-slate-400 uppercase mb-1 text-center leading-none">Utama?</label>
@@ -906,7 +952,7 @@
                                         <div class="mt-2 flex items-center gap-2">
                                             <div class="h-px flex-1 bg-slate-100"></div>
                                             <div class="px-2 py-0.5 bg-blue-50 rounded text-[9px] font-bold text-blue-700 italic border border-blue-100">
-                                                Artinya: 1 <span x-text="unit.nama || '...'"></span> berisi <span x-text="unit.isi || '0'"></span> <span x-text="editForm.unit || 'Unit Dasar'"></span>
+                                                Artinya: 1 <span x-text="unit.nama || '...'"></span> berisi <span x-text="Number(unit.isi) || '0'"></span> <span x-text="editForm.unit || 'Unit Dasar'"></span>
                                             </div>
                                             <div class="h-px flex-1 bg-slate-100"></div>
                                         </div>
@@ -926,6 +972,7 @@
                                     <span class="text-red-500">*</span></label>
                                 <input type="number" name="stok" x-model="editForm.stok" @focus="$event.target.select()" required
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                                <p class="text-[10px] text-slate-500 mt-1 italic">Input jumlah dalam <span class="font-bold text-slate-700" x-text="editForm.unit || 'satuan utama'"></span>.</p>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Min
@@ -934,25 +981,50 @@
                                     class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label
-                                    class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Purchase
-                                    Price (Rp) <span class="text-red-500">*</span></label>
-                                <input type="text" :value="formatNumber(editForm.harga_beli)"
-                                    @input="editForm.harga_beli = unformatNumber($event.target.value); updatePrices('edit', 'beli')"
-                                    @focus="$event.target.select()" required
-                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white font-mono">
-                                <input type="hidden" name="harga_beli" :value="editForm.harga_beli">
+
+                        <!-- Harga Beli & Jual -->
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-2">
+                            <h4 class="text-[11px] font-black text-slate-600 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Pengaturan Harga Dasar
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="flex flex-col">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 h-7 flex items-end pb-1">Harga Beli (Modal per Satuan Utama) <span class="text-red-500 ml-1">*</span></label>
+                                    <div class="relative flex-1">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">Rp</span>
+                                        <input type="text" :value="formatNumber(editForm.harga_beli)"
+                                            @input="editForm.harga_beli = unformatNumber($event.target.value); updatePrices('edit', 'beli')"
+                                            @focus="$event.target.select()" required
+                                            class="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white font-mono font-bold">
+                                        <input type="hidden" name="harga_beli" :value="editForm.harga_beli">
+                                    </div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 h-7 flex items-end pb-1">Target Margin (%)</label>
+                                    <div class="relative flex-1">
+                                        <input type="number" step="0.01" x-model="editForm.margin"
+                                            @input="updatePrices('edit', 'margin')"
+                                            @focus="$event.target.select()"
+                                            class="w-full pr-8 pl-3 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-white font-bold text-blue-600">
+                                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">%</span>
+                                    </div>
+                                </div>
+                                <div class="flex flex-col">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 h-7 flex items-end pb-1">Harga Jual (Satuan Utama)</label>
+                                    <div class="relative flex-1">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-blue-400">Rp</span>
+                                        <input type="text" :value="formatNumber(editForm.harga_jual)"
+                                            @input="editForm.harga_jual = unformatNumber($event.target.value); updatePrices('edit', 'jual')"
+                                            @focus="$event.target.select()" required
+                                            class="w-full pl-9 pr-3 py-2.5 border border-blue-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 bg-blue-50 font-mono font-bold text-blue-700">
+                                        <input type="hidden" name="harga_jual" :value="editForm.harga_jual">
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Margin (%)</label>
-                                <input type="number" step="0.01" x-model="editForm.margin"
-                                    @input="updatePrices('edit', 'margin')"
-                                    @focus="$event.target.select()"
-                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-slate-50 font-bold text-blue-600">
-                            </div>
+                            <p class="text-[10px] text-slate-500 mt-3 italic">Catatan: Modal / Harga Beli ini akan diperbarui otomatis (Moving Average Cost) setiap ada Transaksi Pembelian baru.</p>
                         </div>
+
                         <!-- Hidden but synced fields -->
                         <input type="hidden" name="unit" :value="editForm.unit">
                         <input type="hidden" name="harga_jual" :value="editForm.harga_jual">
@@ -972,7 +1044,7 @@
         <div x-show="deleteModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center" style="display: none;">
             <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="deleteModalOpen = false"
                 x-transition.opacity></div>
-            <div class="bg-white rounded-xl shadow-2xl w-full max-sm relative z-10 m-4 overflow-hidden transform transition-all"
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md relative z-10 m-4 overflow-hidden transform transition-all"
                 x-transition>
                 <div class="p-6 text-center">
                     <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">

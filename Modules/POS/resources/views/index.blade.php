@@ -126,9 +126,10 @@
         <div class="flex-1 overflow-y-auto px-4 py-2">
             <table class="w-full text-left text-sm">
                 <thead>
-                    <tr class="border-b border-slate-200 text-slate-500 text-xs">
+                    <tr class="border-b border-slate-200 text-slate-500 text-[11px]">
                         <th class="pb-2 font-semibold">Nama Barang</th>
                         <th class="pb-2 font-semibold text-center w-24">Jml</th>
+                        <th class="pb-2 font-semibold text-right w-20">Disc/Item</th>
                         <th class="pb-2 font-semibold text-right">Total</th>
                         <th class="pb-2 w-6"></th>
                     </tr>
@@ -150,7 +151,10 @@
                                     <button @click="updateQty(index, 1)" class="w-5 h-5 flex items-center justify-center rounded-md bg-slate-100 text-slate-600 hover:bg-green-100 hover:text-green-600 text-xs font-bold transition-colors">+</button>
                                 </div>
                             </td>
-                            <td class="py-2.5 text-right font-bold text-slate-700 text-xs whitespace-nowrap" x-text="formatCurrency(item.qty * item.harga)"></td>
+                            <td class="py-2.5 px-1">
+                                <input type="text" :value="formatNumber(item.diskon_rp)" @input="item.diskon_rp = unformatNumber($event.target.value)" class="w-full text-right font-bold text-[11px] border border-slate-200 rounded p-1 focus:ring-blue-500 focus:border-blue-500 text-red-500 bg-white" placeholder="0">
+                            </td>
+                            <td class="py-2.5 text-right font-bold text-slate-700 text-xs whitespace-nowrap" x-text="formatCurrency((item.harga - (item.diskon_rp || 0)) * item.qty)"></td>
                             <td class="py-2.5 pl-2 text-right">
                                 <button @click="removeFromCart(index)" class="text-slate-300 hover:text-red-500 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
@@ -175,12 +179,23 @@
             <textarea x-model="catatan" placeholder="Catatan pesanan..." rows="2" class="w-full border border-slate-300 rounded-lg text-xs p-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"></textarea>
 
             <!-- Pengiriman -->
-            <div class="flex items-center justify-between">
-                <label class="text-xs font-bold text-slate-500 uppercase">Pengiriman</label>
-                <div class="flex bg-slate-200 rounded-lg p-0.5 gap-0.5">
-                    <button @click="opsi_pengiriman = 'Ambil Sendiri'" :class="opsi_pengiriman === 'Ambil Sendiri' ? 'bg-white text-slate-800 shadow' : 'text-slate-500'" class="px-3 py-1 text-[11px] font-bold rounded-md transition-all">Ambil</button>
-                    <button @click="opsi_pengiriman = 'Antar'" :class="opsi_pengiriman === 'Antar' ? 'bg-white text-slate-800 shadow' : 'text-slate-500'" class="px-3 py-1 text-[11px] font-bold rounded-md transition-all">Antar</button>
+            <div class="flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                    <label class="text-xs font-bold text-slate-500 uppercase">Pengiriman</label>
+                    <div class="flex bg-slate-200 rounded-lg p-0.5 gap-0.5">
+                        <button @click="opsi_pengiriman = 'Ambil Sendiri'; ongkos_kirim = 0;" :class="opsi_pengiriman === 'Ambil Sendiri' ? 'bg-white text-slate-800 shadow' : 'text-slate-500'" class="px-3 py-1 text-[11px] font-bold rounded-md transition-all">Ambil</button>
+                        <button @click="opsi_pengiriman = 'Antar'" :class="opsi_pengiriman === 'Antar' ? 'bg-white text-slate-800 shadow' : 'text-slate-500'" class="px-3 py-1 text-[11px] font-bold rounded-md transition-all">Antar</button>
+                    </div>
                 </div>
+                <template x-if="opsi_pengiriman === 'Antar'">
+                    <div class="flex items-center gap-3">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase w-24 flex-shrink-0">Ongkos Kirim</label>
+                        <div class="relative flex-1">
+                            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
+                            <input type="text" :value="formatNumber(ongkos_kirim)" @input="ongkos_kirim = unformatNumber($event.target.value)" class="w-full border border-slate-300 rounded-lg text-xs py-1.5 pl-7 pr-3 focus:ring-blue-500 focus:border-blue-500 bg-white font-mono font-bold text-slate-700" placeholder="0">
+                        </div>
+                    </div>
+                </template>
             </div>
 
             <!-- Metode Pembayaran -->
@@ -208,6 +223,12 @@
                     <span class="text-slate-500">Pajak (0%)</span>
                     <span class="font-bold text-slate-700">Rp 0</span>
                 </div>
+                <template x-if="opsi_pengiriman === 'Antar'">
+                    <div class="flex justify-between text-sm text-slate-500">
+                        <span>Ongkos Kirim</span>
+                        <span class="font-bold text-slate-700" x-text="formatCurrency(ongkos_kirim)"></span>
+                    </div>
+                </template>
                 <div class="flex justify-between items-end pt-1">
                     <span class="text-base font-bold text-slate-800">Total Tagihan</span>
                     <span class="text-2xl font-black text-[#2563eb]" x-text="formatCurrency(total_tagihan)"></span>
@@ -342,6 +363,7 @@ function posSystem() {
         jatuh_tempo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         metode_pembayaran: 'Cash',
         opsi_pengiriman: 'Ambil Sendiri',
+        ongkos_kirim: 0,
         catatan: '',
         currentTime: '',
         checkoutModalOpen: false,
@@ -370,11 +392,11 @@ function posSystem() {
         },
 
         get subtotal() {
-            return this.cart.reduce((sum, item) => sum + (item.qty * item.harga), 0);
+            return this.cart.reduce((sum, item) => sum + (item.qty * (item.harga - (Number(item.diskon_rp) || 0))), 0);
         },
 
         get total_tagihan() {
-            return this.subtotal;
+            return this.subtotal + (Number(this.ongkos_kirim) || 0);
         },
 
         addToCart(product) {
@@ -420,7 +442,8 @@ function posSystem() {
                     satuan_nama: unit.nama,
                     isi: unit.isi,
                     qty: 1, 
-                    harga: unit.harga_jual 
+                    harga: unit.harga_jual,
+                    diskon_rp: 0
                 });
             }
             this.unitModalOpen = false;
@@ -478,6 +501,16 @@ function posSystem() {
             return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(v);
         },
 
+        formatNumber(val) {
+            if (val === undefined || val === null || val === '') return '';
+            return val.toString().replace(/\D/g, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        },
+
+        unformatNumber(val) {
+            if (!val) return 0;
+            return parseInt(val.toString().replace(/\./g, '')) || 0;
+        },
+
         openCheckoutModal() {
             if (this.cart.length === 0) return;
             this.checkoutModalOpen = true;
@@ -496,6 +529,7 @@ function posSystem() {
                         items:            this.cart,
                         subtotal:         this.subtotal,
                         pajak:            0,
+                        ongkos_kirim:     this.ongkos_kirim,
                         total_tagihan:    this.total_tagihan,
                         metode_pembayaran:this.metode_pembayaran,
                         opsi_pengiriman:  this.opsi_pengiriman,

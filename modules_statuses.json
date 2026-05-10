@@ -13,5 +13,6 @@
     "Customer": true,
     "OperationalItem": true,
     "Notification": true,
-    "Report": true
+    "Report": true,
+    "Pembelian": true
 }

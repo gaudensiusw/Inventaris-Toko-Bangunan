@@ -18,6 +18,7 @@ class POSDetail extends Model
         'satuan_nama',
         'isi',
         'harga_satuan',
+        'diskon_rp',
         'qty',
         'harga',
         'subtotal'

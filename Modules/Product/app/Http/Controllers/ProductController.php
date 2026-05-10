@@ -60,6 +60,14 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
+        // Filter empty units
+        if ($request->has('units') && is_array($request->units)) {
+            $filteredUnits = array_filter($request->units, function($u) {
+                return !empty($u['nama']);
+            });
+            $request->merge(['units' => array_values($filteredUnits)]);
+        }
+
         $validated = $request->validate([
             'nama'            => 'required|string|max:255',
             'merk'            => 'nullable|string|max:255',
@@ -115,6 +123,14 @@ class ProductController extends Controller
     {
         $product = Product::findOrFail($id);
         
+        // Filter empty units
+        if ($request->has('units') && is_array($request->units)) {
+            $filteredUnits = array_filter($request->units, function($u) {
+                return !empty($u['nama']);
+            });
+            $request->merge(['units' => array_values($filteredUnits)]);
+        }
+
         $validated = $request->validate([
             'nama'            => 'required|string|max:255',
             'merk'            => 'nullable|string|max:255',

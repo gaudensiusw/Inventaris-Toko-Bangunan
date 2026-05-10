@@ -19,6 +19,7 @@ class POS extends Model
         'nama_pelanggan',
         'subtotal',
         'pajak',
+        'ongkos_kirim',
         'total_tagihan',
         'jumlah_bayar',
         'jatuh_tempo',
