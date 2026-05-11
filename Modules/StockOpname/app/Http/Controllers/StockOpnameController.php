@@ -13,8 +13,9 @@ class StockOpnameController extends Controller
 {
     public function index()
     {
-        $products = Product::orderBy('nama')->get();
-        return view('stockopname::index', compact('products'));
+        $allProducts = Product::orderBy('nama')->get();
+        $products = Product::with('category')->orderBy('nama')->paginate(15);
+        return view('stockopname::index', compact('products', 'allProducts'));
     }
 
     public function store(Request $request)

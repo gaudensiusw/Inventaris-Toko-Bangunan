@@ -162,6 +162,9 @@
                 </tbody>
             </table>
         </div>
+        <div class="px-5 py-4 border-t border-slate-100">
+            {{ $suppliers->links() }}
+        </div>
     </div>
 
     <!-- Products by Supplier Distribution -->

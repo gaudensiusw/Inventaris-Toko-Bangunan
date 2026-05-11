@@ -27,7 +27,7 @@
         <!-- Grid -->
         <div class="flex-1 overflow-y-auto p-4 bg-slate-50">
             <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
-                <template x-for="product in filteredProducts" :key="product.id">
+                <template x-for="product in paginatedProducts" :key="product.id">
                     <div class="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow flex flex-col group cursor-pointer" @click="addToCart(product)">
                         <div class="h-28 bg-white flex items-center justify-center border-b border-slate-100 group-hover:bg-blue-50 transition-all relative overflow-hidden">
                             <template x-if="product.image">
@@ -65,6 +65,19 @@
                         <p class="text-sm font-medium">Tidak ada produk ditemukan</p>
                     </div>
                 </template>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div x-show="totalPages > 1" class="mt-6 flex items-center justify-center gap-2 pb-4">
+                <button @click="if(page > 1) { page--; $el.closest('.overflow-y-auto').scrollTop = 0; }" :disabled="page === 1" class="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 transition-colors shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                </button>
+                <div class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 shadow-sm">
+                    Halaman <span x-text="page"></span> / <span x-text="totalPages"></span>
+                </div>
+                <button @click="if(page < totalPages) { page++; $el.closest('.overflow-y-auto').scrollTop = 0; }" :disabled="page === totalPages" class="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 transition-colors shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
             </div>
         </div>
     </div>
@@ -358,6 +371,10 @@ function posSystem() {
         cart: [],
         search: '',
         categoryFilter: '',
+        page: 1,
+        perPage: 12,
+
+
         nama_pelanggan: '',
         telp_pelanggan: '',
         jatuh_tempo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -371,9 +388,14 @@ function posSystem() {
         selectedProduct: null,
         loading: false,
 
+
         init() {
             this.updateTime();
             setInterval(() => this.updateTime(), 1000);
+
+            // Watch for changes and reset page
+            this.$watch('search', () => { this.page = 1; });
+            this.$watch('categoryFilter', () => { this.page = 1; });
         },
 
         updateTime() {
@@ -384,12 +406,24 @@ function posSystem() {
         },
 
         get filteredProducts() {
-            return this.products.filter(p => {
+            let filtered = this.products.filter(p => {
                 const matchSearch = p.nama.toLowerCase().includes(this.search.toLowerCase());
                 const matchCat = this.categoryFilter === '' || p.kategori_id == this.categoryFilter;
                 return matchSearch && matchCat;
             });
+            // Reset page if search/filter changes
+            return filtered;
         },
+
+        get paginatedProducts() {
+            const start = (this.page - 1) * this.perPage;
+            return this.filteredProducts.slice(start, start + this.perPage);
+        },
+
+        get totalPages() {
+            return Math.ceil(this.filteredProducts.length / this.perPage);
+        },
+
 
         get subtotal() {
             return this.cart.reduce((sum, item) => sum + (item.qty * (item.harga - (Number(item.diskon_rp) || 0))), 0);

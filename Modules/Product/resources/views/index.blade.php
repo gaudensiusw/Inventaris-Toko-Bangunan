@@ -225,7 +225,7 @@
                     }
 
                     if (this.editForm.kategori_id) {
-                        await this.fetchSubCategories('edit', this.editForm.kategori_id);
+                        await this.fetchSubCategories('edit', this.editForm.kategori_id, false);
                     } else {
                         this.editSubCategories = [];
                     }

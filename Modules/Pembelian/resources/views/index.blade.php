@@ -147,7 +147,7 @@
                     <tr>
                         <td colspan="5" class="py-12 text-center text-slate-500">
                             <div class="flex flex-col items-center">
-                                <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                                <svg class="w-12 h-12 text-slate-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012-2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                                 <p class="text-sm font-medium">Belum ada riwayat pembelian.</p>
                             </div>
                         </td>
@@ -156,6 +156,10 @@
                 </tbody>
             </table>
         </div>
+        <div class="px-5 py-4 border-t border-slate-100">
+            {{ $pembelians->links() }}
+        </div>
+    </div>
     </div>
 
     <!-- ADD MODAL (CART) -->
@@ -175,7 +179,8 @@
 
             <form action="{{ route('pembelian.store') }}" method="POST" class="flex flex-col overflow-hidden h-full">
                 @csrf
-                <div class="p-6 overflow-y-auto flex-1">
+                <div class="p-6 overflow-y-auto flex-1 custom-scrollbar" style="min-height: 400px;">
+
                     
                     <!-- Header Info -->
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -211,7 +216,8 @@
                         </button>
                     </h4>
 
-                    <div class="space-y-3">
+                    <div class="space-y-3 pb-40">
+
                         <template x-for="(item, index) in form.items" :key="index">
                             <div class="flex flex-wrap items-end gap-3 bg-white border border-slate-200 p-3 rounded-lg shadow-sm">
                                 
@@ -223,19 +229,23 @@
                                             <span x-text="item.produk_id ? (products.find(p => p.id == item.produk_id)?.nama + ' (' + (products.find(p => p.id == item.produk_id)?.sku || products.find(p => p.id == item.produk_id)?.merk || '-') + ')') : '-- Ketik / Pilih Barang --'" class="truncate"></span>
                                             <svg class="w-4 h-4 flex-shrink-0 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                         </div>
-                                        <div x-show="searchOpen" class="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden" style="display: none;">
+                                        <div x-show="searchOpen" class="absolute z-[100] left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-2xl overflow-hidden" style="display: none;">
                                             <div class="p-2 border-b border-slate-100 bg-slate-50">
                                                 <input type="text" x-model="search" x-ref="searchInput" placeholder="Cari nama/sku/merk..." class="w-full text-sm p-2 border border-slate-300 rounded focus:ring-blue-500 focus:border-blue-500" @keydown.escape="searchOpen = false">
                                             </div>
-                                            <div class="max-h-48 overflow-y-auto custom-scrollbar">
-                                                <template x-for="p in products.filter(p => p.nama.toLowerCase().includes(search.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(search.toLowerCase())) || (p.merk && p.merk.toLowerCase().includes(search.toLowerCase())))" :key="p.id">
+                                            <div class="max-h-60 overflow-y-auto custom-scrollbar">
+                                                <template x-for="p in products.filter(p => (!form.supplier_id || p.supplier_id == form.supplier_id) && (p.nama.toLowerCase().includes(search.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(search.toLowerCase())) || (p.merk && p.merk.toLowerCase().includes(search.toLowerCase()))))" :key="p.id">
                                                     <div @click="item.produk_id = p.id; updateProductUnits(index); searchOpen = false; search = ''" class="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer border-b border-slate-50 last:border-0">
                                                         <div class="font-bold text-slate-800" x-text="p.nama"></div>
-                                                        <div class="text-[10px] text-slate-500" x-text="p.sku || p.merk || '-'"></div>
+                                                        <div class="flex justify-between items-center">
+                                                            <div class="text-[10px] text-slate-500" x-text="p.sku || p.merk || '-'"></div>
+                                                            <div class="text-[10px] font-bold text-blue-600">Rp <span x-text="formatNumber(p.harga_beli)"></span></div>
+                                                        </div>
                                                     </div>
                                                 </template>
-                                                <div x-show="products.filter(p => p.nama.toLowerCase().includes(search.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(search.toLowerCase())) || (p.merk && p.merk.toLowerCase().includes(search.toLowerCase()))).length === 0" class="p-3 text-center text-xs text-slate-500">
-                                                    Barang tidak ditemukan
+                                                <div x-show="products.filter(p => (!form.supplier_id || p.supplier_id == form.supplier_id) && (p.nama.toLowerCase().includes(search.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(search.toLowerCase())) || (p.merk && p.merk.toLowerCase().includes(search.toLowerCase())))).length === 0" class="p-3 text-center text-xs text-slate-500">
+                                                    <span x-show="form.supplier_id">Barang tidak ditemukan untuk supplier ini</span>
+                                                    <span x-show="!form.supplier_id">Ketik nama barang...</span>
                                                 </div>
                                             </div>
                                         </div>

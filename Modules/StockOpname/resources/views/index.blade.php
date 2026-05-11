@@ -22,19 +22,19 @@
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Produk</p>
-        <h3 class="text-xl font-bold text-[#2563eb]">{{ $products->count() }}</h3>
+        <h3 class="text-xl font-bold text-[#2563eb]">{{ $allProducts->count() }}</h3>
     </div>
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center text-green-600">
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tersedia</p>
-        <h3 class="text-xl font-bold">{{ $products->where('stok', '>', 0)->count() }}</h3>
+        <h3 class="text-xl font-bold">{{ $allProducts->where('stok', '>', 0)->count() }}</h3>
     </div>
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center text-red-500">
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Stok Habis</p>
-        <h3 class="text-xl font-bold">{{ $products->where('stok', '<=', 0)->count() }}</h3>
+        <h3 class="text-xl font-bold">{{ $allProducts->where('stok', '<=', 0)->count() }}</h3>
     </div>
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center text-orange-500">
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Menipis</p>
-        <h3 class="text-xl font-bold">{{ $products->where('stok', '<=', 5)->where('stok', '>', 0)->count() }}</h3>
+        <h3 class="text-xl font-bold">{{ $allProducts->where('stok', '<=', 5)->where('stok', '>', 0)->count() }}</h3>
     </div>
 </div>
 
@@ -65,7 +65,7 @@
                 <select name="produk_id" required class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500" 
                         @change="let opt = $event.target.selectedOptions[0]; updateProduct(opt.value, opt.dataset.stok)">
                     <option value="">Pilih Produk...</option>
-                    @foreach($products as $p)
+                    @foreach($allProducts as $p)
                     <option value="{{ $p->id }}" data-stok="{{ $p->stok }}">{{ $p->nama }} (SKU: {{ $p->sku ?: '-' }})</option>
                     @endforeach
                 </select>
@@ -137,5 +137,9 @@
             </tbody>
         </table>
     </div>
+    <div class="px-5 py-4 border-t border-slate-100">
+        {{ $products->links() }}
+    </div>
+</div>
 </div>
 @endsection
