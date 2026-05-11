@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Toko Bangunan - Products')
-@section('header_title', 'Products')
+@section('title', 'Toko Bangunan - Data Barang')
+@section('header_title', 'Data Barang')
 
 @section('content')
     @php
@@ -321,8 +321,8 @@
         <div class="bg-white border border-slate-200 rounded-xl shadow-sm mb-6 overflow-hidden">
             <div class="p-5 border-b border-slate-200 flex flex-wrap gap-4 items-center justify-between bg-slate-50/50">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-800">Product Catalog</h3>
-                    <p class="text-sm text-slate-500 mt-0.5">Manage your inventory and pricing</p>
+                    <h3 class="text-lg font-bold text-slate-800">Katalog Produk</h3>
+                    <p class="text-sm text-slate-500 mt-0.5">Kelola stok dan harga jual Anda</p>
                 </div>
                 <div class="flex gap-2">
                     <a href="{{ route('category.index') }}"
@@ -337,7 +337,7 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
-                        Add Product
+                        Tambah Produk
                     </button>
                 </div>
             </div>
@@ -347,31 +347,31 @@
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         </span>
-                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search by name or SKU..." class="pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                        <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama barang atau SKU..." class="pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                     </div>
                     <div class="flex gap-2">
                         <select name="category" onchange="this.form.submit()" class="pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all appearance-none cursor-pointer" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px;">
-                            <option value="">All Categories</option>
+                            <option value="">Semua Kategori</option>
                             @foreach($categories as $cat)
                                 <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>{{ $cat->nama }}</option>
                             @endforeach
                         </select>
                         <select name="supplier" onchange="this.form.submit()" class="pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all appearance-none cursor-pointer" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px;">
-                            <option value="">All Suppliers</option>
+                            <option value="">Semua Supplier</option>
                             @foreach($suppliers as $sup)
                                 <option value="{{ $sup->id }}" {{ request('supplier') == $sup->id ? 'selected' : '' }}>{{ $sup->company_name }}</option>
                             @endforeach
                         </select>
                         <select name="per_page" onchange="this.form.submit()" class="pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 transition-all appearance-none cursor-pointer font-medium" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px;">
                             @foreach([10, 15, 25, 50, 100] as $val)
-                                <option value="{{ $val }}" {{ request('per_page', 15) == $val ? 'selected' : '' }}>Show {{ $val }}</option>
+                                <option value="{{ $val }}" {{ request('per_page', 15) == $val ? 'selected' : '' }}>Tampil {{ $val }}</option>
                             @endforeach
                         </select>
                     </div>
                     @if(request('search') || request('category') || request('supplier'))
                         <a href="{{ route('product.index') }}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-bold flex items-center gap-2 transition-all">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            Clear
+                            Bersihkan
                         </a>
                     @endif
                 </form>
@@ -380,14 +380,14 @@
                 <table class="w-full text-left text-sm whitespace-nowrap">
                     <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
                         <tr>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">IMG</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Product Info</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Brand</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Category</th>
+                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">FOTO</th>
+                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Info Produk</th>
+                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Merk</th>
+                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Kategori</th>
                             <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Supplier</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Stock</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Pricing</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs text-right">Actions</th>
+                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Stok</th>
+                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Harga</th>
+                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -407,7 +407,9 @@
                                 </td>
                                 <td class="py-4 px-5">
                                     <div class="font-bold text-slate-800">{{ $product->nama }}</div>
-                                    <div class="text-[11px] text-slate-500 mt-0.5">SKU: {{ $product->sku }}</div>
+                                    @if($product->sku)
+                                        <div class="text-[11px] text-slate-500 mt-0.5">SKU: {{ $product->sku }}</div>
+                                    @endif
                                 </td>
                                 <td class="py-4 px-5">
                                     @if($product->merk)
@@ -476,7 +478,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                                     </svg>
-                                    <p class="text-sm font-medium text-slate-600">No products found.</p>
+                                    <p class="text-sm font-medium text-slate-600">Produk tidak ditemukan.</p>
                                 </td>
                             </tr>
                         @endforelse
@@ -507,8 +509,8 @@
                 x-transition>
                 <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                     <div>
-                        <h3 class="text-lg font-bold text-slate-800">Add New Product</h3>
-                        <p class="text-xs text-slate-500 mt-0.5">Enter product details</p>
+                        <h3 class="text-lg font-bold text-slate-800">Tambah Produk Baru</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Masukkan detail informasi produk</p>
                     </div>
                     <button @click="addModalOpen = false"
                         class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-200">
@@ -523,8 +525,7 @@
                     <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Product
-                                    Name <span class="text-red-500">*</span></label>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nama Produk <span class="text-red-500">*</span></label>
                                 <input type="text" name="nama" value="{{ old('nama') }}" required
                                     class="w-full border rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white {{ $errors->has('nama') ? 'border-red-400' : 'border-slate-300' }}">
                                 @error('nama')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
@@ -539,7 +540,7 @@
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">SKU</label>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">SKU (Opsional)</label>
                                 <input type="text" name="sku" value="{{ old('sku') }}"
                                     class="w-full border rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white {{ $errors->has('sku') ? 'border-red-400' : 'border-slate-300' }}"
                                     placeholder="Kosongkan jika otomatis">
@@ -758,10 +759,9 @@
                     </div>
                     <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
                         <button type="button" @click="addModalOpen = false"
-                            class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Cancel</button>
+                            class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Batal</button>
                         <button type="submit"
-                            class="px-5 py-2 bg-[#0f172a] hover:bg-slate-800 rounded-lg text-sm font-bold text-white shadow transition-colors">Add
-                            Product</button>
+                            class="px-5 py-2 bg-[#0f172a] hover:bg-slate-800 rounded-lg text-sm font-bold text-white shadow transition-colors">Simpan Produk</button>
                     </div>
                 </form>
             </div>
@@ -775,8 +775,8 @@
                 x-transition>
                 <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                     <div>
-                        <h3 class="text-lg font-bold text-slate-800">Edit Product</h3>
-                        <p class="text-xs text-slate-500 mt-0.5">Update product info</p>
+                        <h3 class="text-lg font-bold text-slate-800">Edit Produk</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Perbarui informasi produk</p>
                     </div>
                     <button @click="editModalOpen = false"
                         class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-200">
@@ -810,7 +810,7 @@
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">SKU</label>
+                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">SKU (Opsional)</label>
                                 <input type="text" name="sku" x-model="editForm.sku"
                                     class="w-full border rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white {{ $errors->has('sku') ? 'border-red-400' : 'border-slate-300' }}">
                                 @error('sku')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror

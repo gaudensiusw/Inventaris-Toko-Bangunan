@@ -18,14 +18,28 @@ class NotificationController extends Controller
             'stok_rendah' => Product::whereRaw('stok <= min_stok')->where('stok', '>', 0)->count(),
             'tagihan'     => TagihanSupplier::where('status', '!=', 'lunas')->count(),
             'penjualan'   => POS::whereDate('created_at', Carbon::today())->count(),
-            'sistem'      => 2, // Hardcoded for now
+            'audit'       => \Modules\StockOpname\Models\StockOpname::where('status', 'pending')->count(),
+            'sistem'      => 0,
         ];
 
         // 2. Generate Notification Items (Semi-Dynamic)
         $notifications = [];
 
+        // Add Pending Audit Notifications
+        $pendingAudits = \Modules\StockOpname\Models\StockOpname::where('status', 'pending')->with('product')->get();
+        foreach ($pendingAudits as $a) {
+            $notifications[] = [
+                'type' => 'Persetujuan Audit',
+                'message' => "Pengajuan audit baru untuk " . ($a->product->nama ?? 'Produk') . " dengan selisih " . $a->selisih . ". Perlu verifikasi Owner.",
+                'time' => $a->created_at->diffForHumans(),
+                'unread' => true,
+                'category' => 'audit',
+                'url' => route('stockopname.approval')
+            ];
+        }
+
         // Add Low Stock Notifications
-        $lowStockProducts = Product::whereRaw('stok <= min_stok')->where('stok', '>', 0)->limit(5)->get();
+        $lowStockProducts = Product::whereRaw('stok <= min_stok')->where('stok', '>', 0)->get();
         foreach ($lowStockProducts as $p) {
             $notifications[] = [
                 'type' => 'Stok Rendah',
@@ -37,7 +51,7 @@ class NotificationController extends Controller
         }
 
         // Add Bill Notifications
-        $pendingBills = TagihanSupplier::where('status', '!=', 'lunas')->orderBy('jatuh_tempo', 'asc')->limit(5)->get();
+        $pendingBills = TagihanSupplier::where('status', '!=', 'lunas')->orderBy('jatuh_tempo', 'asc')->get();
         foreach ($pendingBills as $b) {
             $isOverdue = Carbon::parse($b->jatuh_tempo)->isPast();
             $notifications[] = [
@@ -50,7 +64,7 @@ class NotificationController extends Controller
         }
 
         // Add Sales Notifications
-        $recentSales = POS::latest()->limit(5)->get();
+        $recentSales = POS::latest()->get();
         foreach ($recentSales as $s) {
             $notifications[] = [
                 'type' => 'Penjualan',
@@ -81,5 +95,14 @@ class NotificationController extends Controller
         $notifications = array_values($notifications);
         
         return view('notification::index', compact('notifications', 'counts'));
+    }
+
+    public function markAllAsRead()
+    {
+        auth()->user()->update([
+            'last_read_notifications_at' => now()
+        ]);
+
+        return response()->json(['success' => true]);
     }
 }

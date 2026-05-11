@@ -4,84 +4,7 @@
 @section('header_title', 'Transaksi Pembelian')
 
 @section('content')
-<div x-data='{ 
-    addModalOpen: false, 
-    viewModalOpen: false,
-    viewData: {},
-    products: @json($products),
-    form: {
-        supplier_id: "",
-        tgl_pembelian: new Date().toISOString().split("T")[0],
-        jatuh_tempo: new Date().toISOString().split("T")[0],
-        catatan: "",
-        items: []
-    },
-    addItem() {
-        this.form.items.push({
-            produk_id: "",
-            satuan: "",
-            qty: 1,
-            isi_per_satuan: 1,
-            harga_total: 0,
-            available_units: []
-        });
-    },
-    removeItem(index) {
-        this.form.items.splice(index, 1);
-    },
-    updateProductUnits(index) {
-        let pId = this.form.items[index].produk_id;
-        let product = this.products.find(p => p.id == pId);
-        if (product) {
-            let baseUnitName = product.unit || "Pcs";
-            let unitsMap = new Map();
-            
-            // Add base unit
-            unitsMap.set(`${baseUnitName.toLowerCase()}_1`, { 
-                nama: baseUnitName, 
-                label: `${baseUnitName} (Isi 1)`, 
-                isi: 1 
-            });
-
-            if (product.units && product.units.length > 0) {
-                product.units.forEach(u => {
-                    let isiNum = Number(u.isi);
-                    let key = `${u.nama.toLowerCase()}_${isiNum}`;
-                    unitsMap.set(key, { 
-                        nama: u.nama, 
-                        label: `${u.nama} (Isi ${isiNum})`, 
-                        isi: isiNum 
-                    });
-                });
-            }
-            
-            let units = Array.from(unitsMap.values());
-            this.form.items[index].available_units = units;
-            this.form.items[index].satuan = units[0].nama;
-            this.form.items[index].isi_per_satuan = units[0].isi;
-            this.form.items[index].harga_total = product.harga_beli * 1;
-        } else {
-            this.form.items[index].available_units = [];
-        }
-    },
-    updateUnitIsi(index) {
-        let selectedUnitName = this.form.items[index].satuan;
-        let unit = this.form.items[index].available_units.find(u => u.nama == selectedUnitName);
-        if (unit) {
-            this.form.items[index].isi_per_satuan = unit.isi;
-        }
-    },
-    get grandTotal() {
-        return this.form.items.reduce((total, item) => total + (Number(item.harga_total) || 0), 0);
-    },
-    openViewModal(pembelian) {
-        this.viewData = pembelian;
-        this.viewModalOpen = true;
-    },
-    formatNumber(num) {
-        return new Intl.NumberFormat("id-ID").format(num);
-    }
-}'>
+<div x-data="pembelianManager()">
     <!-- Alert Messages -->
     @if(session('success'))
         <div class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2 shadow-sm">
@@ -118,6 +41,7 @@
                         <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Tanggal</th>
                         <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Supplier</th>
                         <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Total</th>
+                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Status</th>
                         <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs text-right">Aksi</th>
                     </tr>
                 </thead>
@@ -137,10 +61,27 @@
                         <td class="py-4 px-5 font-bold text-slate-800">
                             Rp {{ number_format($p->total_pembelian, 0, ',', '.') }}
                         </td>
+                        <td class="py-4 px-5">
+                            @if($p->status === 'selesai')
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700 uppercase border border-green-200">Diterima</span>
+                            @else
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase border border-amber-200 animate-pulse">Pending</span>
+                            @endif
+                        </td>
                         <td class="py-4 px-5 text-right space-x-1">
-                            <button @click="openViewModal({{ $p->toJson() }})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block" title="Lihat Detail">
+                            @if($p->status === 'pending')
+                                <button type="button" @click="confirmReceive(@js($p))" class="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors inline-block" title="Terima Barang & Update Stok">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                </button>
+                            @endif
+                            <button @click="openViewModal(@js($p))" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block" title="Lihat Detail">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             </button>
+                            @if(auth()->user()->role === 'owner')
+                            <button @click="openDeleteModal(@js($p))" class="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-block" title="Hapus Transaksi">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                            @endif
                         </td>
                     </tr>
                     @empty
@@ -160,7 +101,6 @@
             {{ $pembelians->links() }}
         </div>
     </div>
-    </div>
 
     <!-- ADD MODAL (CART) -->
     <div x-show="addModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center" style="display: none;">
@@ -177,16 +117,16 @@
                 </button>
             </div>
 
-            <form action="{{ route('pembelian.store') }}" method="POST" class="flex flex-col overflow-hidden h-full">
+            <form id="purchaseForm" action="{{ route('pembelian.store') }}" method="POST" class="flex flex-col overflow-hidden h-full">
                 @csrf
                 <div class="p-6 overflow-y-auto flex-1 custom-scrollbar" style="min-height: 400px;">
 
                     
                     <!-- Header Info -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Supplier <span class="text-red-500">*</span></label>
-                            <select name="supplier_id" x-model="form.supplier_id" required class="w-full border border-slate-300 rounded-lg text-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                            <select name="supplier_id" x-model="form.supplier_id" required class="w-full border border-slate-300 rounded-lg text-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-bold">
                                 <option value="">Pilih Supplier...</option>
                                 @foreach($suppliers as $s)
                                 <option value="{{ $s->id }}">{{ $s->company_name }}</option>
@@ -194,7 +134,7 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Tgl Pembelian <span class="text-red-500">*</span></label>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Tgl Faktur <span class="text-red-500">*</span></label>
                             <input type="date" name="tgl_pembelian" x-model="form.tgl_pembelian" required class="w-full border border-slate-300 rounded-lg text-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
                         </div>
                         <div>
@@ -202,7 +142,14 @@
                             <input type="date" name="jatuh_tempo" x-model="form.jatuh_tempo" required class="w-full border border-slate-300 rounded-lg text-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Catatan Khusus</label>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Status Barang <span class="text-red-500">*</span></label>
+                            <select name="status" x-model="form.status" required class="w-full border border-slate-300 rounded-lg text-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white font-bold" :class="form.status === 'selesai' ? 'text-green-600' : 'text-amber-600'">
+                                <option value="selesai">Langsung Diterima</option>
+                                <option value="pending">Pending (Belum Sampai)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Catatan</label>
                             <input type="text" name="catatan" x-model="form.catatan" placeholder="Opsional" class="w-full border border-slate-300 rounded-lg text-sm p-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
                         </div>
                     </div>
@@ -308,7 +255,7 @@
                     </div>
                     <div class="flex gap-3">
                         <button type="button" @click="addModalOpen = false" class="px-5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Batal</button>
-                        <button type="submit" :disabled="form.items.length === 0" class="px-6 py-2.5 bg-[#0f172a] disabled:bg-slate-400 hover:bg-slate-800 rounded-lg text-sm font-bold text-white shadow transition-colors flex items-center gap-2">
+                        <button type="button" @click="saveConfirmModal = true" :disabled="form.items.length === 0" class="px-6 py-2.5 bg-[#0f172a] disabled:bg-slate-400 hover:bg-slate-800 rounded-lg text-sm font-bold text-white shadow transition-colors flex items-center gap-2">
                             Simpan & Update MAC
                         </button>
                     </div>
@@ -316,6 +263,63 @@
             </form>
         </div>
     </div>
+
+    <!-- CUSTOM CONFIRMATION MODAL -->
+    <template x-if="saveConfirmModal">
+        <div class="fixed inset-0 z-[150] flex items-center justify-center">
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="saveConfirmModal = false"></div>
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden transform transition-all border border-slate-200">
+                <div class="p-8 text-center">
+                    <div class="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-black text-slate-800 mb-2 tracking-tight">Konfirmasi Simpan</h3>
+                    <p class="text-sm text-slate-500 leading-relaxed mb-8">
+                        Apakah Anda yakin data pembelian ini sudah benar? <br>
+                        <span class="font-bold text-slate-700" x-text="form.status === 'selesai' ? 'Stok dan Harga Modal akan langsung diperbarui.' : 'Transaksi akan dicatat sebagai Pending (Stok tidak berubah).'"></span>
+                    </p>
+                    <div class="flex flex-col gap-2">
+                        <button type="button" @click="submitPurchaseForm()" class="w-full py-3 bg-[#0f172a] hover:bg-slate-800 rounded-xl text-sm font-black text-white shadow-lg transition-all transform active:scale-95">
+                            Ya, Simpan Sekarang
+                        </button>
+                        <button type="button" @click="saveConfirmModal = false" class="w-full py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors">
+                            Periksa Kembali
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- CUSTOM RECEIVE MODAL -->
+    <template x-if="receiveConfirmModal">
+        <div class="fixed inset-0 z-[150] flex items-center justify-center">
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="receiveConfirmModal = false"></div>
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden transform transition-all border border-slate-200">
+                <div class="p-8 text-center">
+                    <div class="w-20 h-20 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-black text-slate-800 mb-2 tracking-tight">Terima Barang</h3>
+                    <p class="text-sm text-slate-500 leading-relaxed mb-8">
+                        Konfirmasi penerimaan untuk <strong x-text="receiveData.no_transaksi"></strong>? <br>
+                        <span class="font-bold text-slate-700">Stok dan Harga Modal akan segera diperbarui.</span>
+                    </p>
+                    <div class="flex flex-col gap-2">
+                        <form :action="`/pembelian/${receiveData.id}/receive`" method="POST">
+                            @csrf
+                            <button type="submit" class="w-full py-3 bg-green-600 hover:bg-green-700 rounded-xl text-sm font-black text-white shadow-lg transition-all transform active:scale-95">
+                                Ya, Terima Barang
+                            </button>
+                        </form>
+                        <button type="button" @click="receiveConfirmModal = false" class="w-full py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors">
+                            Batal
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
 
     <!-- VIEW MODAL -->
     <div x-show="viewModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center" style="display: none;">
@@ -373,5 +377,134 @@
             </div>
         </div>
     </div>
+
+    <!-- DELETE MODAL -->
+    <template x-if="deleteModalOpen">
+        <div class="fixed inset-0 z-[110] flex items-center justify-center">
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="deleteModalOpen = false"></div>
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md relative z-10 m-4 overflow-hidden transform transition-all">
+                <div class="p-6 text-center">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Hapus Transaksi?</h3>
+                    <p class="text-sm text-slate-500 mb-6">
+                        Menghapus <strong x-text="deleteData.no_transaksi"></strong> akan mengembalikan (reverse) stok barang dan menghapus tagihan terkait. Tindakan ini tidak bisa dibatalkan.
+                    </p>
+                    <div class="flex gap-3">
+                        <button @click="deleteModalOpen = false" class="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">Batal</button>
+                        <form :action="`/pembelian/${deleteData.id}`" method="POST" class="flex-1">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold text-white shadow-sm transition-colors">Ya, Hapus</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
 </div>
+@push('scripts')
+<script>
+function pembelianManager() {
+    return {
+        addModalOpen: false, 
+        viewModalOpen: false,
+        deleteModalOpen: false,
+        saveConfirmModal: false,
+        receiveConfirmModal: false,
+        viewData: {},
+        deleteData: {},
+        receiveData: {},
+        products: @json($products),
+        form: {
+            supplier_id: "",
+            tgl_pembelian: new Date().toISOString().split("T")[0],
+            jatuh_tempo: new Date().toISOString().split("T")[0],
+            status: "selesai",
+            catatan: "",
+            items: []
+        },
+        addItem() {
+            this.form.items.push({
+                produk_id: "",
+                satuan: "",
+                qty: 1,
+                isi_per_satuan: 1,
+                harga_total: 0,
+                available_units: [],
+                searchOpen: false,
+                search: ''
+            });
+        },
+        removeItem(index) {
+            this.form.items.splice(index, 1);
+        },
+        updateProductUnits(index) {
+            let pId = this.form.items[index].produk_id;
+            let product = this.products.find(p => p.id == pId);
+            if (product) {
+                let baseUnitName = product.unit || "Pcs";
+                let unitsMap = new Map();
+                
+                // Add base unit
+                unitsMap.set(`${baseUnitName.toLowerCase()}_1`, { 
+                    nama: baseUnitName, 
+                    label: `${baseUnitName} (Isi 1)`, 
+                    isi: 1 
+                });
+
+                if (product.units && product.units.length > 0) {
+                    product.units.forEach(u => {
+                        let isiNum = Number(u.isi);
+                        let key = `${u.nama.toLowerCase()}_${isiNum}`;
+                        unitsMap.set(key, { 
+                            nama: u.nama, 
+                            label: `${u.nama} (Isi ${isiNum})`, 
+                            isi: isiNum 
+                        });
+                    });
+                }
+                
+                let units = Array.from(unitsMap.values());
+                this.form.items[index].available_units = units;
+                this.form.items[index].satuan = units[0].nama;
+                this.form.items[index].isi_per_satuan = units[0].isi;
+                this.form.items[index].harga_total = product.harga_beli * 1;
+            } else {
+                this.form.items[index].available_units = [];
+            }
+        },
+        updateUnitIsi(index) {
+            let selectedUnitName = this.form.items[index].satuan;
+            let unit = this.form.items[index].available_units.find(u => u.nama == selectedUnitName);
+            if (unit) {
+                this.form.items[index].isi_per_satuan = unit.isi;
+            }
+        },
+        get grandTotal() {
+            return this.form.items.reduce((total, item) => total + (Number(item.harga_total) || 0), 0);
+        },
+        openViewModal(pembelian) {
+            this.viewData = pembelian;
+            this.viewModalOpen = true;
+        },
+        openDeleteModal(pembelian) {
+            this.deleteData = pembelian;
+            this.deleteModalOpen = true;
+        },
+        confirmReceive(pembelian) {
+            this.receiveData = pembelian;
+            this.receiveConfirmModal = true;
+        },
+        submitPurchaseForm() {
+            document.getElementById('purchaseForm').submit();
+        },
+        formatNumber(num) {
+            return new Intl.NumberFormat("id-ID").format(num);
+        }
+    }
+}
+</script>
+@endpush
 @endsection

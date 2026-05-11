@@ -29,6 +29,7 @@ class PembelianController extends Controller
             'supplier_id' => 'required|exists:supplier,id',
             'tgl_pembelian' => 'required|date',
             'jatuh_tempo' => 'required|date',
+            'status' => 'required|in:selesai,pending',
             'items' => 'required|array|min:1',
             'items.*.produk_id' => 'required|exists:produk,id',
             'items.*.satuan' => 'required|string',
@@ -56,12 +57,12 @@ class PembelianController extends Controller
                 'supplier_id' => $request->supplier_id,
                 'total_pembelian' => $totalPembelian,
                 'catatan' => $request->catatan,
-                'status' => 'selesai'
+                'status' => $request->status
             ]);
 
             // Process Items
             foreach ($request->items as $item) {
-                PembelianDetail::create([
+                $detail = PembelianDetail::create([
                     'pembelian_id' => $pembelian->id,
                     'produk_id' => $item['produk_id'],
                     'satuan' => $item['satuan'],
@@ -70,29 +71,10 @@ class PembelianController extends Controller
                     'harga_total' => $item['harga_total']
                 ]);
 
-                // Update Stock and calculate MAC
-                $product = Product::find($item['produk_id']);
-                
-                $stokLama = $product->stok;
-                $hargaBeliLama = $product->harga_beli;
-                $nilaiStokLama = $stokLama * $hargaBeliLama;
-
-                $qtyBaruDalamSatuanUtama = $item['qty'] * $item['isi_per_satuan'];
-                $nilaiStokBaru = $item['harga_total'];
-
-                // Calculate MAC
-                $totalQty = $stokLama + $qtyBaruDalamSatuanUtama;
-                if ($totalQty > 0) {
-                    $macBaru = ($nilaiStokLama + $nilaiStokBaru) / $totalQty;
-                } else {
-                    $macBaru = $hargaBeliLama;
+                // Update Stock and MAC ONLY if status is 'selesai'
+                if ($request->status === 'selesai') {
+                    $this->updateStockAndMAC($detail);
                 }
-
-                // Update product
-                $product->update([
-                    'stok' => $totalQty,
-                    'harga_beli' => round($macBaru) // Bulatkan ke integer terdekat
-                ]);
             }
 
             // Auto-create Tagihan Supplier
@@ -103,11 +85,15 @@ class PembelianController extends Controller
                 'jatuh_tempo' => $request->jatuh_tempo,
                 'total' => $totalPembelian,
                 'status' => 'belum_bayar',
-                'catatan' => 'Auto-generated dari Transaksi Pembelian ' . $no_transaksi . "\n" . $request->catatan
+                'catatan' => 'Auto-generated dari Transaksi Pembelian ' . $no_transaksi . ' (Status: ' . $request->status . ")\n" . $request->catatan
             ]);
 
             DB::commit();
-            return redirect()->back()->with('success', 'Transaksi Pembelian berhasil disimpan, stok bertambah, Harga Modal (MAC) diperbarui, dan Tagihan Supplier otomatis dibuat.');
+            $msg = $request->status === 'selesai' 
+                ? 'Transaksi Pembelian berhasil disimpan, stok bertambah, MAC diperbarui.' 
+                : 'Transaksi Pembelian berhasil disimpan (PENDING), stok belum bertambah.';
+            
+            return redirect()->back()->with('success', $msg);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -115,11 +101,120 @@ class PembelianController extends Controller
         }
     }
 
+    public function receive($id)
+    {
+        try {
+            DB::beginTransaction();
+            $pembelian = Pembelian::with('details')->findOrFail($id);
+
+            if ($pembelian->status === 'selesai') {
+                return redirect()->back()->with('error', 'Transaksi ini sudah selesai.');
+            }
+
+            foreach ($pembelian->details as $detail) {
+                $this->updateStockAndMAC($detail);
+            }
+
+            $pembelian->update(['status' => 'selesai']);
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Barang telah diterima. Stok dan MAC berhasil diperbarui.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal memperbarui stok: ' . $e->getMessage());
+        }
+    }
+
+    private function updateStockAndMAC($detail)
+    {
+        $product = Product::find($detail->produk_id);
+        
+        $stokLama = $product->stok;
+        $hargaBeliLama = $product->harga_beli;
+        $nilaiStokLama = $stokLama * $hargaBeliLama;
+
+        $qtyBaruDalamSatuanUtama = $detail->qty * $detail->isi_per_satuan;
+        $nilaiStokBaru = $detail->harga_total;
+
+        // Calculate MAC
+        $totalQty = $stokLama + $qtyBaruDalamSatuanUtama;
+        if ($totalQty > 0) {
+            $macBaru = ($nilaiStokLama + $nilaiStokBaru) / $totalQty;
+        } else {
+            $macBaru = $hargaBeliLama;
+        }
+
+        // Update product
+        $product->update([
+            'stok' => $totalQty,
+            'harga_beli' => round($macBaru)
+        ]);
+    }
+
     public function destroy($id)
     {
-        // For simplicity, we might not allow deleting a purchase, or if we do, we need to reverse stock and MAC (which is complex).
-        // For now, let's just delete the header, details cascade delete. But reversing MAC is hard without history table.
-        // Returning an error for safety.
-        return redirect()->back()->with('error', 'Transaksi Pembelian tidak dapat dihapus karena mempengaruhi perhitungan nilai aset (MAC).');
+        if (auth()->user()->role !== 'owner') {
+            return redirect()->back()->with('error', 'Hanya Owner yang diperbolehkan menghapus transaksi.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $pembelian = Pembelian::with('details')->findOrFail($id);
+
+            // 1. Reverse Stock and MAC if status was 'selesai'
+            if ($pembelian->status === 'selesai') {
+                foreach ($pembelian->details as $detail) {
+                    $product = Product::find($detail->produk_id);
+                    if (!$product) continue;
+
+                    $qtyDibeli = $detail->qty * $detail->isi_per_satuan;
+                    $totalHargaIni = $detail->harga_total;
+
+                    $stokSaatIni = $product->stok;
+                    $macSaatIni = $product->harga_beli;
+
+                    // Perhitungan Mundur:
+                    // Nilai Aset Lama = (Stok Sekarang * MAC Sekarang) - Total Harga Pembelian Ini
+                    // Stok Lama = Stok Sekarang - Qty Pembelian Ini
+                    // MAC Lama = Nilai Aset Lama / Stok Lama
+                    
+                    $stokBaru = $stokSaatIni - $qtyDibeli;
+                    
+                    // Validasi agar stok tidak minus jika sudah terlanjur terjual
+                    if ($stokBaru < 0) {
+                        throw new \Exception("Gagal hapus: Stok barang '{$product->nama}' tidak mencukupi untuk dikurangi (sudah terlanjur terjual).");
+                    }
+
+                    if ($stokBaru > 0) {
+                        $nilaiAsetSekarang = $stokSaatIni * $macSaatIni;
+                        $nilaiAsetLama = $nilaiAsetSekarang - $totalHargaIni;
+                        $macLama = $nilaiAsetLama / $stokBaru;
+                    } else {
+                        // Jika stok jadi 0, MAC tidak perlu dihitung ulang secara rumit, biarkan saja
+                        $macLama = $macSaatIni;
+                    }
+
+                    $product->update([
+                        'stok' => $stokBaru,
+                        'harga_beli' => round(max(0, $macLama))
+                    ]);
+                }
+            }
+
+            // 2. Delete associated Tagihan Supplier
+            TagihanSupplier::where('no_invoice', $pembelian->no_transaksi)->delete();
+
+            // 3. Delete Pembelian (details will cascade delete if set up in DB, otherwise manual delete)
+            $pembelian->details()->delete();
+            $pembelian->delete();
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Transaksi Pembelian berhasil dihapus. Stok, MAC, dan Tagihan Supplier telah dikoreksi.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal menghapus transaksi: ' . $e->getMessage());
+        }
     }
 }

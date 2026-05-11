@@ -15,6 +15,10 @@
         url: '',
         message: ''
     },
+    confirmAddSub: false,
+    confirmEditSub: false,
+    confirmAddCat: false,
+    confirmEditCat: false,
     selectedCat: {},
     selectedSub: {}
 }" @keydown.escape.window="addCatModal = false; editCatModal = false; addSubModal = false; editSubModal = false; deleteModalOpen = false">
@@ -131,7 +135,25 @@
                 </div>
                 <div class="flex justify-end gap-2">
                     <button type="button" @click="addCatModal = false" class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 rounded-lg">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors">Simpan</button>
+                    <button type="button" @click="confirmAddCat = true" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors">Simpan</button>
+                </div>
+
+                <!-- DOUBLE CONFIRMATION MODAL (ADD CAT) -->
+                <div x-show="confirmAddCat" class="fixed inset-0 z-[110] flex items-center justify-center" style="display: none;">
+                    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="confirmAddCat = false"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden border border-slate-200">
+                        <div class="p-8 text-center">
+                            <div class="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-blue-50/50">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 mb-2">Simpan Kategori Baru?</h3>
+                            <p class="text-slate-500 leading-relaxed">Anda akan menambahkan kategori utama baru ke dalam sistem.</p>
+                        </div>
+                        <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
+                            <button type="button" @click="confirmAddCat = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
+                            <button type="submit" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20">Ya, Simpan</button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -153,7 +175,25 @@
                 </div>
                 <div class="flex justify-end gap-2">
                     <button type="button" @click="editCatModal = false" class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 rounded-lg">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors">Perbarui</button>
+                    <button type="button" @click="confirmEditCat = true" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors">Perbarui</button>
+                </div>
+
+                <!-- DOUBLE CONFIRMATION MODAL (EDIT CAT) -->
+                <div x-show="confirmEditCat" class="fixed inset-0 z-[110] flex items-center justify-center" style="display: none;">
+                    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="confirmEditCat = false"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden border border-slate-200">
+                        <div class="p-8 text-center">
+                            <div class="w-20 h-20 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-orange-50/50">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 mb-2">Perbarui Kategori?</h3>
+                            <p class="text-slate-500 leading-relaxed">Perubahan pada kategori utama akan berdampak pada seluruh sub-kategori di dalamnya.</p>
+                        </div>
+                        <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
+                            <button type="button" @click="confirmEditCat = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
+                            <button type="submit" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20">Ya, Perbarui</button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -177,7 +217,25 @@
                 </div>
                 <div class="flex justify-end gap-2">
                     <button type="button" @click="addSubModal = false" class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 rounded-lg">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors">Simpan</button>
+                    <button type="button" @click="confirmAddSub = true" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors">Simpan</button>
+                </div>
+
+                <!-- DOUBLE CONFIRMATION MODAL (ADD SUB) -->
+                <div x-show="confirmAddSub" class="fixed inset-0 z-[110] flex items-center justify-center" style="display: none;">
+                    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="confirmAddSub = false"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden border border-slate-200">
+                        <div class="p-8 text-center">
+                            <div class="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-blue-50/50">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 mb-2">Simpan Sub-Kategori?</h3>
+                            <p class="text-slate-500 leading-relaxed">Anda akan menambahkan sub-kategori baru ke dalam sistem.</p>
+                        </div>
+                        <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
+                            <button type="button" @click="confirmAddSub = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
+                            <button type="submit" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20">Ya, Simpan</button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -199,7 +257,25 @@
                 </div>
                 <div class="flex justify-end gap-2">
                     <button type="button" @click="editSubModal = false" class="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50 rounded-lg">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors">Perbarui</button>
+                    <button type="button" @click="confirmEditSub = true" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors">Perbarui</button>
+                </div>
+
+                <!-- DOUBLE CONFIRMATION MODAL (EDIT SUB) -->
+                <div x-show="confirmEditSub" class="fixed inset-0 z-[110] flex items-center justify-center" style="display: none;">
+                    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="confirmEditSub = false"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden border border-slate-200">
+                        <div class="p-8 text-center">
+                            <div class="w-20 h-20 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-orange-50/50">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 mb-2">Perbarui Sub-Kategori?</h3>
+                            <p class="text-slate-500 leading-relaxed">Perubahan nama sub-kategori akan berdampak pada seluruh produk terkait.</p>
+                        </div>
+                        <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
+                            <button type="button" @click="confirmEditSub = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
+                            <button type="submit" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20">Ya, Perbarui</button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>

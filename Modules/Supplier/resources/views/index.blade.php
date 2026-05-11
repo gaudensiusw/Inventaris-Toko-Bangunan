@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Toko Bangunan - Suppliers')
-@section('header_title', 'Suppliers')
+@section('title', 'Toko Bangunan - Daftar Supplier')
+@section('header_title', 'Daftar Supplier')
 
 @section('content')
 <div x-data="{ 
@@ -10,6 +10,8 @@
     deleteModalOpen: false,
     editForm: {},
     deleteForm: {},
+    showConfirmAdd: false,
+    showConfirmEdit: false,
     openEditModal(supplier) {
         this.editForm = supplier;
         this.editModalOpen = true;
@@ -26,7 +28,7 @@
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             </div>
             <div>
-                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Total Suppliers</p>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Total Supplier</p>
                 <h3 class="text-2xl font-bold text-slate-800">{{ $totalSuppliers }}</h3>
             </div>
         </div>
@@ -37,7 +39,7 @@
                 <span class="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">{{ $activeProducts }}</span>
             </div>
             <div>
-                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Active Products</p>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Produk Aktif</p>
                 <h3 class="text-2xl font-bold text-slate-800">{{ $activeProducts }}</h3>
             </div>
         </div>
@@ -47,7 +49,7 @@
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
             </div>
             <div>
-                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Avg Products/Supplier</p>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Rata-rata Produk</p>
                 <h3 class="text-2xl font-bold text-slate-800">{{ number_format($avgProducts, 1) }}</h3>
             </div>
         </div>
@@ -83,24 +85,24 @@
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm mb-6">
         <div class="p-5 border-b border-slate-200 flex flex-wrap gap-4 items-center justify-between bg-slate-50/50">
             <div>
-                <h3 class="text-lg font-bold text-slate-800">Suppliers ({{ $totalSuppliers }})</h3>
-                <p class="text-sm text-slate-500 mt-0.5">Manage your product suppliers and vendors</p>
+                <h3 class="text-lg font-bold text-slate-800">Daftar Supplier ({{ $totalSuppliers }})</h3>
+                <p class="text-sm text-slate-500 mt-0.5">Kelola data pemasok barang dan vendor</p>
             </div>
             <button @click="addModalOpen = true" class="bg-[#0f172a] hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                Add Supplier
+                Tambah Supplier
             </button>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm whitespace-nowrap">
                 <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
                     <tr>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Company Name</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Contact Person</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Contact Info</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Address</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Products</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs text-right">Actions</th>
+                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Nama Perusahaan / Toko</th>
+                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Nama Kontak (PIC)</th>
+                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Info Kontak</th>
+                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Alamat</th>
+                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Jml Produk</th>
+                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -108,7 +110,7 @@
                     <tr class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-slate-50/50' }} hover:bg-blue-50/30 transition-colors">
                         <td class="py-4 px-5">
                             <div class="font-bold text-slate-800">{{ $supplier->company_name }}</div>
-                            <div class="text-[11px] text-slate-500 mt-0.5">Since {{ $supplier->created_at->format('M Y') }}</div>
+                            <div class="text-[11px] text-slate-500 mt-0.5">Sejak {{ $supplier->created_at->format('M Y') }}</div>
                         </td>
                         <td class="py-4 px-5 font-medium text-slate-700">
                             {{ $supplier->contact_person }}
@@ -138,7 +140,7 @@
                         </td>
                         <td class="py-4 px-5">
                             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 shadow-sm">
-                                {{ $supplier->products_count }} products
+                                {{ $supplier->products_count }} produk
                             </span>
                         </td>
                         <td class="py-4 px-5 text-right space-x-2">
@@ -154,8 +156,8 @@
                     <tr>
                         <td colspan="6" class="py-12 text-center text-slate-500">
                             <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                            <p class="text-sm font-medium text-slate-600">No suppliers found.</p>
-                            <p class="text-xs mt-1">Click "Add Supplier" to create one.</p>
+                            <p class="text-sm font-medium text-slate-600">Data supplier tidak ditemukan.</p>
+                            <p class="text-xs mt-1">Klik "Tambah Supplier" untuk membuat data baru.</p>
                         </td>
                     </tr>
                     @endforelse
@@ -180,7 +182,7 @@
             <div>
                 <div class="flex items-center justify-between text-sm mb-1">
                     <span class="font-semibold text-slate-700">{{ $supplier->company_name }}</span>
-                    <span class="text-slate-500 font-medium text-[11px]">{{ $supplier->products_count }} products ({{ $percent }}%)</span>
+                    <span class="text-slate-500 font-medium text-[11px]">{{ $supplier->products_count }} produk ({{ $percent }}%)</span>
                 </div>
                 <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
                     <div class="bg-[#2563eb] h-2.5 rounded-full" style="width: {{ $percent }}%"></div>
@@ -196,8 +198,8 @@
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative z-10 m-4 overflow-hidden transform transition-all" x-transition>
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-800">Add New Supplier</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Create a new supplier</p>
+                    <h3 class="text-lg font-bold text-slate-800">Tambah Supplier Baru</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Input data pemasok barang baru</p>
                 </div>
                 <button @click="addModalOpen = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-200">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -207,12 +209,12 @@
                 @csrf
                 <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Company Name <span class="text-red-500">*</span></label>
-                        <input type="text" name="company_name" required placeholder="e.g., PT Supplier Indonesia" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nama Perusahaan / Toko <span class="text-red-500">*</span></label>
+                        <input type="text" name="company_name" required placeholder="Contoh: Toko Bangunan Jaya" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Contact Person <span class="text-red-500">*</span></label>
-                        <input type="text" name="contact_person" required placeholder="e.g., John Doe" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nama Kontak (PIC) <span class="text-red-500">*</span></label>
+                        <input type="text" name="contact_person" required placeholder="Contoh: Pak Budi" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -226,8 +228,8 @@
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">City</label>
-                            <input type="text" name="city" placeholder="e.g., Jakarta" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Kota</label>
+                            <input type="text" name="city" placeholder="Contoh: Surabaya" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Province</label>
@@ -240,8 +242,26 @@
                     </div>
                 </div>
                 <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
-                    <button type="button" @click="addModalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Cancel</button>
-                    <button type="submit" class="px-5 py-2 bg-[#0f172a] hover:bg-slate-800 rounded-lg text-sm font-bold text-white shadow transition-colors">Add Supplier</button>
+                    <button type="button" @click="addModalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Batal</button>
+                    <button type="button" @click="showConfirmAdd = true" class="px-5 py-2 bg-[#0f172a] hover:bg-slate-800 rounded-lg text-sm font-bold text-white shadow transition-colors">Tambah Supplier</button>
+                </div>
+
+                <!-- DOUBLE CONFIRMATION MODAL (ADD) -->
+                <div x-show="showConfirmAdd" class="fixed inset-0 z-[110] flex items-center justify-center" style="display: none;">
+                    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showConfirmAdd = false"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden border border-slate-200">
+                        <div class="p-8 text-center">
+                            <div class="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-blue-50/50">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 mb-2">Tambah Supplier?</h3>
+                            <p class="text-slate-500 leading-relaxed">Anda akan menambahkan data supplier baru ke dalam sistem database.</p>
+                        </div>
+                        <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
+                            <button type="button" @click="showConfirmAdd = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
+                            <button type="submit" class="flex-1 py-3 bg-[#0f172a] hover:bg-slate-800 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-slate-900/20">Ya, Tambahkan</button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -253,8 +273,8 @@
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative z-10 m-4 overflow-hidden transform transition-all" x-transition>
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-800">Edit Supplier</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Update supplier information</p>
+                    <h3 class="text-lg font-bold text-slate-800">Ubah Data Supplier</h3>
+                    <p class="text-xs text-slate-500 mt-0.5">Perbarui informasi pemasok barang</p>
                 </div>
                 <button @click="editModalOpen = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-200">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -265,11 +285,11 @@
                 @method('PUT')
                 <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Company Name <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nama Perusahaan / Toko <span class="text-red-500">*</span></label>
                         <input type="text" name="company_name" x-model="editForm.company_name" required class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Contact Person <span class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nama Kontak (PIC) <span class="text-red-500">*</span></label>
                         <input type="text" name="contact_person" x-model="editForm.contact_person" required class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
@@ -298,8 +318,26 @@
                     </div>
                 </div>
                 <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
-                    <button type="button" @click="editModalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Cancel</button>
-                    <button type="submit" class="px-5 py-2 bg-[#0f172a] hover:bg-slate-800 rounded-lg text-sm font-bold text-white shadow transition-colors">Update Supplier</button>
+                    <button type="button" @click="editModalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Batal</button>
+                    <button type="button" @click="showConfirmEdit = true" class="px-5 py-2 bg-[#0f172a] hover:bg-slate-800 rounded-lg text-sm font-bold text-white shadow transition-colors">Simpan Perubahan</button>
+                </div>
+
+                <!-- DOUBLE CONFIRMATION MODAL (EDIT) -->
+                <div x-show="showConfirmEdit" class="fixed inset-0 z-[110] flex items-center justify-center" style="display: none;">
+                    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showConfirmEdit = false"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden border border-slate-200">
+                        <div class="p-8 text-center">
+                            <div class="w-20 h-20 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-orange-50/50">
+                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 mb-2">Simpan Perubahan?</h3>
+                            <p class="text-slate-500 leading-relaxed">Pastikan data supplier yang diperbarui sudah benar.</p>
+                        </div>
+                        <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
+                            <button type="button" @click="showConfirmEdit = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
+                            <button type="submit" class="flex-1 py-3 bg-[#0f172a] hover:bg-slate-800 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-slate-900/20">Ya, Simpan</button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -313,15 +351,15 @@
                 <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                 </div>
-                <h3 class="text-lg font-bold text-slate-800 mb-2">Delete Supplier?</h3>
-                <p class="text-sm text-slate-500">Are you sure you want to delete <span class="font-bold text-slate-700" x-text="deleteForm.company_name"></span>? This action cannot be undone.</p>
+                <h3 class="text-lg font-bold text-slate-800 mb-2">Hapus Supplier?</h3>
+                <p class="text-sm text-slate-500">Apakah Anda yakin ingin menghapus <span class="font-bold text-slate-700" x-text="deleteForm.company_name"></span>? Tindakan ini tidak dapat dibatalkan.</p>
             </div>
             <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
-                <button type="button" @click="deleteModalOpen = false" class="flex-1 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Cancel</button>
+                <button type="button" @click="deleteModalOpen = false" class="flex-1 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Batal</button>
                 <form :action="`/supplier/${deleteForm.id}`" method="POST" class="flex-1">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="w-full py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold text-white shadow transition-colors">Yes, Delete</button>
+                    <button type="submit" class="w-full py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold text-white shadow transition-colors">Ya, Hapus</button>
                 </form>
             </div>
         </div>

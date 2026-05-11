@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Toko Bangunan - POS / Cashier')
-@section('header_title', 'POS / Cashier')
+@section('title', 'Toko Bangunan - Kasir Digital')
+@section('header_title', 'Kasir Digital')
 
 @section('content')
 <div x-data="posSystem()" x-init="init()" class="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">
@@ -40,7 +40,7 @@
                             <!-- Multi-Unit Badge -->
                             <template x-if="product.units && product.units.length > 0">
                                 <div class="absolute top-2 right-2 flex items-center gap-1 z-10">
-                                    <span class="bg-blue-600/90 backdrop-blur-sm text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm tracking-wider uppercase">Multi</span>
+                                    <span class="bg-blue-600/90 backdrop-blur-sm text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm tracking-wider uppercase">Grosir</span>
                                 </div>
                             </template>
                         </div>
@@ -142,8 +142,8 @@
                     <tr class="border-b border-slate-200 text-slate-500 text-[11px]">
                         <th class="pb-2 font-semibold">Nama Barang</th>
                         <th class="pb-2 font-semibold text-center w-24">Jml</th>
-                        <th class="pb-2 font-semibold text-right w-20">Disc/Item</th>
-                        <th class="pb-2 font-semibold text-right">Total</th>
+                        <th class="pb-2 font-semibold text-right w-20">Potongan</th>
+                        <th class="pb-2 font-semibold text-right">Subtotal</th>
                         <th class="pb-2 w-6"></th>
                     </tr>
                 </thead>
@@ -180,8 +180,8 @@
             <template x-if="cart.length === 0">
                 <div class="py-10 flex flex-col items-center text-slate-400">
                     <svg class="w-10 h-10 mb-2 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                    <p class="text-xs">Belum ada barang di keranjang</p>
-                    <p class="text-[10px] text-slate-300 mt-1">Klik produk untuk menambahkan</p>
+                    <p class="text-xs">Keranjang Belanja Kosong</p>
+                    <p class="text-[10px] text-slate-300 mt-1">Klik produk untuk mulai belanja</p>
                 </div>
             </template>
         </div>
@@ -189,7 +189,7 @@
         <!-- Options + Totals -->
         <div class="px-4 pt-3 pb-2 border-t border-slate-100 space-y-3 bg-slate-50/50">
             <!-- Catatan -->
-            <textarea x-model="catatan" placeholder="Catatan pesanan..." rows="2" class="w-full border border-slate-300 rounded-lg text-xs p-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"></textarea>
+            <textarea x-model="catatan" placeholder="Catatan untuk pelanggan/pengiriman..." rows="2" class="w-full border border-slate-300 rounded-lg text-xs p-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"></textarea>
 
             <!-- Pengiriman -->
             <div class="flex flex-col gap-2">
@@ -215,11 +215,18 @@
             <div>
                 <label class="text-xs font-bold text-slate-500 uppercase block mb-1.5">Pembayaran</label>
                 <div class="grid grid-cols-4 gap-1.5">
-                    @foreach(['Cash','Card','E-Wallet','Bon'] as $m)
-                    <button @click="metode_pembayaran = '{{ $m }}'"
-                        :class="metode_pembayaran === '{{ $m }}' ? 'bg-slate-800 text-white border-slate-800 ring-2 ring-slate-800 ring-offset-1' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
-                        class="py-1.5 text-xs font-bold rounded-lg border transition-all">{{ $m }}</button>
-                    @endforeach
+                    <button @click="metode_pembayaran = 'Cash'"
+                        :class="metode_pembayaran === 'Cash' ? 'bg-slate-800 text-white border-slate-800 ring-2 ring-slate-800 ring-offset-1' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+                        class="py-1.5 text-xs font-bold rounded-lg border transition-all">Tunai</button>
+                    <button @click="metode_pembayaran = 'Card'"
+                        :class="metode_pembayaran === 'Card' ? 'bg-slate-800 text-white border-slate-800 ring-2 ring-slate-800 ring-offset-1' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+                        class="py-1.5 text-xs font-bold rounded-lg border transition-all">Debit/CC</button>
+                    <button @click="metode_pembayaran = 'E-Wallet'"
+                        :class="metode_pembayaran === 'E-Wallet' ? 'bg-slate-800 text-white border-slate-800 ring-2 ring-slate-800 ring-offset-1' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+                        class="py-1.5 text-xs font-bold rounded-lg border transition-all">Digital</button>
+                    <button @click="metode_pembayaran = 'Bon'"
+                        :class="metode_pembayaran === 'Bon' ? 'bg-slate-800 text-white border-slate-800 ring-2 ring-slate-800 ring-offset-1' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
+                        class="py-1.5 text-xs font-bold rounded-lg border transition-all">Bon</button>
                 </div>
                 <template x-if="metode_pembayaran === 'Bon'">
                     <p class="text-[10px] text-amber-600 mt-1.5 font-medium">⚠ Pembayaran Bon — nama pelanggan akan dicatat secara otomatis</p>
@@ -243,7 +250,7 @@
                     </div>
                 </template>
                 <div class="flex justify-between items-end pt-1">
-                    <span class="text-base font-bold text-slate-800">Total Tagihan</span>
+                    <span class="text-base font-bold text-slate-800">Total Belanja</span>
                     <span class="text-2xl font-black text-[#2563eb]" x-text="formatCurrency(total_tagihan)"></span>
                 </div>
             </div>
@@ -258,8 +265,8 @@
                 :class="cart.length === 0 ? 'opacity-40 cursor-not-allowed' : 'hover:bg-green-600 shadow-lg shadow-green-200'"
                 class="flex-1 py-2.5 rounded-lg text-sm font-bold bg-green-500 text-white transition-all flex items-center justify-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                Checkout
-                <span x-show="cart.length > 0" class="bg-white/20 text-white text-xs font-bold px-1.5 py-0.5 rounded-full" x-text="cart.length + ' item'"></span>
+                Bayar Sekarang
+                <span x-show="cart.length > 0" class="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full" x-text="cart.length + ' barang'"></span>
             </button>
         </div>
     </div>
@@ -292,8 +299,8 @@
                 <button @click="addUnitToCart(selectedProduct, { nama: selectedProduct.unit, isi: 1, harga_jual: selectedProduct.harga_jual })"
                     class="w-full bg-white border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50 p-4 rounded-xl flex items-center justify-between transition-all group">
                     <div class="text-left">
-                        <div class="font-bold text-slate-800 group-hover:text-blue-700" x-text="selectedProduct?.unit + ' (Satuan Dasar)'"></div>
-                        <div class="text-xs text-slate-500">Harga standar per pcs/unit</div>
+                        <div class="font-bold text-slate-800 group-hover:text-blue-700" x-text="selectedProduct?.unit + ' (Eceran)'"></div>
+                        <div class="text-xs text-slate-500">Harga standar per satuan terkecil</div>
                     </div>
                     <div class="text-right">
                         <div class="font-black text-blue-600" x-text="formatCurrency(selectedProduct?.harga_jual)"></div>
@@ -332,10 +339,10 @@
                     <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </div>
 
-                <h3 class="text-lg font-bold text-slate-800 text-center mb-1">Konfirmasi Checkout</h3>
+                <h3 class="text-lg font-bold text-slate-800 text-center mb-1">Konfirmasi Pembayaran</h3>
                 <p class="text-sm text-slate-500 text-center mb-1">Total: <span class="font-black text-blue-600 text-base" x-text="formatCurrency(total_tagihan)"></span></p>
                 <p class="text-xs text-slate-400 text-center mb-5">
-                    <span x-text="cart.length + ' item • ' + metode_pembayaran + ' • ' + opsi_pengiriman"></span>
+                    <span x-text="cart.length + ' barang • ' + metode_pembayaran + ' • ' + opsi_pengiriman"></span>
                 </p>
 
                 <p class="text-sm font-bold text-slate-700 text-center mb-3">Apakah ingin mencetak struk?</p>
@@ -350,12 +357,12 @@
                     </button>
                     <button @click="confirmCheckout(false)" :disabled="loading"
                         class="w-full py-3 bg-slate-800 hover:bg-slate-900 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50">
-                        <span x-show="!loading">Proses Tanpa Struk</span>
+                        <span x-show="!loading">Simpan Saja (Tanpa Struk)</span>
                         <span x-show="loading">Memproses...</span>
                     </button>
                     <button @click="checkoutModalOpen = false" :disabled="loading"
                         class="w-full py-2.5 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl text-sm font-bold text-slate-600 transition-colors disabled:opacity-50">
-                        Batal — Kembali ke Kasir
+                        Batal — Periksa Kembali
                     </button>
                 </div>
             </div>
