@@ -31,14 +31,14 @@
         <tr>
             <td class="label">Nama Karyawan</td>
             <td>: {{ $employee->nama }}</td>
-            <td class="label">Tanggal Cetak</td>
-            <td>: {{ date('d F Y') }}</td>
+            <td class="label">Tgl Pembayaran</td>
+            <td>: {{ $tanggalPembayaran ? \Carbon\Carbon::parse($tanggalPembayaran)->translatedFormat('d F Y H:i') : 'Belum Dibayar' }}</td>
         </tr>
         <tr>
             <td class="label">Jabatan</td>
             <td>: {{ $employee->jabatan->nama_jabatan ?? '-' }}</td>
-            <td class="label">Status</td>
-            <td>: {{ $employee->aktif ? 'Aktif' : 'Tidak Aktif' }}</td>
+            <td class="label">Tanggal Cetak</td>
+            <td>: {{ date('d F Y') }}</td>
         </tr>
     </table>
 

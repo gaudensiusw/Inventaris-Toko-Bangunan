@@ -447,9 +447,18 @@
                 <textarea id="absensiCatatan" name="catatan" rows="3" class="w-full border-slate-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Tambahkan keterangan jika perlu..."></textarea>
             </div>
             
-            <div class="pt-4 grid grid-cols-2 gap-4">
-                <button type="button" onclick="document.getElementById('modalAbsensi').classList.add('hidden')" class="w-full py-3 text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl font-bold transition-colors shadow-sm">Batal</button>
-                <button type="submit" class="w-full py-3 text-white bg-[#0A0F2C] hover:bg-[#111942] rounded-xl font-bold transition-colors shadow-sm">Simpan</button>
+            <div id="absensiWarningPaid" class="hidden p-3 bg-yellow-50 text-yellow-800 text-xs rounded-lg border border-yellow-200">
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Data absensi ini sudah dibayarkan dan tidak dapat diubah.
+            </div>
+
+            <div class="pt-4 flex gap-3">
+                <button type="button" id="btnHapusAbsensi" onclick="deleteAbsensi()" class="hidden w-1/3 py-3 text-white bg-red-600 hover:bg-red-700 rounded-xl font-bold transition-colors shadow-sm flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    Hapus
+                </button>
+                <button type="button" onclick="document.getElementById('modalAbsensi').classList.add('hidden')" class="flex-1 py-3 text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl font-bold transition-colors shadow-sm">Batal</button>
+                <button type="submit" id="btnSimpanAbsensi" class="flex-1 py-3 text-white bg-[#0A0F2C] hover:bg-[#111942] rounded-xl font-bold transition-colors shadow-sm">Simpan</button>
             </div>
         </form>
     </div>
@@ -548,22 +557,29 @@
                         cell.className += ' hover:bg-slate-100 cursor-pointer transition-colors';
                         cell.onclick = () => openAbsensiModal(id, dateString, data.absensi_harian);
                         
-                        const status = data.kalender_absensi ? data.kalender_absensi[dateString] : null;
+                        const statusData = data.kalender_absensi ? data.kalender_absensi[dateString] : null;
                         
-                        if (status) {
+                        if (statusData) {
+                            const status = statusData.status;
+                            const isPaid = statusData.status_bayar == 1;
+
                             let colorClass = 'text-slate-600';
                             let bgClass = 'bg-slate-100';
-                            let icon = '';
                             if (status === 'hadir') { colorClass = 'text-green-700'; bgClass = 'bg-green-50 border border-green-100'; }
                             if (status === 'izin') { colorClass = 'text-yellow-700'; bgClass = 'bg-yellow-50 border border-yellow-100'; }
                             if (status === 'sakit') { colorClass = 'text-orange-700'; bgClass = 'bg-orange-50 border border-orange-100'; }
                             if (status === 'alpha') { colorClass = 'text-red-700'; bgClass = 'bg-red-50 border border-red-100'; }
+
+                            if (isPaid) {
+                                bgClass += ' opacity-60';
+                            }
 
                             cell.innerHTML += `
                                 <div class="mt-auto mb-1 mx-1">
                                     <div class="px-1 py-0.5 text-[10px] rounded font-semibold uppercase text-center truncate ${bgClass} ${colorClass}">
                                         ${status}
                                     </div>
+                                    ${isPaid ? '<div class="text-[9px] text-center text-slate-500 font-bold mt-0.5 flex items-center justify-center gap-1"><svg class="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Paid</div>' : ''}
                                 </div>
                             `;
                         } else {
@@ -634,8 +650,36 @@
         document.getElementById('slipTotal').textContent = formatRp(totalGaji);
         
         document.getElementById('btnProsesPembayaran').onclick = function() {
-            window.location.href = `/employees/${emp.id}/slip-gaji`;
-            document.getElementById('modalSlip').classList.add('hidden');
+            const btn = document.getElementById('btnProsesPembayaran');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = 'Memproses...';
+            btn.disabled = true;
+
+            fetch(`/employees/${emp.id}/bayar-gaji`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.success) {
+                    window.open(data.download_url, '_blank');
+                    document.getElementById('modalSlip').classList.add('hidden');
+                    loadEmployeeDetail(emp.id); // Refresh data
+                } else {
+                    alert('Gagal memproses pembayaran: ' + (data.message || 'Error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat memproses pembayaran.');
+            })
+            .finally(() => {
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            });
         };
         
         document.getElementById('modalSlip').classList.remove('hidden');
@@ -643,6 +687,8 @@
 
     // Modal Input Absensi
     function openAbsensiModal(id, dateString, absensiHarian) {
+        document.getElementById('formAbsensi').reset();
+        
         document.getElementById('absensiKaryawanId').value = id;
         document.getElementById('absensiTanggal').value = dateString;
         
@@ -659,11 +705,40 @@
             document.getElementById('absensiJamMasuk').value = existingData.jam_masuk ? existingData.jam_masuk.substring(0,5) : '';
             document.getElementById('absensiJamKeluar').value = existingData.jam_keluar ? existingData.jam_keluar.substring(0,5) : '';
             document.getElementById('absensiCatatan').value = existingData.catatan || '';
+            
+            if (existingData.status_bayar == 1) {
+                document.getElementById('absensiStatus').disabled = true;
+                document.getElementById('absensiJamMasuk').disabled = true;
+                document.getElementById('absensiJamKeluar').disabled = true;
+                document.getElementById('absensiCatatan').disabled = true;
+
+                document.getElementById('btnSimpanAbsensi').classList.add('hidden');
+                document.getElementById('btnHapusAbsensi').classList.add('hidden');
+                document.getElementById('absensiWarningPaid').classList.remove('hidden');
+            } else {
+                document.getElementById('absensiStatus').disabled = false;
+                document.getElementById('absensiJamMasuk').disabled = false;
+                document.getElementById('absensiJamKeluar').disabled = false;
+                document.getElementById('absensiCatatan').disabled = false;
+
+                document.getElementById('btnSimpanAbsensi').classList.remove('hidden');
+                document.getElementById('btnHapusAbsensi').classList.remove('hidden');
+                document.getElementById('absensiWarningPaid').classList.add('hidden');
+            }
         } else {
             document.getElementById('absensiStatus').value = 'hadir';
             document.getElementById('absensiJamMasuk').value = '';
             document.getElementById('absensiJamKeluar').value = '';
             document.getElementById('absensiCatatan').value = '';
+            
+            document.getElementById('absensiStatus').disabled = false;
+            document.getElementById('absensiJamMasuk').disabled = false;
+            document.getElementById('absensiJamKeluar').disabled = false;
+            document.getElementById('absensiCatatan').disabled = false;
+
+            document.getElementById('btnHapusAbsensi').classList.add('hidden');
+            document.getElementById('btnSimpanAbsensi').classList.remove('hidden');
+            document.getElementById('absensiWarningPaid').classList.add('hidden');
         }
         
         document.getElementById('modalAbsensi').classList.remove('hidden');
@@ -696,6 +771,37 @@
         .catch(error => {
             console.error('Error submitting absensi:', error);
             alert('Terjadi kesalahan saat menyimpan absensi.');
+        });
+    }
+
+    // Delete Absensi
+    function deleteAbsensi() {
+        const id = document.getElementById('absensiKaryawanId').value;
+        const tanggal = document.getElementById('absensiTanggal').value;
+        
+        if (!confirm('Apakah Anda yakin ingin menghapus data absensi ini?')) return;
+
+        fetch(`/employees/${id}/absensi/destroy`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ tanggal: tanggal })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                document.getElementById('modalAbsensi').classList.add('hidden');
+                loadEmployeeDetail(id); // Refresh detail panel and calendar
+            } else {
+                alert('Gagal menghapus absensi: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting absensi:', error);
+            alert('Terjadi kesalahan saat menghapus absensi.');
         });
     }
 
