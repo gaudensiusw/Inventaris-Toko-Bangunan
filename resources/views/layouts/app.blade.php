@@ -226,19 +226,31 @@
                         @endif
 
                         <!-- REPORTS & ADVANCED -->
-                        @if(auth()->user()->role === 'owner')
+                        @if(in_array(auth()->user()->role, ['owner', 'admin']))
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mt-6 mb-3">Reports &
                                 Advanced</div>
 
-                            <a href="{{ route('report.index') }}"
-                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('reports*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                                    </path>
-                                </svg>
-                                <span class="flex-1 text-sm font-medium">Reports</span>
-                            </a>
+                            @if(auth()->user()->role === 'owner')
+                                <a href="{{ route('report.index') }}"
+                                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('reports*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                        </path>
+                                    </svg>
+                                    <span class="flex-1 text-sm font-medium">Reports</span>
+                                </a>
+                            @endif
+
+                            @if(in_array(auth()->user()->role, ['owner', 'admin']))
+                                <a href="{{ route('audit-logs.index') }}"
+                                    class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('audit-logs*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                    <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                                    </svg>
+                                    <span class="flex-1 text-sm font-medium">Audit Log</span>
+                                </a>
+                            @endif
 
                         @endif
 
