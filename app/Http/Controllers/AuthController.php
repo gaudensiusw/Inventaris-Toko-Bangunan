@@ -27,9 +27,18 @@ class AuthController extends Controller
         // the seeder already set the password to demo123.
         
         if (Auth::attempt($credentials, $request->remember)) {
-            $request->session()->regenerate();
-
             $user = Auth::user();
+
+            if (!$user->aktif) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return back()->withErrors([
+                    'email' => 'Akun Anda telah dinonaktifkan. Hubungi Owner.',
+                ])->onlyInput('email');
+            }
+
+            $request->session()->regenerate();
             if ($user->role === 'kasir') {
                 return redirect()->intended('/pos');
             }

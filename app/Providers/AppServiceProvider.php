@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Auth\Events\Login;
+use App\Listeners\UpdateLastLogin;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -42,5 +45,10 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \Illuminate\Pagination\Paginator::useTailwind();
+
+        Event::listen(
+            Login::class,
+            UpdateLastLogin::class,
+        );
     }
 }
