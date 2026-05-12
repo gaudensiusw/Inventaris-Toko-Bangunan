@@ -29,6 +29,7 @@ class EmployeeController extends Controller
             'no_hp' => $request->no_hp,
             'alamat' => $request->alamat,
             'aktif' => 1,
+            'bonus_tetap' => 0,
         ]);
 
         return redirect()->back()->with('success', 'Data karyawan berhasil ditambahkan');
@@ -75,46 +76,59 @@ class EmployeeController extends Controller
         $currentMonth = \Carbon\Carbon::now()->month;
         $currentYear = \Carbon\Carbon::now()->year;
 
-        $absensis = \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
+        $allAbsensisMonth = \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
             ->whereMonth('tanggal', $currentMonth)
             ->whereYear('tanggal', $currentYear)
             ->get();
 
+        $unpaidAbsensis = $allAbsensisMonth->where('status_bayar', 0);
+
         $rekap = [
-            'hadir' => $absensis->where('status', 'hadir')->count(),
-            'sakit' => $absensis->where('status', 'sakit')->count(),
-            'alpha' => $absensis->where('status', 'alpha')->count(),
-            'izin' => $absensis->where('status', 'izin')->count(),
+            'hadir' => $unpaidAbsensis->where('status', 'hadir')->count(),
+            'sakit' => $unpaidAbsensis->where('status', 'sakit')->count(),
+            'alpha' => $unpaidAbsensis->where('status', 'alpha')->count(),
+            'izin' => $unpaidAbsensis->where('status', 'izin')->count(),
         ];
 
         $estimasi_gaji = $rekap['hadir'] * ($employee->jabatan->gaji_harian ?? 0);
 
         // Map calendar data
         $kalender_absensi = [];
-        foreach ($absensis as $ab) {
-            $kalender_absensi[$ab->tanggal->format('Y-m-d')] = $ab->status;
+        foreach ($allAbsensisMonth as $ab) {
+            $kalender_absensi[$ab->tanggal->format('Y-m-d')] = [
+                'status' => $ab->status,
+                'status_bayar' => $ab->status_bayar,
+            ];
         }
 
         return response()->json([
             'employee' => $employee,
             'rekap_absensi' => $rekap,
-            'absensi_harian' => $absensis,
+            'absensi_harian' => $allAbsensisMonth,
             'kalender_absensi' => $kalender_absensi,
             'estimasi_gaji' => $estimasi_gaji,
         ]);
     }
 
-    public function generateSlipGaji($id)
+    public function generateSlipGaji(Request $request, $id)
     {
         $employee = \Modules\Employee\Models\Karyawan::with('jabatan')->findOrFail($id);
+
+        $tanggalPembayaran = $request->query('tanggal_pembayaran');
+
+        $query = \Modules\Employee\Models\Absensi::where('karyawan_id', $id);
 
         $currentMonth = \Carbon\Carbon::now()->month;
         $currentYear = \Carbon\Carbon::now()->year;
 
-        $absensis = \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
-            ->whereMonth('tanggal', $currentMonth)
-            ->whereYear('tanggal', $currentYear)
-            ->get();
+        if ($tanggalPembayaran) {
+            $query->where('tanggal_pembayaran', $tanggalPembayaran);
+        } else {
+            $query->whereMonth('tanggal', $currentMonth)
+                  ->whereYear('tanggal', $currentYear);
+        }
+
+        $absensis = $query->get();
 
         $rekap = [
             'hadir' => $absensis->where('status', 'hadir')->count(),
@@ -128,7 +142,7 @@ class EmployeeController extends Controller
         $bonus = $employee->bonus_tetap ?? 0; // Use dynamic bonus from db
         $total_gaji = $total_gaji_pokok + $bonus;
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('employee::slip_gaji', compact('employee', 'rekap', 'gaji_harian', 'total_gaji_pokok', 'bonus', 'total_gaji', 'currentMonth', 'currentYear'));
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('employee::slip_gaji', compact('employee', 'rekap', 'gaji_harian', 'total_gaji_pokok', 'bonus', 'total_gaji', 'currentMonth', 'currentYear', 'tanggalPembayaran'));
         
         return $pdf->download('slip_gaji_' . str_replace(' ', '_', strtolower($employee->nama)) . '.pdf');
     }
@@ -143,16 +157,76 @@ class EmployeeController extends Controller
             'catatan' => 'nullable|string'
         ]);
 
-        $absensi = \Modules\Employee\Models\Absensi::updateOrCreate(
-            ['karyawan_id' => $id, 'tanggal' => $request->tanggal],
-            [
+        $query = \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
+            ->where('tanggal', $request->tanggal);
+
+        // Include trashed if SoftDeletes is ever added
+        if (method_exists(\Modules\Employee\Models\Absensi::class, 'restore')) {
+            $query->withTrashed();
+        }
+
+        $absensi = $query->first();
+
+        if ($absensi) {
+            if (method_exists($absensi, 'restore') && $absensi->trashed()) {
+                $absensi->restore();
+            }
+            $absensi->update([
                 'status' => $request->status,
                 'jam_masuk' => $request->jam_masuk,
                 'jam_keluar' => $request->jam_keluar,
-                'catatan' => $request->catatan
-            ]
-        );
+                'catatan' => $request->catatan,
+                'status_bayar' => 0
+            ]);
+        } else {
+            \Modules\Employee\Models\Absensi::create([
+                'karyawan_id' => $id,
+                'tanggal' => $request->tanggal,
+                'status' => $request->status,
+                'jam_masuk' => $request->jam_masuk,
+                'jam_keluar' => $request->jam_keluar,
+                'catatan' => $request->catatan,
+                'status_bayar' => 0
+            ]);
+        }
 
         return response()->json(['success' => true, 'message' => 'Absensi berhasil disimpan']);
+    }
+
+    public function bayarGaji(Request $request, $id)
+    {
+        $now = \Carbon\Carbon::now();
+        
+        \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
+            ->where('status_bayar', 0)
+            ->update([
+                'status_bayar' => 1,
+                'tanggal_pembayaran' => $now
+            ]);
+
+        \Modules\Employee\Models\Karyawan::where('id', $id)->update(['bonus_tetap' => 0]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gaji berhasil dibayarkan',
+            'download_url' => route('employee.slipGaji', ['id' => $id, 'tanggal_pembayaran' => $now->toDateTimeString()])
+        ]);
+    }
+
+    public function destroyAbsensi(Request $request, $id)
+    {
+        $request->validate([
+            'tanggal' => 'required|date'
+        ]);
+
+        $deleted = \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
+            ->whereDate('tanggal', $request->tanggal)
+            ->delete();
+
+        if ($deleted) {
+            return response()->json(['success' => true, 'message' => 'Data absensi berhasil dihapus']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Data absensi tidak ditemukan'], 404);
     }
 }

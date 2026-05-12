@@ -13,8 +13,11 @@ class SupplierController extends Controller
 {
     public function index()
     {
-        $suppliers = Supplier::withCount('products')->orderBy('created_at', 'desc')->get();
-        $totalSuppliers = $suppliers->count();
+        $suppliers = Supplier::withCount('products')
+            ->orderBy('company_name', 'asc')
+            ->paginate(15);
+            
+        $totalSuppliers = Supplier::count();
         $activeProducts = Product::whereNotNull('supplier_id')->count();
         $avgProducts = $totalSuppliers > 0 ? round($activeProducts / $totalSuppliers, 1) : 0;
 

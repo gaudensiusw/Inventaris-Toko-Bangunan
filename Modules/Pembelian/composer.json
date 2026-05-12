@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/pembelian",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Pembelian\\": "app/",
+            "Modules\\Pembelian\\Database\\Factories\\": "database/factories/",
+            "Modules\\Pembelian\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Pembelian\\Tests\\": "tests/"
+        }
+    }
+}

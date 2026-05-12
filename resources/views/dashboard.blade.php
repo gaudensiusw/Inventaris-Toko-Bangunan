@@ -61,6 +61,35 @@
         </div>
     </div>
 
+    <!-- Financial Chart -->
+    <div class="mt-8 mb-8">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+            <h3 class="text-lg font-bold text-slate-800">Grafik Keuangan</h3>
+            
+            <!-- Filters -->
+            <div class="inline-flex rounded-lg shadow-sm border border-slate-200 bg-white overflow-hidden" role="group">
+                <button type="button" onclick="loadChartData('hari')" id="btn-filter-hari" class="chart-filter-btn px-4 py-2 text-sm font-medium text-slate-700 bg-white border-r border-slate-200 hover:bg-slate-50 hover:text-blue-600 focus:z-10 focus:ring-2 focus:ring-blue-500 focus:text-blue-600 transition-colors">
+                    Hari Ini
+                </button>
+                <button type="button" onclick="loadChartData('minggu')" id="btn-filter-minggu" class="chart-filter-btn px-4 py-2 text-sm font-medium text-slate-700 bg-white border-r border-slate-200 hover:bg-slate-50 hover:text-blue-600 focus:z-10 focus:ring-2 focus:ring-blue-500 focus:text-blue-600 transition-colors">
+                    Minggu Ini
+                </button>
+                <button type="button" onclick="loadChartData('bulan')" id="btn-filter-bulan" class="chart-filter-btn px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 border-r border-slate-200 hover:bg-blue-100 focus:z-10 focus:ring-2 focus:ring-blue-500 focus:text-blue-600 transition-colors">
+                    Bulan Ini
+                </button>
+                <button type="button" onclick="loadChartData('tahun')" id="btn-filter-tahun" class="chart-filter-btn px-4 py-2 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 hover:text-blue-600 focus:z-10 focus:ring-2 focus:ring-blue-500 focus:text-blue-600 transition-colors">
+                    Tahun Ini
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div class="h-[400px] w-full">
+                <canvas id="financeChart"></canvas>
+            </div>
+        </div>
+    </div>
+
     <!-- Finance & Stakeholders -->
     <h3 class="text-lg font-bold text-slate-800 mt-8">Keuangan & Relasi</h3>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -109,4 +138,109 @@
         </div>
     </div>
 </div>
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let financeChart = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize with default 'bulan'
+        loadChartData('bulan');
+    });
+
+    function updateActiveButton(filter) {
+        document.querySelectorAll('.chart-filter-btn').forEach(btn => {
+            btn.classList.remove('text-blue-600', 'bg-blue-50');
+            btn.classList.add('text-slate-700', 'bg-white');
+        });
+        
+        const activeBtn = document.getElementById(`btn-filter-${filter}`);
+        if(activeBtn) {
+            activeBtn.classList.remove('text-slate-700', 'bg-white');
+            activeBtn.classList.add('text-blue-600', 'bg-blue-50');
+        }
+    }
+
+    async function loadChartData(filter) {
+        updateActiveButton(filter);
+        
+        try {
+            const response = await fetch(`/dashboard/chart-data?filter=${filter}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await response.json();
+            
+            renderChart(data);
+        } catch (error) {
+            console.error('Error fetching chart data:', error);
+        }
+    }
+
+    function renderChart(data) {
+        const ctx = document.getElementById('financeChart').getContext('2d');
+        
+        if (financeChart) {
+            financeChart.destroy();
+        }
+
+        financeChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: data.datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (value >= 1000000) {
+                                    return 'Rp ' + (value / 1000000).toFixed(1) + 'M';
+                                } else if (value >= 1000) {
+                                    return 'Rp ' + (value / 1000).toFixed(0) + 'K';
+                                }
+                                return 'Rp ' + value;
+                            }
+                        }
+                    }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                }
+            }
+        });
+    }
+</script>
+@endpush
+
 @endsection

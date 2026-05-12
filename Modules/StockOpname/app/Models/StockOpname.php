@@ -14,14 +14,21 @@ class StockOpname extends Model
 
     protected $fillable = [
         'produk_id',
+        'user_id',
         'stok_sistem',
         'stok_fisik',
         'selisih',
-        'keterangan'
+        'keterangan',
+        'status'
     ];
 
     public function product()
     {
         return $this->belongsTo(Product::class, 'produk_id');
+    }
+
+    public function causer()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'user_id');
     }
 }

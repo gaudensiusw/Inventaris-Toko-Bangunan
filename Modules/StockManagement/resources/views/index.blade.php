@@ -1,11 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Toko Bangunan - Stock Management')
-@section('header_title', 'Stock Management')
+@section('title', 'Toko Bangunan - Manajemen Stok')
+@section('header_title', 'Manajemen Stok')
 
 @section('content')
 <div x-data="{ 
     modalOpen: false, 
+    showConfirm: false,
     modalType: 'in',
     selectedProduct: '',
     qty: 0,
@@ -36,7 +37,7 @@
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg>
             </div>
             <div>
-                <h3 class="font-bold text-slate-800 text-lg">Stock Masuk (In)</h3>
+                <h3 class="font-bold text-slate-800 text-lg">Barang Masuk (In)</h3>
                 <p class="text-xs text-slate-500 mt-0.5">Catat penambahan stok barang</p>
             </div>
         </div>
@@ -46,7 +47,7 @@
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>
             </div>
             <div>
-                <h3 class="font-bold text-slate-800 text-lg">Stock Keluar (Out)</h3>
+                <h3 class="font-bold text-slate-800 text-lg">Barang Keluar (Out)</h3>
                 <p class="text-xs text-slate-500 mt-0.5">Catat pengeluaran stok barang</p>
             </div>
         </div>
@@ -104,7 +105,7 @@
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-md relative z-10 m-4 overflow-hidden transform transition-all" x-transition>
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between" :class="modalType == 'in' ? 'bg-green-50/50' : 'bg-red-50/50'">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-800" x-text="modalType == 'in' ? 'Stock Masuk (In)' : 'Stock Keluar (Out)'"></h3>
+                    <h3 class="text-lg font-bold text-slate-800" x-text="modalType == 'in' ? 'Barang Masuk (In)' : 'Barang Keluar (Out)'"></h3>
                     <p class="text-xs text-slate-500 mt-0.5" x-text="modalType == 'in' ? 'Tambah persediaan barang' : 'Catat pengeluaran barang'"></p>
                 </div>
                 <button @click="modalOpen = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-100">
@@ -135,10 +136,37 @@
                 </div>
                 <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
                     <button type="button" @click="modalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Batal</button>
-                    <button type="submit" class="px-5 py-2 rounded-lg text-sm font-bold text-white shadow transition-colors"
+                    <button type="button" @click="showConfirm = true" class="px-5 py-2 rounded-lg text-sm font-bold text-white shadow transition-colors"
                             :class="modalType == 'in' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'">
-                        Simpan <span x-text="modalType == 'in' ? 'Stock Masuk' : 'Stock Keluar'"></span>
+                        Simpan <span x-text="modalType == 'in' ? 'Barang Masuk' : 'Barang Keluar'"></span>
                     </button>
+                </div>
+
+                <!-- DOUBLE CONFIRMATION MODAL -->
+                <div x-show="showConfirm" class="fixed inset-0 z-[110] flex items-center justify-center" style="display: none;">
+                    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showConfirm = false"></div>
+                    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden border border-slate-200">
+                        <div class="p-8 text-center">
+                            <div class="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ring-8"
+                                :class="modalType == 'in' ? 'bg-green-50 text-green-600 ring-green-50/50' : 'bg-red-50 text-red-600 ring-red-50/50'">
+                                <template x-if="modalType == 'in'">
+                                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </template>
+                                <template x-if="modalType == 'out'">
+                                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </template>
+                            </div>
+                            <h3 class="text-xl font-bold text-slate-900 mb-2">Simpan Penyesuaian?</h3>
+                            <p class="text-slate-500 leading-relaxed">Pastikan jumlah barang yang dimasukkan sudah sesuai dengan fisik di gudang.</p>
+                        </div>
+                        <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
+                            <button type="button" @click="showConfirm = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
+                            <button type="submit" class="flex-1 py-3 text-white rounded-xl text-sm font-bold transition-all shadow-lg"
+                                :class="modalType == 'in' ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : 'bg-red-600 hover:bg-red-700 shadow-red-200'">
+                                Ya, Simpan
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>

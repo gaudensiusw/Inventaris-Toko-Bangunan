@@ -10,3 +10,5 @@ Route::get('/employees/{id}/slip-gaji', [EmployeeController::class, 'generateSli
 Route::post('/employees/{id}/absensi/store', [EmployeeController::class, 'storeAbsensi'])->name('employee.absensi.store');
 Route::put('/employees/{id}', [EmployeeController::class, 'update'])->name('employee.update');
 Route::delete('/employees/{id}', [EmployeeController::class, 'destroy'])->name('employee.destroy');
+Route::post('/employees/{id}/bayar-gaji', [EmployeeController::class, 'bayarGaji'])->name('employee.bayar-gaji');
+Route::delete('/employees/{id}/absensi/destroy', [EmployeeController::class, 'destroyAbsensi'])->name('employee.absensi.destroy');

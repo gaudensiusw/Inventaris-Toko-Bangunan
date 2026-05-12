@@ -15,6 +15,10 @@ class POSDetail extends Model
     protected $fillable = [
         'pos_id',
         'produk_id',
+        'satuan_nama',
+        'isi',
+        'harga_satuan',
+        'diskon_rp',
         'qty',
         'harga',
         'subtotal'

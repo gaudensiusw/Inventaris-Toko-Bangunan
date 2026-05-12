@@ -9,17 +9,20 @@ class SubCategory extends Model
 {
     use HasFactory;
 
-    protected $table = 'sub_categories';
+    protected $table = 'sub_kategori';
 
-    protected $fillable = ['category_id', 'nama', 'keterangan'];
+    protected $fillable = [
+        'kategori_id',
+        'nama'
+    ];
 
     public function category()
     {
-        return $this->belongsTo(Category::class, 'category_id');
+        return $this->belongsTo(Category::class, 'kategori_id');
     }
 
     public function products()
     {
-        return $this->hasMany(Product::class, 'sub_category_id');
+        return $this->hasMany(Product::class, 'sub_kategori_id');
     }
 }

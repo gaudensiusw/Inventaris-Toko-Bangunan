@@ -3,5 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Notification\Http\Controllers\NotificationController;
 
-Route::get('/notifications', [NotificationController::class, 'index'])->name('notification.index');
-Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notification.read');
+Route::middleware(['auth'])->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notification.index');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notification.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notification.markAllRead');
+});

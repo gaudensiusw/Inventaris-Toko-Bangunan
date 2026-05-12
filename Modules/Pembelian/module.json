@@ -1,0 +1,11 @@
+{
+    "name": "Pembelian",
+    "alias": "pembelian",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Pembelian\\Providers\\PembelianServiceProvider"
+    ],
+    "files": []
+}
