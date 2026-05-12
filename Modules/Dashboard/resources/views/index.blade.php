@@ -10,9 +10,9 @@
         <p class="text-sm text-slate-500 mt-1">Berikut adalah ringkasan bisnis Anda hari ini.</p>
     </div>
     <div class="inline-flex bg-white rounded-lg p-1 border border-slate-200 shadow-sm">
-        <button class="px-4 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-700 transition">Hari</button>
-        <button class="px-4 py-1.5 text-sm font-medium rounded-md text-slate-500 hover:text-slate-700 transition">Minggu</button>
-        <button class="px-4 py-1.5 text-sm font-medium rounded-md bg-[#2563eb] text-white shadow transition">Bulan</button>
+        <a href="?filter=hari" class="px-4 py-1.5 text-sm font-medium rounded-md {{ $filter == 'hari' ? 'bg-[#2563eb] text-white shadow' : 'text-slate-500 hover:text-slate-700' }} transition">Hari</a>
+        <a href="?filter=minggu" class="px-4 py-1.5 text-sm font-medium rounded-md {{ $filter == 'minggu' ? 'bg-[#2563eb] text-white shadow' : 'text-slate-500 hover:text-slate-700' }} transition">Minggu</a>
+        <a href="?filter=bulan" class="px-4 py-1.5 text-sm font-medium rounded-md {{ $filter == 'bulan' ? 'bg-[#2563eb] text-white shadow' : 'text-slate-500 hover:text-slate-700' }} transition">Bulan</a>
     </div>
 </div>
 
@@ -34,7 +34,7 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <span class="font-bold text-red-600">Rp {{ number_format($inv->total, 0, ',', '.') }}</span>
-                    <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-semibold">{{ $inv->jatuh_tempo->diffInDays(now()) }} hari terlambat</span>
+                    <span class="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-semibold">{{ floor($inv->jatuh_tempo->diffInDays(now())) }} hari terlambat</span>
                 </div>
             </div>
             @endforeach
@@ -56,7 +56,7 @@
                     <span class="text-slate-500">{{ $inv->no_invoice }}</span>
                 </div>
                 <div class="flex items-center gap-3">
-                    <span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-semibold">{{ $inv->jatuh_tempo->diffInDays(now()) }} hari lagi</span>
+                    <span class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded text-xs font-semibold">{{ ceil($inv->jatuh_tempo->diffInDays(now())) }} hari lagi</span>
                 </div>
             </div>
             @endforeach
@@ -69,8 +69,8 @@
     @if(auth()->user()->role === 'owner')
     <!-- Pendapatan -->
     <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Pendapatan (Hari Ini)</p>
-        <h3 class="text-2xl font-bold text-green-600 mb-2">Rp {{ number_format($stats['pendapatan_hari_ini'] / 1000, 1) }}K</h3>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Pendapatan ({{ ucfirst($filter) }})</p>
+        <h3 class="text-2xl font-bold text-green-600 mb-2">Rp {{ number_format($stats['pendapatan'] / 1000, 1) }}K</h3>
         <p class="text-xs text-slate-500">Total penerimaan kas</p>
     </div>
     @endif
@@ -85,7 +85,7 @@
     <!-- Laba Bersih -->
     <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
         <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Laba Bersih (Est)</p>
-        <h3 class="text-2xl font-bold text-[#2563eb] mb-2">Rp 0.0M</h3>
+        <h3 class="text-2xl font-bold text-[#2563eb] mb-2">Rp {{ number_format($stats['net_profit'] / 1000000, 2) }}M</h3>
         <p class="text-xs text-slate-500">Margin operasional</p>
     </div>
     
@@ -94,7 +94,7 @@
     <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
         <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Nilai Stok</p>
         <h3 class="text-2xl font-bold text-slate-800 mb-2">Rp {{ number_format($stats['nilai_stok'] / 1000000, 1) }}M</h3>
-        <p class="text-xs text-slate-500">{{ count($stats['low_stock_products']) }} produk <span class="text-red-500 font-medium">stok rendah</span></p>
+        <p class="text-xs text-slate-500">{{ $stats['low_stock_products']->total() }} produk <span class="text-red-500 font-medium">stok rendah</span></p>
     </div>
     @endif
 </div>
@@ -119,7 +119,7 @@
 <div class="bg-red-50 rounded-xl border border-red-200 overflow-hidden shadow-sm">
     <div class="bg-red-500 px-4 py-2 flex items-center gap-2">
         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-        <span class="text-sm font-bold text-white tracking-wide">Peringatan Stok Rendah &mdash; {{ count($stats['low_stock_products']) }} produk di bawah stok minimum</span>
+        <span class="text-sm font-bold text-white tracking-wide">Peringatan Stok Rendah &mdash; {{ $stats['low_stock_products']->total() }} produk di bawah stok minimum</span>
     </div>
     <div class="p-4 space-y-2">
         @foreach($stats['low_stock_products'] as $product)
@@ -139,39 +139,83 @@
             </div>
         </div>
         @endforeach
+
+        <div class="mt-4 dashboard-pagination">
+            {{ $stats['low_stock_products']->links() }}
+        </div>
     </div>
 </div>
 @endsection
 
 @push('scripts')
 <script>
-    // Stub out charts for visuals
-    const ctx = document.getElementById('trendChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ['1', '5', '10', '15', '20', '25', '30'],
-            datasets: [{
-                label: 'Penjualan',
-                data: [12, 19, 3, 5, 2, 3, 10],
-                borderColor: '#cfcfcf',
-                tension: 0.4
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
+    document.addEventListener('DOMContentLoaded', function() {
+        const chartData = @json($chartData);
+        const labels = chartData.map(d => d.label);
+        const revData = chartData.map(d => d.revenue / 1000000);
+        const profitData = chartData.map(d => d.profit / 1000000);
 
-    const ctx2 = document.getElementById('splitChart').getContext('2d');
-    new Chart(ctx2, {
-        type: 'doughnut',
-        data: {
-            labels: ['Cash', 'Kredit'],
-            datasets: [{
-                data: [1, 5],
-                backgroundColor: ['#cfcfcf', '#cbd5e1']
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+        // Trend Chart
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Penjualan (M)',
+                        data: revData,
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Laba (M)',
+                        data: profitData,
+                        borderColor: '#2563eb',
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { legend: { position: 'bottom' } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { callback: v => v + 'M' } }
+                }
+            }
+        });
+
+        // Split Chart
+        const cashRev = {{ $stats['cash_revenue'] }};
+        const creditRev = {{ $stats['credit_revenue'] }};
+        const ctx2 = document.getElementById('splitChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: ['Cash', 'Kredit'],
+                datasets: [{
+                    data: [cashRev, creditRev],
+                    backgroundColor: ['#22c55e', '#f59e0b']
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': Rp ' + new Intl.NumberFormat('id-ID').format(context.raw);
+                            }
+                        }
+                    }
+                } 
+            }
+        });
     });
 </script>
 @endpush

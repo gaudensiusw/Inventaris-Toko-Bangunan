@@ -85,26 +85,56 @@ class ReportController extends Controller
         $netProfit = $grossProfit - $opsExpenses;
         $netMargin = $totalRevenue > 0 ? ($netProfit / $totalRevenue) * 100 : 0;
 
-        // --- CHART DATA (Last 12 Months) ---
+        // --- CHART DATA ---
         $chartData = [];
-        for ($i = 11; $i >= 0; $i--) {
-            $monthStart = \Carbon\Carbon::now()->subMonths($i)->startOfMonth();
-            $monthEnd = \Carbon\Carbon::now()->subMonths($i)->endOfMonth();
-            
-            $mRev = class_exists(\Modules\POS\Models\POS::class) ? \Modules\POS\Models\POS::whereBetween('created_at', [$monthStart, $monthEnd])->sum('total_tagihan') : 0;
-            $mDetails = class_exists(\Modules\POS\Models\POSDetail::class) ? \Modules\POS\Models\POSDetail::with('product')->whereHas('pos', function($q) use ($monthStart, $monthEnd) {
-                $q->whereBetween('created_at', [$monthStart, $monthEnd]);
+        $fetchStats = function($start, $end, $label) {
+            $mRev = class_exists(\Modules\POS\Models\POS::class) ? \Modules\POS\Models\POS::whereBetween('created_at', [$start, $end])->sum('total_tagihan') : 0;
+            $mDetails = class_exists(\Modules\POS\Models\POSDetail::class) ? \Modules\POS\Models\POSDetail::with('product')->whereHas('pos', function($q) use ($start, $end) {
+                $q->whereBetween('created_at', [$start, $end]);
             })->get() : [];
             $mCogs = count($mDetails) > 0 ? $mDetails->sum(function($detail) {
                 return $detail->qty * ($detail->product->harga_beli ?? 0);
             }) : 0;
             
-            $chartData[] = [
-                'month' => $monthStart->translatedFormat('M Y'),
+            return [
+                'label' => $label,
                 'revenue' => $mRev,
                 'cogs' => $mCogs,
                 'profit' => $mRev - $mCogs
             ];
+        };
+
+        if ($filter == 'hari') {
+            // Last 7 days to show a trend for "Daily"
+            for ($i = 0; $i <= 6; $i++) {
+                $dStart = $now->copy()->subDays(6 - $i)->startOfDay();
+                $dEnd = $dStart->copy()->endOfDay();
+                $chartData[] = $fetchStats($dStart, $dEnd, $dStart->translatedFormat('d M'));
+            }
+        } elseif ($filter == 'minggu') {
+            // 7 Days of this week
+            $wStart = $now->copy()->startOfWeek();
+            for ($i = 0; $i < 7; $i++) {
+                $dStart = $wStart->copy()->addDays($i)->startOfDay();
+                $dEnd = $dStart->copy()->endOfDay();
+                $chartData[] = $fetchStats($dStart, $dEnd, $dStart->translatedFormat('D'));
+            }
+        } elseif ($filter == 'bulan') {
+            // Days of this month
+            $daysInMonth = $now->daysInMonth;
+            $mStart = $now->copy()->startOfMonth();
+            for ($i = 0; $i < $daysInMonth; $i++) {
+                $dStart = $mStart->copy()->addDays($i)->startOfDay();
+                $dEnd = $dStart->copy()->endOfDay();
+                $chartData[] = $fetchStats($dStart, $dEnd, $dStart->format('d'));
+            }
+        } else { // tahun
+            // 12 Months of selected year
+            for ($i = 1; $i <= 12; $i++) {
+                $mStart = \Carbon\Carbon::createFromDate($selectedYear, $i, 1)->startOfMonth();
+                $mEnd = $mStart->copy()->endOfMonth();
+                $chartData[] = $fetchStats($mStart, $mEnd, $mStart->translatedFormat('M'));
+            }
         }
 
         // --- PRODUCT PROFITABILITY ---

@@ -31,11 +31,6 @@ class StockOpnameController extends Controller
         return view('stockopname::index', compact('products', 'allProducts', 'categories'));
     }
 
-    public function history()
-    {
-        $history = StockOpname::with('product')->latest()->paginate(20);
-        return view('stockopname::history', compact('history'));
-    }
 
     public function store(Request $request)
     {

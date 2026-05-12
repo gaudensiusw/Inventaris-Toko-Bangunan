@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
 
@@ -23,25 +23,109 @@ class DashboardController extends Controller
             return $this->operatorDashboard();
         }
 
+        $filter = $request->query('filter', 'bulan');
+        $now = \Carbon\Carbon::now();
+
+        switch($filter) {
+            case 'hari':
+                $startDate = $now->copy()->startOfDay();
+                $endDate = $now->copy()->endOfDay();
+                break;
+            case 'minggu':
+                $startDate = $now->copy()->startOfWeek();
+                $endDate = $now->copy()->endOfWeek();
+                break;
+            case 'bulan':
+            default:
+                $startDate = $now->copy()->startOfMonth();
+                $endDate = $now->copy()->endOfMonth();
+                break;
+        }
+
         // Owner/Supervisor Dashboard Data
         $overdueInvoices = TagihanSupplier::with('supplier')
             ->where('status', '!=', 'lunas')
-            ->where('jatuh_tempo', '<', now())
+            ->where('jatuh_tempo', '<', $now->toDateTimeString())
             ->get();
 
         $dueSoonInvoices = TagihanSupplier::with('supplier')
             ->where('status', '!=', 'lunas')
-            ->whereBetween('jatuh_tempo', [now(), now()->addDays(7)])
+            ->whereBetween('jatuh_tempo', [$now->toDateTimeString(), $now->copy()->addDays(7)->toDateTimeString()])
             ->get();
 
+        // 1. Revenue & Profit Stats based on filter
+        $posInRange = POS::whereBetween('created_at', [$startDate, $endDate])->get();
+        $revenue = $posInRange->sum('total_tagihan');
+        $cashRevenue = $posInRange->where('status_pembayaran', 'lunas')->sum('total_tagihan');
+        $creditRevenue = $posInRange->where('status_pembayaran', '!=', 'lunas')->sum('total_tagihan');
+
+        // Estimate Net Profit (Revenue - COGS - Ops)
+        // For simplicity in dashboard, we use a simplified calculation or just 0 for now if too complex, 
+        // but let's try to get a rough estimate if possible.
+        $netProfit = 0;
+        if (count($posInRange) > 0) {
+            $posIds = $posInRange->pluck('id');
+            $cogs = \Modules\POS\Models\POSDetail::whereIn('pos_id', $posIds)
+                ->with('product')
+                ->get()
+                ->sum(function($d) { return $d->qty * ($d->product->harga_beli ?? 0); });
+            $ops = \Modules\OperationalItem\Models\ItemOperasional::whereBetween('created_at', [$startDate, $endDate])
+                ->get()
+                ->sum(function($i) { return $i->jumlah * $i->harga; });
+            $netProfit = $revenue - $cogs - $ops;
+        }
+
         $stats = [
-            'pendapatan_hari_ini' => POS::whereDate('tgl_transaksi', now())->sum('jumlah_bayar'),
+            'pendapatan' => $revenue,
             'total_piutang' => POS::where('status_pembayaran', '!=', 'lunas')->sum(DB::raw('total_tagihan - jumlah_bayar')),
             'nilai_stok' => Product::sum(DB::raw('stok * harga_beli')),
-            'low_stock_products' => Product::whereRaw('stok <= min_stok')->with('category')->get(),
+            'low_stock_products' => Product::whereRaw('stok <= min_stok')->with('category')->paginate(5, ['*'], 'stock_page')->withQueryString(),
+            'net_profit' => $netProfit,
+            'cash_revenue' => $cashRevenue,
+            'credit_revenue' => $creditRevenue,
         ];
 
-        return view('dashboard::index', compact('overdueInvoices', 'dueSoonInvoices', 'stats'));
+        // --- CHART DATA ---
+        $chartData = [];
+        $fetchStats = function($start, $end, $label) {
+            $rev = POS::whereBetween('created_at', [$start, $end])->sum('total_tagihan');
+            // Rough profit for chart
+            $details = \Modules\POS\Models\POSDetail::whereHas('pos', function($q) use ($start, $end) {
+                $q->whereBetween('created_at', [$start, $end]);
+            })->with('product')->get();
+            $cogs = $details->sum(function($d) { return $d->qty * ($d->product->harga_beli ?? 0); });
+            
+            return [
+                'label' => $label,
+                'revenue' => $rev,
+                'profit' => $rev - $cogs
+            ];
+        };
+
+        if ($filter == 'hari') {
+            for ($i = 0; $i <= 6; $i++) {
+                $dStart = $now->copy()->subDays(6 - $i)->startOfDay();
+                $dEnd = $dStart->copy()->endOfDay();
+                $chartData[] = $fetchStats($dStart, $dEnd, $dStart->translatedFormat('d M'));
+            }
+        } elseif ($filter == 'minggu') {
+            $wStart = $now->copy()->startOfWeek();
+            for ($i = 0; $i < 7; $i++) {
+                $dStart = $wStart->copy()->addDays($i)->startOfDay();
+                $dEnd = $dStart->copy()->endOfDay();
+                $chartData[] = $fetchStats($dStart, $dEnd, $dStart->translatedFormat('D'));
+            }
+        } else { // bulan
+            $daysInMonth = $now->daysInMonth;
+            $mStart = $now->copy()->startOfMonth();
+            for ($i = 0; $i < $daysInMonth; $i++) {
+                $dStart = $mStart->copy()->addDays($i)->startOfDay();
+                $dEnd = $dStart->copy()->endOfDay();
+                $chartData[] = $fetchStats($dStart, $dEnd, $dStart->format('d'));
+            }
+        }
+
+        return view('dashboard::index', compact('overdueInvoices', 'dueSoonInvoices', 'stats', 'filter', 'chartData'));
     }
 
     private function operatorDashboard()

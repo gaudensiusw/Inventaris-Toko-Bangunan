@@ -111,7 +111,7 @@
     <!-- Chart Row -->
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 page-break-inside-avoid">
         <h3 class="text-sm font-black text-slate-800 mb-1 uppercase tracking-widest">Tren Laba & Rugi</h3>
-        <p class="text-xs text-slate-500 mb-6 font-bold">Analisis bulanan pendapatan, HPP, dan laba (12 bulan terakhir)</p>
+        <p class="text-xs text-slate-500 mb-6 font-bold">Analisis tren pendapatan, HPP, dan laba &mdash; <span class="text-blue-600 font-bold">{{ $label }}</span></p>
         <div class="h-[300px] w-full relative">
             <canvas id="financialChart"></canvas>
         </div>
@@ -271,11 +271,10 @@
     document.addEventListener('DOMContentLoaded', function() {
         const rawData = @json($chartData);
         
-        // Reverse because we looped from 11 to 0 (oldest to newest)
-        const labels = rawData.map(d => d.month).reverse();
-        const revData = rawData.map(d => d.revenue / 1000000).reverse();
-        const cogsData = rawData.map(d => d.cogs / 1000000).reverse();
-        const profitData = rawData.map(d => d.profit / 1000000).reverse();
+        const labels = rawData.map(d => d.label);
+        const revData = rawData.map(d => d.revenue / 1000000);
+        const cogsData = rawData.map(d => d.cogs / 1000000);
+        const profitData = rawData.map(d => d.profit / 1000000);
 
         const ctx = document.getElementById('financialChart').getContext('2d');
         new Chart(ctx, {
