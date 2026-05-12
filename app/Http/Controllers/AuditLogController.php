@@ -9,8 +9,8 @@ class AuditLogController extends Controller
 {
     public function index(Request $request)
     {
-        // Require role 'owner' or 'admin'
-        if (!in_array(auth()->user()->role, ['owner', 'admin'])) {
+        // Require role 'owner' or 'supervisor'
+        if (!in_array(auth()->user()->role, ['owner', 'supervisor'])) {
             abort(403, 'Unauthorized access.');
         }
 

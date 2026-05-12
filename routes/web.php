@@ -22,7 +22,7 @@ Route::middleware(['auth'])->group(function () {
     // Modules protection is usually handled in their own route files, 
     // but we can wrap them here or update each module's web.php.
 
-    Route::middleware(['role:owner'])->group(function () {
+    Route::middleware(['role:owner,supervisor'])->group(function () {
         Route::get('/accounts', [\App\Http\Controllers\AccountController::class, 'index'])->name('accounts.index');
         Route::post('/accounts', [\App\Http\Controllers\AccountController::class, 'store'])->name('accounts.store');
         Route::put('/accounts/{id}', [\App\Http\Controllers\AccountController::class, 'update'])->name('accounts.update');

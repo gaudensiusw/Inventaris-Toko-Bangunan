@@ -55,8 +55,8 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500 mb-1">Total Admin</p>
-                    <h3 class="text-3xl font-bold text-purple-600">{{ $stats['admin'] }}</h3>
+                    <p class="text-sm font-medium text-gray-500 mb-1">Total Supervisor</p>
+                    <h3 class="text-3xl font-bold text-purple-600">{{ $stats['supervisor'] }}</h3>
                 </div>
                 <div class="p-3 bg-purple-50 text-purple-600 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -97,9 +97,10 @@
                     <select name="role" class="border border-gray-300 text-gray-700 py-2 px-4 rounded-lg focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                         <option value="">Semua Role</option>
                         <option value="owner" {{ request('role') == 'owner' ? 'selected' : '' }}>Owner</option>
-                        <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+                        <option value="supervisor" {{ request('role') == 'supervisor' ? 'selected' : '' }}>Supervisor</option>
                         <option value="kasir" {{ request('role') == 'kasir' ? 'selected' : '' }}>Kasir</option>
                         <option value="gudang" {{ request('role') == 'gudang' ? 'selected' : '' }}>Gudang</option>
+                        <option value="operator" {{ request('role') == 'operator' ? 'selected' : '' }}>Operator</option>
                     </select>
                     <button type="submit" class="bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
                         Filter
@@ -145,7 +146,7 @@
                             @php
                                 $badgeColor = match($user->role) {
                                     'owner' => 'bg-red-100 text-red-800',
-                                    'admin' => 'bg-purple-100 text-purple-800',
+                                    'supervisor' => 'bg-purple-100 text-purple-800',
                                     'kasir' => 'bg-orange-100 text-orange-800',
                                     'gudang' => 'bg-gray-100 text-gray-800',
                                     default => 'bg-blue-100 text-blue-800',
@@ -230,9 +231,10 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
                     <select id="role" name="role" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="owner">Owner</option>
-                        <option value="admin">Admin</option>
+                        <option value="supervisor">Supervisor</option>
                         <option value="kasir">Kasir</option>
                         <option value="gudang">Gudang</option>
+                        <option value="operator">Operator</option>
                     </select>
                 </div>
                 <div>
@@ -282,9 +284,10 @@
                             <tr>
                                 <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Modul / Fitur</th>
                                 <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b border-l">Owner</th>
-                                <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b border-l">Admin</th>
+                                <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b border-l">Supervisor</th>
                                 <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b border-l">Kasir</th>
                                 <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b border-l">Gudang</th>
+                                <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b border-l">Operator</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200" id="permissionMatrixBody">
@@ -318,7 +321,7 @@
         { id: 'employee_delete', name: 'Hapus Karyawan' },
         { id: 'report_view', name: 'Lihat Laporan' }
     ];
-    const roles = ['owner', 'admin', 'kasir', 'gudang'];
+    const roles = ['owner', 'supervisor', 'kasir', 'gudang', 'operator'];
 
     // Setup CSRF Token for Fetch API
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]')?.value;

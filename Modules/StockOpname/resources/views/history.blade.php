@@ -7,8 +7,8 @@
 <div class="p-6">
     <div class="flex justify-between items-center mb-6">
         <div>
-            <h2 class="text-2xl font-bold text-slate-800">{{ auth()->user()->role === 'admin' ? 'Riwayat Stock Opname' : 'Status Pengajuan Audit' }}</h2>
-            <p class="text-slate-500 text-sm">{{ auth()->user()->role === 'admin' ? 'Catatan sinkronisasi stok sistem dengan fisik di lapangan' : 'Pantau status hasil audit yang telah Anda ajukan ke sistem' }}</p>
+            <h2 class="text-2xl font-bold text-slate-800">{{ auth()->user()->role === 'supervisor' ? 'Riwayat Stock Opname' : 'Status Pengajuan Audit' }}</h2>
+            <p class="text-slate-500 text-sm">{{ auth()->user()->role === 'supervisor' ? 'Catatan sinkronisasi stok sistem dengan fisik di lapangan' : 'Pantau status hasil audit yang telah Anda ajukan ke sistem' }}</p>
         </div>
         <a href="{{ route('stockopname.index') }}" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
@@ -29,7 +29,7 @@
                         <th class="p-4 text-center">Status</th>
                         <th class="p-4">Petugas</th>
                         <th class="p-4">Keterangan</th>
-                        @if(in_array(auth()->user()->role, ['owner', 'admin']))
+                        @if(in_array(auth()->user()->role, ['owner', 'supervisor']))
                             <th class="p-4 text-right">Aksi</th>
                         @endif
                     </tr>
@@ -81,7 +81,7 @@
                             {{ $item->keterangan ?: '-' }}
                         </td>
                         <td class="p-4 text-right">
-                            @if($item->status === 'pending' && in_array(auth()->user()->role, ['owner', 'admin']))
+                            @if($item->status === 'pending' && in_array(auth()->user()->role, ['owner', 'supervisor']))
                             <div class="flex justify-end gap-2">
                                 <form action="{{ route('stockopname.approve', $item->id) }}" method="POST" onsubmit="return confirm('Setujui audit ini dan update stok sistem?')">
                                     @csrf

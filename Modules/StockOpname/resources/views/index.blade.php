@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', in_array(auth()->user()->role, ['owner', 'admin']) ? 'Toko Bangunan - Stock Opname' : 'Toko Bangunan - Pengajuan Cek Stok')
-@section('header_title', in_array(auth()->user()->role, ['owner', 'admin']) ? 'Stock Opname' : 'Pengajuan Cek Stok Fisik')
+@section('title', in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Toko Bangunan - Stock Opname' : 'Toko Bangunan - Pengajuan Cek Stok')
+@section('header_title', in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Stock Opname' : 'Pengajuan Cek Stok Fisik')
 
 @section('content')
 <!-- Alert Messages -->
@@ -102,7 +102,7 @@
                     <h3 class="text-base font-bold text-slate-800">Daftar Audit Persediaan Barang</h3>
                     <a href="{{ route('stockopname.history') }}" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded font-bold uppercase tracking-widest transition-colors flex items-center gap-1">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        {{ in_array(auth()->user()->role, ['owner', 'admin']) ? 'Lihat Riwayat' : 'Status Pengajuan' }}
+                        {{ in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Lihat Riwayat' : 'Status Pengajuan' }}
                     </a>
                 </div>
                 <p class="text-[11px] text-slate-500 uppercase tracking-widest font-black mt-0.5">Data yang Anda isi tersimpan otomatis di browser ini</p>
@@ -113,7 +113,7 @@
                     :disabled="$store.opname.count === 0"
                     class="text-white px-6 py-2.5 rounded-lg text-sm font-black transition-all shadow-lg flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    <span x-text="'{{ in_array(auth()->user()->role, ['owner', 'admin']) ? 'Simpan Hasil Audit' : 'Kirim Pengajuan' }}' + ' (' + $store.opname.count + ')'"></span>
+                    <span x-text="'{{ in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Simpan Hasil Audit' : 'Kirim Pengajuan' }}' + ' (' + $store.opname.count + ')'"></span>
                 </button>
             </div>
         </div>
@@ -194,12 +194,12 @@
                 <div class="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 ring-8 ring-indigo-50/50">
                     <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
                 </div>
-                <h3 class="text-xl font-bold text-slate-900 mb-2">{{ in_array(auth()->user()->role, ['owner', 'admin']) ? 'Simpan' : 'Kirim' }} <span x-text="$store.opname.count"></span> Hasil Audit?</h3>
+                <h3 class="text-xl font-bold text-slate-900 mb-2">{{ in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Simpan' : 'Kirim' }} <span x-text="$store.opname.count"></span> Hasil Audit?</h3>
                 <p class="text-slate-500 leading-relaxed">Sistem akan menyinkronkan seluruh barang dalam antrean sesuai angka fisik yang dimasukkan.</p>
             </div>
             <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
                 <button type="button" @click="$store.opname.showConfirm = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
-                <button @click="$store.opname.submit()" class="flex-1 py-3 bg-[#0f172a] hover:bg-slate-800 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-slate-900/20">Ya, {{ in_array(auth()->user()->role, ['owner', 'admin']) ? 'Sinkronkan' : 'Kirim' }}</button>
+                <button @click="$store.opname.submit()" class="flex-1 py-3 bg-[#0f172a] hover:bg-slate-800 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-slate-900/20">Ya, {{ in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Sinkronkan' : 'Kirim' }}</button>
             </div>
         </div>
     </div>

@@ -173,7 +173,7 @@
                             <span class="flex-1 text-sm font-medium">Stock Opname</span>
                         </a>
 
-                        @if(in_array(auth()->user()->role, ['owner', 'admin', 'supervisor']))
+                        @if(in_array(auth()->user()->role, ['owner', 'supervisor']))
                             <!-- MANAJEMEN -->
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mt-6 mb-3">
                                 Manajemen & Data</div>
@@ -190,7 +190,7 @@
 
 
 
-                            @if(in_array(auth()->user()->role, ['owner', 'admin']))
+                            @if(in_array(auth()->user()->role, ['owner', 'supervisor']))
                                 <a href="{{ route('stockopname.approval') }}"
                                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('stock-opname/approval') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -259,11 +259,11 @@
                         @endif
 
                         <!-- LAPORAN & LANJUTAN -->
-                        @if(in_array(auth()->user()->role, ['owner', 'admin']))
+                        @if(in_array(auth()->user()->role, ['owner', 'supervisor']))
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mt-6 mb-3">Laporan &
                                 Pengaturan</div>
 
-                            @if(auth()->user()->role === 'owner')
+                            @if(in_array(auth()->user()->role, ['owner', 'supervisor']))
                                 <a href="{{ route('report.index') }}"
                                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('reports*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -275,7 +275,7 @@
                                 </a>
                             @endif
 
-                            @if(in_array(auth()->user()->role, ['owner', 'admin']))
+                            @if(in_array(auth()->user()->role, ['owner', 'supervisor']))
                                 <a href="{{ route('audit-logs.index') }}"
                                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('audit-logs*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,7 +285,7 @@
                                 </a>
                             @endif
 
-                            @if(auth()->user()->role === 'owner')
+                            @if(in_array(auth()->user()->role, ['owner', 'supervisor']))
                                 <a href="{{ route('accounts.index') }}"
                                     class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('accounts*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                                     <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

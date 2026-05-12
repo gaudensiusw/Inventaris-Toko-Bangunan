@@ -33,7 +33,7 @@ class AccountController extends Controller
         $stats = [
             'total' => User::count(),
             'active' => User::where('aktif', 1)->count(),
-            'admin' => User::where('role', 'admin')->count(),
+            'supervisor' => User::where('role', 'supervisor')->count(),
             'kasir' => User::where('role', 'kasir')->count(),
         ];
 
@@ -45,7 +45,7 @@ class AccountController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'role' => ['required', 'in:owner,admin,kasir,gudang'],
+            'role' => ['required', 'in:owner,supervisor,kasir,gudang,operator'],
             'password' => ['required', 'string', 'min:6'],
         ]);
 
@@ -77,7 +77,7 @@ class AccountController extends Controller
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'role' => ['required', 'in:owner,admin,kasir,gudang'],
+            'role' => ['required', 'in:owner,supervisor,kasir,gudang,operator'],
         ];
 
         if ($request->filled('password')) {

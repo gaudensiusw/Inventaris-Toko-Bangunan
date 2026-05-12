@@ -46,7 +46,7 @@ class StockOpnameController extends Controller
 
             $processedCount = 0;
             $user = auth()->user();
-            $status = in_array($user->role, ['owner', 'admin']) ? 'approved' : 'pending';
+            $status = in_array($user->role, ['owner', 'supervisor']) ? 'approved' : 'pending';
 
             foreach ($request->opname_data as $data) {
                 if ($data['stok_fisik'] === null || $data['stok_fisik'] === '') continue;
@@ -66,7 +66,7 @@ class StockOpnameController extends Controller
                     'status'      => $status,
                 ]);
 
-                // Sync System Stock ONLY IF Approved (Owner/Admin)
+                // Sync System Stock ONLY IF Approved (Owner/Supervisor)
                 if ($status === 'approved') {
                     $product->update(['stok' => $stokFisik]);
                 }
