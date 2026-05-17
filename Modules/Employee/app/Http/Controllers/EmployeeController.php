@@ -7,11 +7,30 @@ use Illuminate\Http\Request;
 
 class EmployeeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $employees = \Modules\Employee\Models\Karyawan::with('jabatan')->get();
+        $status = $request->query('status', 'aktif');
+        $search = $request->query('search');
+
+        $query = \Modules\Employee\Models\Karyawan::with('jabatan');
+
+        if ($status === 'aktif') {
+            $query->where('aktif', 1);
+        } elseif ($status === 'nonaktif') {
+            $query->where('aktif', 0);
+        }
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('kode_karyawan', 'like', "%{$search}%");
+            });
+        }
+
+        $employees = $query->paginate(15)->appends($request->query());
         $jabatans = \Modules\Employee\Models\Jabatan::all();
-        return view('employee::index', compact('employees', 'jabatans'));
+        
+        return view('employee::index', compact('employees', 'jabatans', 'status', 'search'));
     }
 
     public function store(Request $request)
@@ -22,7 +41,23 @@ class EmployeeController extends Controller
             'tanggal_masuk' => 'required|date',
         ]);
 
+        // Cari karyawan dengan nomor urut paling besar (ekstrak angkanya saja)
+        $lastKaryawan = \Modules\Employee\Models\Karyawan::orderByRaw("CAST(SUBSTRING(kode_karyawan, 5) AS UNSIGNED) DESC")->first();
+
+        if ($lastKaryawan) {
+            // Ambil angkanya saja, lalu tambah 1
+            $lastNumber = (int) substr($lastKaryawan->kode_karyawan, 4);
+            $nextNumber = $lastNumber + 1;
+        } else {
+            // Jika belum ada data sama sekali
+            $nextNumber = 1;
+        }
+
+        // Format menjadi EMP-XXX
+        $newCode = 'EMP-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+
         \Modules\Employee\Models\Karyawan::create([
+            'kode_karyawan' => $newCode,
             'nama' => $request->nama,
             'jabatan_id' => $request->jabatan_id,
             'tanggal_masuk' => $request->tanggal_masuk,
@@ -45,7 +80,24 @@ class EmployeeController extends Controller
             'tanggal_masuk' => 'required|date',
             'email' => 'nullable|email',
             'bonus_tetap' => 'nullable|numeric|min:0',
+            'potongan' => 'nullable|numeric|min:0',
+            'keterangan_potongan' => 'nullable|string|max:255',
         ]);
+
+        $newPotongan = $employee->potongan + ($request->potongan ?? 0);
+        
+        $newKet = $employee->keterangan_potongan;
+        if ($request->filled('keterangan_potongan') || $request->potongan > 0) {
+            $existingArr = $employee->keterangan_potongan ? json_decode($employee->keterangan_potongan, true) : [];
+            if (!is_array($existingArr)) {
+                $existingArr = $employee->keterangan_potongan ? [['keterangan' => $employee->keterangan_potongan, 'nominal' => 0]] : [];
+            }
+            $existingArr[] = [
+                'keterangan' => $request->keterangan_potongan ?? 'Kasbon',
+                'nominal' => $request->potongan ?? 0
+            ];
+            $newKet = json_encode($existingArr);
+        }
 
         $employee->update([
             'nama' => $request->nama,
@@ -55,18 +107,21 @@ class EmployeeController extends Controller
             'email' => $request->email,
             'alamat' => $request->alamat,
             'bonus_tetap' => $request->bonus_tetap ?? 0,
+            'potongan' => $newPotongan,
+            'keterangan_potongan' => $newKet,
             'aktif' => $request->has('aktif') ? 1 : 0,
         ]);
 
         return redirect()->back()->with('success', 'Data karyawan berhasil diperbarui');
     }
 
-    public function destroy($id)
+    public function toggleStatus(Request $request, $id)
     {
         $employee = \Modules\Employee\Models\Karyawan::findOrFail($id);
-        $employee->update(['aktif' => 0]);
+        $employee->update(['aktif' => !$employee->aktif]);
 
-        return redirect()->back()->with('success', 'Karyawan dinonaktifkan');
+        $statusText = $employee->aktif ? 'diaktifkan' : 'dinonaktifkan';
+        return redirect()->back()->with('success', "Karyawan berhasil {$statusText}");
     }
 
     public function show($id)
@@ -112,9 +167,20 @@ class EmployeeController extends Controller
 
     public function generateSlipGaji(Request $request, $id)
     {
+        if (! $request->hasValidSignature()) {
+            abort(403, 'Invalid or expired signature.');
+        }
+
         $employee = \Modules\Employee\Models\Karyawan::with('jabatan')->findOrFail($id);
 
+        if (!$employee->aktif) {
+            abort(403, 'Aksi ditolak. Karyawan sudah nonaktif.');
+        }
+
         $tanggalPembayaran = $request->query('tanggal_pembayaran');
+        $bonus = $request->query('bonus', 0);
+        $potongan = $request->query('potongan', 0);
+        $keterangan_potongan = $request->query('keterangan_potongan', null);
 
         $query = \Modules\Employee\Models\Absensi::where('karyawan_id', $id);
 
@@ -139,16 +205,30 @@ class EmployeeController extends Controller
 
         $gaji_harian = $employee->jabatan->gaji_harian ?? 0;
         $total_gaji_pokok = $rekap['hadir'] * $gaji_harian;
-        $bonus = $employee->bonus_tetap ?? 0; // Use dynamic bonus from db
-        $total_gaji = $total_gaji_pokok + $bonus;
+        $total_gaji = $total_gaji_pokok + $bonus - $potongan;
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('employee::slip_gaji', compact('employee', 'rekap', 'gaji_harian', 'total_gaji_pokok', 'bonus', 'total_gaji', 'currentMonth', 'currentYear', 'tanggalPembayaran'));
+        $potongan_details = [];
+        if ($keterangan_potongan) {
+            $decoded = json_decode($keterangan_potongan, true);
+            if (is_array($decoded)) {
+                $potongan_details = $decoded;
+            } else {
+                $potongan_details = [['keterangan' => $keterangan_potongan, 'nominal' => $potongan]];
+            }
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('employee::slip_gaji', compact('employee', 'rekap', 'gaji_harian', 'total_gaji_pokok', 'bonus', 'potongan', 'potongan_details', 'total_gaji', 'currentMonth', 'currentYear', 'tanggalPembayaran'));
         
         return $pdf->download('slip_gaji_' . str_replace(' ', '_', strtolower($employee->nama)) . '.pdf');
     }
 
     public function storeAbsensi(Request $request, $id)
     {
+        $employee = \Modules\Employee\Models\Karyawan::findOrFail($id);
+        if (!$employee->aktif) {
+            return response()->json(['success' => false, 'message' => 'Aksi ditolak. Karyawan sudah nonaktif.'], 403);
+        }
+
         $request->validate([
             'tanggal' => 'required|date',
             'status' => 'required|in:hadir,izin,sakit,alpha',
@@ -197,6 +277,16 @@ class EmployeeController extends Controller
     {
         $now = \Carbon\Carbon::now();
         
+        $employee = \Modules\Employee\Models\Karyawan::findOrFail($id);
+
+        if (!$employee->aktif) {
+            abort(403, 'Aksi ditolak. Karyawan sudah nonaktif.');
+        }
+        
+        $potongan = $employee->potongan ?? 0;
+        $keterangan_potongan = $employee->keterangan_potongan;
+        $bonus = $employee->bonus_tetap ?? 0;
+
         \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
             ->where('status_bayar', 0)
             ->update([
@@ -204,12 +294,22 @@ class EmployeeController extends Controller
                 'tanggal_pembayaran' => $now
             ]);
 
-        \Modules\Employee\Models\Karyawan::where('id', $id)->update(['bonus_tetap' => 0]);
+        $employee->update([
+            'bonus_tetap' => 0,
+            'potongan' => 0,
+            'keterangan_potongan' => null
+        ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Gaji berhasil dibayarkan',
-            'download_url' => route('employee.slipGaji', ['id' => $id, 'tanggal_pembayaran' => $now->toDateTimeString()])
+            'download_url' => \Illuminate\Support\Facades\URL::signedRoute('employee.slipGaji', [
+                'id' => $id, 
+                'tanggal_pembayaran' => $now->toDateTimeString(),
+                'bonus' => $bonus,
+                'potongan' => $potongan,
+                'keterangan_potongan' => $keterangan_potongan
+            ])
         ]);
     }
 

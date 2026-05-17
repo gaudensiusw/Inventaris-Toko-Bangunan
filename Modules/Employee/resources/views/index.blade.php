@@ -22,8 +22,19 @@
         
         <!-- Left Panel: Daftar Karyawan -->
         <div class="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-            <div class="p-5 border-b border-slate-200 bg-white">
+            <div class="p-5 border-b border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h2 class="text-lg font-bold text-slate-900">Daftar Karyawan</h2>
+                <form method="GET" action="{{ route('employee.index') }}" class="flex items-center gap-2">
+                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama/kode..." class="border-slate-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm w-48">
+                    <select name="status" class="border-slate-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" onchange="this.form.submit()">
+                        <option value="aktif" {{ request('status', 'aktif') === 'aktif' ? 'selected' : '' }}>Aktif</option>
+                        <option value="nonaktif" {{ request('status') === 'nonaktif' ? 'selected' : '' }}>Nonaktif</option>
+                        <option value="semua" {{ request('status') === 'semua' ? 'selected' : '' }}>Semua</option>
+                    </select>
+                    <button type="submit" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors" title="Cari">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </button>
+                </form>
             </div>
             <div class="overflow-x-auto h-[600px] overflow-y-auto">
                 <table class="w-full text-left text-sm whitespace-nowrap">
@@ -40,7 +51,7 @@
                     <tbody class="divide-y divide-slate-100">
                         @foreach($employees as $index => $emp)
                         <tr class="hover:bg-slate-50 transition-colors cursor-pointer employee-row" data-id="{{ $emp->id }}" onclick="loadEmployeeDetail({{ $emp->id }})">
-                            <td class="py-4 px-5 text-slate-500">{{ $index + 1 }}</td>
+                            <td class="py-4 px-5 text-slate-500">{{ $employees->firstItem() + $index }}</td>
                             <td class="py-4 px-5">
                                 <div class="font-bold text-slate-900">{{ $emp->nama }}</div>
                             </td>
@@ -58,17 +69,26 @@
                                 @endif
                             </td>
                             <td class="py-4 px-5 text-right space-x-2">
-                                <button onclick="event.stopPropagation(); openEditModal({{ $emp->id }}, '{{ $emp->kode_karyawan }}', '{{ addslashes($emp->nama) }}', '{{ $emp->jabatan_id }}', '{{ $emp->tanggal_masuk->format('Y-m-d') }}', {{ $emp->aktif ? 'true' : 'false' }}, '{{ $emp->no_hp }}', '{{ $emp->email }}', '{{ addslashes($emp->alamat) }}', {{ $emp->bonus_tetap ?? 500000 }})" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors" title="Edit">
+                                <button onclick="event.stopPropagation(); openEditModal({{ $emp->id }}, '{{ $emp->kode_karyawan }}', '{{ addslashes($emp->nama) }}', '{{ $emp->jabatan_id }}', '{{ $emp->tanggal_masuk->format('Y-m-d') }}', {{ $emp->aktif ? 'true' : 'false' }}, '{{ $emp->no_hp }}', '{{ $emp->email }}', '{{ addslashes($emp->alamat) }}', {{ $emp->bonus_tetap ?? 500000 }}, {{ $emp->potongan ?? 0 }}, '{{ addslashes($emp->keterangan_potongan ?? '') }}')" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors" title="Edit">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 </button>
-                                <button onclick="event.stopPropagation(); deleteEmployee({{ $emp->id }})" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors" title="Hapus">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                @if($emp->aktif)
+                                <button onclick="event.stopPropagation(); openToggleStatusModal({{ $emp->id }}, '{{ addslashes($emp->nama) }}', true)" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors" title="Nonaktifkan">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
                                 </button>
+                                @else
+                                <button onclick="event.stopPropagation(); openToggleStatusModal({{ $emp->id }}, '{{ addslashes($emp->nama) }}', false)" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-green-600 hover:bg-green-50 transition-colors" title="Aktifkan">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                </button>
+                                @endif
                             </td>
                         </tr>
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+            <div class="p-4 border-t border-slate-200 bg-white">
+                {{ $employees->links() }}
             </div>
         </div>
 
@@ -107,6 +127,10 @@
                         <div class="flex justify-between items-center text-sm">
                             <span class="text-slate-600">Bonus</span>
                             <span class="font-medium text-slate-800" id="detailBonus">Rp 500.000</span>
+                        </div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="text-red-600">Potongan</span>
+                            <span class="font-medium text-red-600" id="detailPotongan">- Rp 0</span>
                         </div>
                         <div class="pt-3 border-t border-blue-200/60 flex justify-between items-center">
                             <span class="font-bold text-slate-900">Total</span>
@@ -299,6 +323,22 @@
                             <p class="text-xs text-slate-500 mt-1">Bonus yang diberikan setiap bulan</p>
                         </div>
                     </div>
+                    <div class="grid grid-cols-2 gap-5 mt-5">
+                        <div class="col-span-2 bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-center justify-between">
+                            <span class="text-sm font-bold text-blue-900">Total Potongan Saat Ini</span>
+                            <span class="text-sm font-bold text-red-600" id="editTotalPotonganText">Rp 0</span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Tambah Potongan Baru (Kasbon)</label>
+                            <input type="number" id="editPotongan" name="potongan" class="w-full border-slate-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            <p class="text-xs text-slate-500 mt-1">Akan ditambahkan ke total potongan</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">Keterangan Tambahan</label>
+                            <input type="text" id="editKetPotongan" name="keterangan_potongan" class="w-full border-slate-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: Kasbon tambahan">
+                            <p class="text-xs text-slate-500 mt-1">Akan digabungkan dengan keterangan lama</p>
+                        </div>
+                    </div>
                 </div>
 
             </form>
@@ -383,6 +423,13 @@
                         </span>
                         <span class="text-green-600 font-bold" id="slipBonus">Rp 0</span>
                     </div>
+                    <div class="flex justify-between items-center pt-2 border-b border-slate-100 pb-3">
+                        <span class="text-red-600 text-sm flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Potongan
+                        </span>
+                        <span class="text-red-600 font-bold" id="slipPotongan">- Rp 0</span>
+                    </div>
                     <div class="flex justify-between items-center pt-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
                         <span class="font-bold text-blue-900 flex items-center gap-2">
                             <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
@@ -394,12 +441,14 @@
             </div>
         </div>
 
-        <div class="p-6 border-t border-slate-100 grid grid-cols-2 gap-4 bg-white">
-            <button type="button" onclick="document.getElementById('modalSlip').classList.add('hidden')" class="w-full py-3 text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl font-bold transition-colors">Tutup</button>
-            <button type="button" id="btnProsesPembayaran" class="w-full py-3 text-white bg-[#0A0F2C] hover:bg-[#111942] rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Proses Pembayaran
-            </button>
+        <div class="p-6 border-t border-slate-100 bg-slate-50 flex flex-col gap-4">
+            <div class="grid grid-cols-2 gap-4 mt-2">
+                <button type="button" onclick="document.getElementById('modalSlip').classList.add('hidden')" class="w-full py-3 text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl font-bold transition-colors">Tutup</button>
+                <button type="button" id="btnProsesPembayaran" class="w-full py-3 text-white bg-[#0A0F2C] hover:bg-[#111942] rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Proses Pembayaran
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -464,11 +513,25 @@
     </div>
 </div>
 
-<!-- Form Hapus (Hidden) -->
-<form id="formHapus" method="POST" class="hidden">
-    @csrf
-    @method('DELETE')
-</form>
+<!-- Modal Konfirmasi Status -->
+<div id="modalToggleStatus" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 mb-2">Konfirmasi Status</h3>
+            <p class="text-slate-500 mb-6">Apakah Anda yakin ingin <span id="toggleStatusActionText" class="font-bold text-slate-800"></span> karyawan <span id="toggleStatusName" class="font-bold text-slate-800"></span>? <span id="toggleStatusEffectText" class="block mt-1 text-sm"></span></p>
+            
+            <form id="formToggleStatus" method="POST" class="flex gap-3">
+                @csrf
+                @method('PATCH')
+                <button type="button" onclick="document.getElementById('modalToggleStatus').classList.add('hidden')" class="flex-1 py-3 text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl font-bold transition-colors shadow-sm">Batal</button>
+                <button type="submit" class="flex-1 py-3 text-white bg-blue-600 hover:bg-blue-700 rounded-xl font-bold transition-colors shadow-sm">Ya, Lanjutkan</button>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
     // Format currency IDR
@@ -506,24 +569,36 @@
                 const tglMasuk = new Date(emp.tanggal_masuk).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
                 document.getElementById('detailTanggalMasuk').textContent = `Bergabung: ${tglMasuk}`;
 
-                // Gaji
                 const gajiHarian = emp.jabatan ? parseFloat(emp.jabatan.gaji_harian) : 0;
                 const hadir = rekap.hadir;
                 const totalGajiPokok = hadir * gajiHarian;
                 const bonus = parseFloat(emp.bonus_tetap || 0);
-                const totalGaji = totalGajiPokok + bonus;
+                const potongan = parseFloat(emp.potongan || 0);
+                const totalGaji = totalGajiPokok + bonus - potongan;
                 
                 document.getElementById('detailHariHadir').textContent = hadir;
                 document.getElementById('detailGajiHarian').textContent = formatRp(gajiHarian);
                 document.getElementById('detailTotalGajiPokok').textContent = formatRp(totalGajiPokok);
                 document.getElementById('detailBonus').textContent = formatRp(bonus);
+                document.getElementById('detailPotongan').textContent = '- ' + formatRp(potongan);
                 document.getElementById('detailTotalGaji').textContent = formatRp(totalGaji);
 
                 // Button Generate Slip
-                document.getElementById('btnGenerateSlip').onclick = function(e) {
-                    e.preventDefault();
-                    openPreviewModal(emp, rekap, gajiHarian, totalGajiPokok, bonus, totalGaji);
-                };
+                const btnSlip = document.getElementById('btnGenerateSlip');
+                if (emp.aktif) {
+                    btnSlip.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-400', 'hover:bg-slate-400');
+                    btnSlip.classList.add('bg-slate-900', 'hover:bg-slate-800');
+                    btnSlip.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Generate Slip Gaji';
+                    btnSlip.onclick = function(e) {
+                        e.preventDefault();
+                        openPreviewModal(emp, rekap, gajiHarian, totalGajiPokok, bonus, potongan, totalGaji);
+                    };
+                } else {
+                    btnSlip.classList.remove('bg-slate-900', 'hover:bg-slate-800');
+                    btnSlip.classList.add('opacity-50', 'cursor-not-allowed', 'bg-slate-400', 'hover:bg-slate-400');
+                    btnSlip.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg> Nonaktif';
+                    btnSlip.onclick = function(e) { e.preventDefault(); };
+                }
 
                 // Rekap
                 document.getElementById('statHadir').textContent = rekap.hadir;
@@ -554,8 +629,12 @@
                         const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayCounter).padStart(2, '0')}`;
                         cell.innerHTML = `<span class="text-xs font-medium text-slate-700 absolute top-1 left-2">${dayCounter}</span>`;
                         
-                        cell.className += ' hover:bg-slate-100 cursor-pointer transition-colors';
-                        cell.onclick = () => openAbsensiModal(id, dateString, data.absensi_harian);
+                        if (emp.aktif) {
+                            cell.className += ' hover:bg-slate-100 cursor-pointer transition-colors';
+                            cell.onclick = () => openAbsensiModal(id, dateString, data.absensi_harian);
+                        } else {
+                            cell.className += ' cursor-not-allowed bg-slate-50/50';
+                        }
                         
                         const statusData = data.kalender_absensi ? data.kalender_absensi[dateString] : null;
                         
@@ -608,7 +687,7 @@
     }
 
     // Modal Edit
-    function openEditModal(id, kode, nama, jabatan_id, tanggal_masuk, aktif, telepon, email, alamat, bonus) {
+    function openEditModal(id, kode, nama, jabatan_id, tanggal_masuk, aktif, telepon, email, alamat, bonus, potongan, keterangan_potongan) {
         document.getElementById('formEdit').action = `/employees/${id}`;
         document.getElementById('editKode').value = kode || '';
         document.getElementById('editNama').value = nama || '';
@@ -619,6 +698,11 @@
         document.getElementById('editEmail').value = email || '';
         document.getElementById('editAlamat').value = alamat || '';
         document.getElementById('editBonus').value = bonus || 0;
+        
+        // Reset inputs to avoid accidental double stacking
+        document.getElementById('editPotongan').value = '';
+        document.getElementById('editKetPotongan').value = '';
+        document.getElementById('editTotalPotonganText').textContent = formatRp(potongan || 0);
         
         updateEditGajiPokok();
         document.getElementById('modalEdit').classList.remove('hidden');
@@ -632,7 +716,7 @@
         document.getElementById('editGajiPokok').value = formatRp(gaji);
     }
     
-    function openPreviewModal(emp, rekap, gajiHarian, totalGajiPokok, bonus, totalGaji) {
+    function openPreviewModal(emp, rekap, gajiHarian, totalGajiPokok, bonus, potongan, totalGaji) {
         document.getElementById('slipNama').textContent = emp.nama;
         document.getElementById('slipJabatan').textContent = emp.jabatan ? emp.jabatan.nama_jabatan : '-';
         document.getElementById('slipKode').textContent = emp.kode_karyawan || 'EMP-000';
@@ -647,6 +731,7 @@
         document.getElementById('slipGajiHarian').textContent = formatRp(gajiHarian);
         document.getElementById('slipSubtotal').textContent = formatRp(totalGajiPokok);
         document.getElementById('slipBonus').textContent = formatRp(bonus);
+        document.getElementById('slipPotongan').textContent = '- ' + formatRp(potongan);
         document.getElementById('slipTotal').textContent = formatRp(totalGaji);
         
         document.getElementById('btnProsesPembayaran').onclick = function() {
@@ -658,6 +743,7 @@
             fetch(`/employees/${emp.id}/bayar-gaji`, {
                 method: 'POST',
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
                     'Accept': 'application/json'
                 }
@@ -805,13 +891,19 @@
         });
     }
 
-    // Modal Delete
-    function deleteEmployee(id) {
-        if (confirm('Apakah Anda yakin ingin menonaktifkan karyawan ini?')) {
-            const form = document.getElementById('formHapus');
-            form.action = `/employees/${id}`;
-            form.submit();
-        }
+    // Modal Toggle Status
+    function openToggleStatusModal(id, nama, isAktif) {
+        const textAction = isAktif ? 'menonaktifkan' : 'mengaktifkan';
+        const textEffect = isAktif ? 'Karyawan ini tidak akan bisa mengisi absensi.' : 'Karyawan ini akan bisa mengisi absensi kembali.';
+        
+        document.getElementById('toggleStatusActionText').textContent = textAction;
+        document.getElementById('toggleStatusName').textContent = nama;
+        document.getElementById('toggleStatusEffectText').textContent = textEffect;
+        
+        const form = document.getElementById('formToggleStatus');
+        form.action = `/employees/${id}/toggle-status`;
+        
+        document.getElementById('modalToggleStatus').classList.remove('hidden');
     }
 </script>
 @endsection

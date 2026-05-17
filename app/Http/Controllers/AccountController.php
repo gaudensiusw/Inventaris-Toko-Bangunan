@@ -34,7 +34,7 @@ class AccountController extends Controller
             'total' => User::count(),
             'active' => User::where('aktif', 1)->count(),
             'supervisor' => User::where('role', 'supervisor')->count(),
-            'kasir' => User::where('role', 'kasir')->count(),
+            'operator' => User::where('role', 'operator')->count(),
         ];
 
         return view('account.index', compact('users', 'stats'));
@@ -45,7 +45,7 @@ class AccountController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'role' => ['required', 'in:owner,supervisor,kasir,gudang,operator'],
+            'role' => ['required', 'in:owner,supervisor,operator,gudang'],
             'password' => ['required', 'string', 'min:6'],
         ]);
 
@@ -74,10 +74,14 @@ class AccountController extends Controller
     {
         $user = User::findOrFail($id);
 
+        if (auth()->user()->role === 'supervisor' && $user->role === 'owner') {
+            abort(403, 'Supervisor tidak dapat mengubah/menghapus akun Owner');
+        }
+
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'role' => ['required', 'in:owner,supervisor,kasir,gudang,operator'],
+            'role' => ['required', 'in:owner,supervisor,operator,gudang'],
         ];
 
         if ($request->filled('password')) {
@@ -109,6 +113,10 @@ class AccountController extends Controller
             return response()->json(['success' => false, 'message' => 'Anda tidak dapat menghapus akun Anda sendiri.'], 403);
         }
 
+        if ($user->role === 'owner' && auth()->user()->role !== 'owner') {
+            abort(403, 'Supervisor tidak dapat mengubah/menghapus akun Owner');
+        }
+
         $user->delete();
 
         return response()->json(['success' => true, 'message' => 'Akun berhasil dihapus.']);
@@ -122,6 +130,10 @@ class AccountController extends Controller
             return response()->json(['success' => false, 'message' => 'Anda tidak dapat menonaktifkan akun Anda sendiri.'], 403);
         }
 
+        if ($user->role === 'owner' && auth()->user()->role !== 'owner') {
+            abort(403, 'Supervisor tidak dapat mengubah/menghapus akun Owner');
+        }
+
         $user->aktif = !$user->aktif;
         $user->save();
 
@@ -132,6 +144,10 @@ class AccountController extends Controller
     {
         $user = User::findOrFail($id);
         
+        if (auth()->user()->role === 'supervisor' && $user->role === 'owner') {
+            abort(403, 'Supervisor tidak dapat mengubah/menghapus akun Owner');
+        }
+
         // Generate an 8-character random alphanumeric string
         $newPassword = Str::random(8);
 
@@ -145,25 +161,5 @@ class AccountController extends Controller
         ]);
     }
 
-    public function getPermissions()
-    {
-        $permissions = RolePermission::all()->keyBy('role_name');
-        return response()->json(['success' => true, 'data' => $permissions]);
-    }
 
-    public function updatePermissions(Request $request)
-    {
-        $data = $request->validate([
-            'permissions' => 'required|array'
-        ]);
-
-        foreach ($data['permissions'] as $role => $perms) {
-            RolePermission::updateOrCreate(
-                ['role_name' => $role],
-                ['permissions' => $perms]
-            );
-        }
-
-        return response()->json(['success' => true, 'message' => 'Hak akses berhasil diperbarui.']);
-    }
 }

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Toko Bangunan - Kasir Digital')
-@section('header_title', 'Kasir Digital')
+@section('title', 'Toko Bangunan - POS / Operator')
+@section('header_title', 'POS / Operator')
 
 @section('content')
 <div x-data="posSystem()" x-init="init()" class="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">

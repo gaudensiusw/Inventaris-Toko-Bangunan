@@ -205,8 +205,8 @@
             <span class="info-value">{{ \Carbon\Carbon::parse($pos->tgl_transaksi)->format('d M Y H:i') }}</span>
         </div>
         <div class="info-row">
-            <span class="info-label">Kasir</span>
-            <span class="info-value">Admin</span>
+            <span class="info-label">Operator</span>
+            <span class="info-value">{{ auth()->user()->name ?? 'Operator' }}</span>
         </div>
         @if($pos->nama_pelanggan && $pos->nama_pelanggan !== 'Umum')
         <div class="info-row">

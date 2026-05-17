@@ -72,6 +72,26 @@
             <td>Bonus / Tunjangan</td>
             <td class="text-right">Rp {{ number_format($bonus, 0, ',', '.') }}</td>
         </tr>
+        @if(!empty($potongan_details))
+            <tr>
+                <td colspan="2" style="font-weight: bold; padding-top: 10px;">Rincian Potongan / Pengurangan:</td>
+            </tr>
+            @foreach($potongan_details as $item)
+            <tr>
+                <td style="padding-left: 15px; color: #555;">- {{ $item['keterangan'] }}</td>
+                <td class="text-right" style="color: #d32f2f;">Rp {{ number_format($item['nominal'], 0, ',', '.') }}</td>
+            </tr>
+            @endforeach
+            <tr>
+                <td style="font-weight: bold; padding-left: 15px;">Total Potongan</td>
+                <td class="text-right" style="font-weight: bold; color: #d32f2f;">- Rp {{ number_format($potongan, 0, ',', '.') }}</td>
+            </tr>
+        @elseif($potongan > 0)
+            <tr>
+                <td style="font-weight: bold;">Total Potongan</td>
+                <td class="text-right" style="font-weight: bold; color: #d32f2f;">- Rp {{ number_format($potongan, 0, ',', '.') }}</td>
+            </tr>
+        @endif
         <tr class="total-row">
             <td>TOTAL GAJI BERSIH</td>
             <td class="text-right">Rp {{ number_format($total_gaji, 0, ',', '.') }}</td>

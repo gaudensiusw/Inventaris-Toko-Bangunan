@@ -30,7 +30,9 @@ class Karyawan extends Model
         'alamat',
         'tanggal_masuk',
         'aktif',
-        'bonus_tetap'
+        'bonus_tetap',
+        'potongan',
+        'keterangan_potongan'
     ];
 
     protected $casts = [

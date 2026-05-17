@@ -9,12 +9,6 @@
             <p class="text-sm text-gray-500">Kelola akun karyawan dan hak akses</p>
         </div>
         <div class="flex gap-3">
-            <button onclick="openPermissionModal()" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors border border-gray-300 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                Atur Hak Akses
-            </button>
             <button onclick="openAddModal()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-sm flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -68,8 +62,8 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-gray-500 mb-1">Total Kasir</p>
-                    <h3 class="text-3xl font-bold text-orange-600">{{ $stats['kasir'] }}</h3>
+                    <p class="text-sm font-medium text-gray-500 mb-1">Total Operator</p>
+                    <h3 class="text-3xl font-bold text-orange-600">{{ $stats['operator'] }}</h3>
                 </div>
                 <div class="p-3 bg-orange-50 text-orange-600 rounded-lg">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -98,9 +92,8 @@
                         <option value="">Semua Role</option>
                         <option value="owner" {{ request('role') == 'owner' ? 'selected' : '' }}>Owner</option>
                         <option value="supervisor" {{ request('role') == 'supervisor' ? 'selected' : '' }}>Supervisor</option>
-                        <option value="kasir" {{ request('role') == 'kasir' ? 'selected' : '' }}>Kasir</option>
-                        <option value="gudang" {{ request('role') == 'gudang' ? 'selected' : '' }}>Gudang</option>
                         <option value="operator" {{ request('role') == 'operator' ? 'selected' : '' }}>Operator</option>
+                        <option value="gudang" {{ request('role') == 'gudang' ? 'selected' : '' }}>Gudang</option>
                     </select>
                     <button type="submit" class="bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
                         Filter
@@ -147,7 +140,7 @@
                                 $badgeColor = match($user->role) {
                                     'owner' => 'bg-red-100 text-red-800',
                                     'supervisor' => 'bg-purple-100 text-purple-800',
-                                    'kasir' => 'bg-orange-100 text-orange-800',
+                                    'operator' => 'bg-orange-100 text-orange-800',
                                     'gudang' => 'bg-gray-100 text-gray-800',
                                     default => 'bg-blue-100 text-blue-800',
                                 };
@@ -164,14 +157,20 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-center">
+                            @php
+                                $isSupervisor = auth()->user()->role === 'supervisor';
+                                $isOwnerRow = $user->role === 'owner';
+                                $disableAction = ($user->id === auth()->id()) || ($isSupervisor && $isOwnerRow);
+                            @endphp
                             <!-- Toggle Switch -->
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" class="sr-only peer" {{ $user->aktif ? 'checked' : '' }} onchange="toggleStatus({{ $user->id }}, this)" {{ $user->id === auth()->id() ? 'disabled' : '' }}>
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 {{ $user->id === auth()->id() ? 'opacity-50 cursor-not-allowed' : '' }}"></div>
+                            <label class="relative inline-flex items-center {{ $disableAction ? 'cursor-not-allowed' : 'cursor-pointer' }}">
+                                <input type="checkbox" class="sr-only peer" {{ $user->aktif ? 'checked' : '' }} onchange="toggleStatus({{ $user->id }}, this)" {{ $disableAction ? 'disabled' : '' }}>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 {{ $disableAction ? 'opacity-50 cursor-not-allowed' : '' }}"></div>
                             </label>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex justify-end gap-2">
+                                @if(!($isSupervisor && $isOwnerRow))
                                 <button onclick="resetPassword({{ $user->id }}, '{{ $user->name }}')" class="text-blue-600 hover:text-blue-900 bg-blue-50 p-2 rounded-md hover:bg-blue-100 transition-colors" title="Reset Password">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -187,6 +186,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
                                 </button>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -232,9 +232,8 @@
                     <select id="role" name="role" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="owner">Owner</option>
                         <option value="supervisor">Supervisor</option>
-                        <option value="kasir">Kasir</option>
-                        <option value="gudang">Gudang</option>
                         <option value="operator">Operator</option>
+                        <option value="gudang">Gudang</option>
                     </select>
                 </div>
                 <div>
@@ -264,64 +263,13 @@
     </div>
 </div>
 
-<!-- Permission Matrix Modal -->
-<div id="permissionModal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 opacity-0">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl transform scale-95 transition-transform duration-300 max-h-[90vh] flex flex-col">
-        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center flex-shrink-0">
-            <h3 class="text-lg font-bold text-gray-800">Atur Hak Akses (Permission Matrix)</h3>
-            <button onclick="closeModal('permissionModal')" class="text-gray-400 hover:text-gray-600 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-        <div class="p-6 overflow-y-auto flex-grow">
-            <form id="permissionForm">
-                @csrf
-                <div class="overflow-x-auto">
-                    <table class="min-w-full border border-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Modul / Fitur</th>
-                                <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b border-l">Owner</th>
-                                <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b border-l">Supervisor</th>
-                                <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b border-l">Kasir</th>
-                                <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b border-l">Gudang</th>
-                                <th class="px-4 py-3 text-center text-sm font-semibold text-gray-700 border-b border-l">Operator</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200" id="permissionMatrixBody">
-                            <!-- Populated by JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </form>
-        </div>
-        <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3 rounded-b-xl flex-shrink-0">
-            <button type="button" onclick="closeModal('permissionModal')" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Batal</button>
-            <button type="button" onclick="savePermissions()" class="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">Simpan Matriks</button>
-        </div>
-    </div>
-</div>
 
 <!-- SweetAlert2 CSS & JS -->
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
 
 <script>
-    // Standard Permissions List
-    const availablePermissions = [
-        { id: 'dashboard_view', name: 'Lihat Dashboard' },
-        { id: 'pos_access', name: 'Akses POS / Kasir' },
-        { id: 'product_view', name: 'Lihat Data Produk' },
-        { id: 'product_edit', name: 'Edit Data Produk' },
-        { id: 'stock_edit', name: 'Edit Stok / Opname' },
-        { id: 'employee_view', name: 'Lihat Karyawan' },
-        { id: 'employee_edit', name: 'Edit Karyawan' },
-        { id: 'employee_delete', name: 'Hapus Karyawan' },
-        { id: 'report_view', name: 'Lihat Laporan' }
-    ];
-    const roles = ['owner', 'supervisor', 'kasir', 'gudang', 'operator'];
+    const roles = ['owner', 'supervisor', 'operator', 'gudang'];
 
     // Setup CSRF Token for Fetch API
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]')?.value;
@@ -557,95 +505,6 @@
         });
     }
 
-    async function openPermissionModal() {
-        openModal('permissionModal');
-        
-        // Fetch current permissions
-        try {
-            const response = await fetch('/accounts/permissions');
-            const result = await response.json();
-            const currentPerms = result.data || {};
 
-            const tbody = document.getElementById('permissionMatrixBody');
-            tbody.innerHTML = '';
-
-            availablePermissions.forEach(perm => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="px-4 py-3 text-sm text-gray-700">${perm.name}</td>`;
-                
-                roles.forEach(role => {
-                    // Check if role has this permission
-                    const roleData = currentPerms[role];
-                    const isChecked = roleData && roleData.permissions && roleData.permissions.includes(perm.id);
-                    
-                    // Owner always checked and disabled
-                    const isOwner = role === 'owner';
-                    const checkedAttr = (isChecked || isOwner) ? 'checked' : '';
-                    const disabledAttr = isOwner ? 'disabled' : '';
-                    const opacityClass = isOwner ? 'opacity-50' : '';
-
-                    tr.innerHTML += `
-                        <td class="px-4 py-3 text-center border-l">
-                            <input type="checkbox" class="perm-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 ${opacityClass}" 
-                                data-role="${role}" data-perm="${perm.id}" ${checkedAttr} ${disabledAttr}>
-                        </td>
-                    `;
-                });
-
-                tbody.appendChild(tr);
-            });
-        } catch (error) {
-            console.error('Failed to load permissions', error);
-            Swal.fire('Error', 'Gagal memuat matriks hak akses', 'error');
-        }
-    }
-
-    async function savePermissions() {
-        const checkboxes = document.querySelectorAll('.perm-checkbox');
-        const permissions = {};
-
-        roles.forEach(role => {
-            permissions[role] = [];
-        });
-
-        checkboxes.forEach(cb => {
-            if (cb.checked) {
-                const role = cb.getAttribute('data-role');
-                const perm = cb.getAttribute('data-perm');
-                if (permissions[role]) {
-                    permissions[role].push(perm);
-                }
-            }
-        });
-
-        try {
-            const response = await fetch('/accounts/permissions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ permissions })
-            });
-
-            const result = await response.json();
-
-            if (response.ok) {
-                closeModal('permissionModal');
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Tersimpan!',
-                    text: result.message,
-                    timer: 1500,
-                    showConfirmButton: false
-                });
-            } else {
-                Swal.fire('Gagal!', result.message || 'Gagal menyimpan hak akses', 'error');
-            }
-        } catch (error) {
-            Swal.fire('Error!', 'Terjadi kesalahan sistem.', 'error');
-        }
-    }
 </script>
 @endsection

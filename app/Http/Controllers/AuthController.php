@@ -39,7 +39,7 @@ class AuthController extends Controller
 
             $request->session()->regenerate();
             
-            if ($user->role === 'operator' || $user->role === 'kasir') {
+            if ($user->role === 'operator') {
                 return redirect()->intended('/pos');
             }
 

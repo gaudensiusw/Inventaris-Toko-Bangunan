@@ -27,8 +27,7 @@
                 <select name="role" class="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Semua Role</option>
                     <option value="owner" {{ request('role') == 'owner' ? 'selected' : '' }}>Owner</option>
-                    <option value="admin" {{ request('role') == 'admin' ? 'selected' : '' }}>Admin</option>
-                    <option value="kasir" {{ request('role') == 'kasir' ? 'selected' : '' }}>Kasir</option>
+                    <option value="operator" {{ request('role') == 'operator' ? 'selected' : '' }}>Operator</option>
                     <option value="gudang" {{ request('role') == 'gudang' ? 'selected' : '' }}>Gudang</option>
                 </select>
             </div>
@@ -117,7 +116,7 @@
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right">
                         <div class="flex items-center justify-end gap-2">
-                            <button type="button" onclick='openDetailModal(@json($log->properties))' class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip" title="Lihat Detail">
+                            <button type="button" onclick='openDetailModal(@json($log->properties), "{{ $log->description }}", "{{ addslashes($log->subject ? ($log->subject->name ?? $log->subject->kode_karyawan ?? $log->subject->nama_jabatan ?? 'ID: ' . $log->subject_id) : 'ID: ' . $log->subject_id) }}")' class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip" title="Lihat Detail">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             </button>
                             @if(auth()->user()->role === 'owner')
@@ -173,65 +172,146 @@
 
 @push('scripts')
 <script>
-    function openDetailModal(properties) {
+    function openDetailModal(properties, eventName, subjectName) {
         let html = '';
         
-        // Cek apakah ada data old dan attributes (new)
+        // Identity Header
+        html += `
+        <div class="col-span-1 md:col-span-2 mb-4">
+            <div class="bg-blue-50 rounded-lg p-3 border border-blue-100 flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center font-bold">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                </div>
+                <div>
+                    <p class="text-xs text-blue-600 font-semibold uppercase tracking-wider">Target Data (Subject)</p>
+                    <p class="text-sm font-bold text-slate-800">${subjectName}</p>
+                </div>
+            </div>
+        </div>
+        `;
+        
         const hasOld = properties.old !== undefined;
         const hasNew = properties.attributes !== undefined;
-        
-        if (hasOld) {
-            html += `
-            <div>
-                <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 pb-2 border-b border-red-200 text-red-600 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    Data Lama
-                </h4>
-                <div class="bg-red-50/50 rounded-xl p-4 border border-red-100">
-                    <dl class="space-y-3">
-                        ${Object.entries(properties.old).map(([key, value]) => `
-                            <div>
-                                <dt class="text-xs font-semibold text-slate-500 uppercase">${key}</dt>
-                                <dd class="text-sm text-slate-800 mt-0.5 break-all font-mono bg-white px-2 py-1 rounded border border-slate-100">${value === null ? '<em>null</em>' : value}</dd>
-                            </div>
-                        `).join('')}
-                    </dl>
-                </div>
-            </div>`;
-        }
+        const ignoreFields = ['id', 'created_at', 'updated_at', 'remember_token', 'password'];
 
-        if (hasNew) {
+        const formatValue = (key, val) => {
+            if (val === null || val === undefined || val === '') return '<span class="text-slate-400 italic">- (Kosong)</span>';
+            if (key === 'aktif' || key === 'status') {
+                if (val == 1 || val === true || val === 'aktif' || val === '1') return '<span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-green-100 text-green-700 border border-green-200">Aktif</span>';
+                return '<span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">Nonaktif</span>';
+            }
+            if (typeof val === 'object') return `<span class="text-slate-800 font-mono text-xs">${JSON.stringify(val)}</span>`;
+            return `<span class="text-slate-800 break-words">${val}</span>`;
+        };
+
+        if (eventName === 'updated' && hasNew) {
             html += `
-            <div>
-                <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 pb-2 border-b border-green-200 text-green-600 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    Data Baru
-                </h4>
-                <div class="bg-green-50/50 rounded-xl p-4 border border-green-100">
-                    <dl class="space-y-3">
-                        ${Object.entries(properties.attributes).map(([key, value]) => `
-                            <div>
-                                <dt class="text-xs font-semibold text-slate-500 uppercase">${key}</dt>
-                                <dd class="text-sm text-slate-800 mt-0.5 break-all font-mono bg-white px-2 py-1 rounded border border-slate-100">${value === null ? '<em>null</em>' : value}</dd>
-                            </div>
-                        `).join('')}
-                    </dl>
+            <div class="col-span-1 md:col-span-2">
+                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-1/4">Kolom / Field</th>
+                                <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-3/8">Data Lama (Old)</th>
+                                <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-3/8">Data Baru (New)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+            `;
+            
+            Object.entries(properties.attributes).forEach(([key, newVal]) => {
+                if (ignoreFields.includes(key)) return;
+                
+                const oldVal = (hasOld && properties.old[key] !== undefined) ? properties.old[key] : null;
+                
+                // Only show changes
+                if (oldVal !== newVal) {
+                    html += `
+                            <tr class="hover:bg-slate-50/50">
+                                <td class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase bg-slate-50 border-r border-slate-100">${key.replace(/_/g, ' ')}</td>
+                                <td class="px-4 py-3 text-sm">${formatValue(key, oldVal)}</td>
+                                <td class="px-4 py-3 text-sm bg-blue-50/30 border-l border-blue-50">${formatValue(key, newVal)}</td>
+                            </tr>
+                    `;
+                }
+            });
+
+            html += `
+                        </tbody>
+                    </table>
                 </div>
             </div>`;
-        }
-        
-        // Fallback jika format log berbeda
-        if (!hasOld && !hasNew && Object.keys(properties).length > 0) {
-            html = `
+        } else if (eventName === 'created' && hasNew) {
+            html += `
             <div class="col-span-1 md:col-span-2">
-                <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 pb-2 border-b border-slate-200">Properties</h4>
+                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-1/3">Kolom / Field</th>
+                                <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-2/3">Data Baru</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+            `;
+            
+            Object.entries(properties.attributes).forEach(([key, newVal]) => {
+                if (ignoreFields.includes(key)) return;
+                
+                html += `
+                            <tr class="hover:bg-slate-50/50">
+                                <td class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase bg-slate-50 border-r border-slate-100">${key.replace(/_/g, ' ')}</td>
+                                <td class="px-4 py-3 text-sm">${formatValue(key, newVal)}</td>
+                            </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        } else if (eventName === 'deleted' && hasOld) {
+            html += `
+            <div class="col-span-1 md:col-span-2">
+                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                                <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-1/3">Kolom / Field</th>
+                                <th class="px-4 py-3 text-xs font-bold text-slate-500 uppercase tracking-wider w-2/3">Data Dihapus</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 bg-white">
+            `;
+            
+            Object.entries(properties.old).forEach(([key, oldVal]) => {
+                if (ignoreFields.includes(key)) return;
+                
+                html += `
+                            <tr class="hover:bg-slate-50/50">
+                                <td class="px-4 py-3 text-xs font-semibold text-slate-600 uppercase bg-slate-50 border-r border-slate-100">${key.replace(/_/g, ' ')}</td>
+                                <td class="px-4 py-3 text-sm bg-red-50/30">${formatValue(key, oldVal)}</td>
+                            </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
+        } else {
+            // Fallback
+            html += `
+            <div class="col-span-1 md:col-span-2">
                 <div class="bg-slate-50 rounded-xl p-4 border border-slate-200">
                     <pre class="text-xs text-slate-700 whitespace-pre-wrap font-mono">${JSON.stringify(properties, null, 2)}</pre>
                 </div>
             </div>`;
         }
 
-        document.getElementById('detailContent').innerHTML = html || '<div class="col-span-2 text-center text-slate-500">Tidak ada detail data.</div>';
+        document.getElementById('detailContent').innerHTML = html;
         document.getElementById('modalDetail').classList.remove('hidden');
     }
 

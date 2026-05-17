@@ -32,7 +32,7 @@ class CheckRole
 
         // Check if user role is in the allowed roles
         // Mapping from DB role to semantic role names if necessary
-        // In our DB: owner, supervisor, kasir, gudang, operator
+        // In our DB: owner, supervisor, operator, gudang
         if (in_array($user->role, $roles)) {
             return $next($request);
         }
