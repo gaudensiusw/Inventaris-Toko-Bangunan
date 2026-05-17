@@ -46,4 +46,9 @@ class Product extends Model
     {
         return $this->belongsTo(Supplier::class, 'supplier_id');
     }
+
+    public function latestOpname()
+    {
+        return $this->hasOne(\Modules\StockOpname\Models\StockOpname::class, 'produk_id')->latestOfMany();
+    }
 }

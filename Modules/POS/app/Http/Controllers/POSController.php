@@ -55,10 +55,37 @@ class POSController extends Controller
             'total_tagihan'     => 'required|numeric',
             'metode_pembayaran' => 'required|string',
             'opsi_pengiriman'   => 'required|string',
+            'supervisor_email'  => 'nullable|string|email',
+            'supervisor_password' => 'nullable|string',
         ]);
 
         try {
             DB::beginTransaction();
+
+            // Check if any item breaches min_stok
+            $requiresApproval = false;
+            foreach ($request->items as $item) {
+                $product = Product::findOrFail($item['produk_id']);
+                $stok_pengurang = $item['qty'] * $item['isi'];
+                if ($product->stok - $stok_pengurang < $product->min_stok) {
+                    $requiresApproval = true;
+                    break;
+                }
+            }
+
+            $user = auth()->user();
+            if ($requiresApproval && !in_array($user->role, ['owner', 'supervisor'])) {
+                if (!$request->filled('supervisor_email') || !$request->filled('supervisor_password')) {
+                    throw new \Exception("Persetujuan Supervisor diperlukan karena pembelian ini menembus batas minimum stok.");
+                }
+                $supervisor = \App\Models\User::where('email', $request->supervisor_email)->first();
+                if (!$supervisor || !in_array($supervisor->role, ['supervisor', 'owner'])) {
+                    throw new \Exception("Kredensial Supervisor tidak valid atau bukan supervisor.");
+                }
+                if (!\Illuminate\Support\Facades\Hash::check($request->supervisor_password, $supervisor->password)) {
+                    throw new \Exception("Password Supervisor salah.");
+                }
+            }
 
             // If payment is Bon, handle debt logic
             $status_pembayaran = 'lunas';

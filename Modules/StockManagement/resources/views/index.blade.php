@@ -7,13 +7,21 @@
 <div x-data="{ 
     modalOpen: false, 
     showConfirm: false,
+    editModalOpen: false,
     modalType: 'in',
     selectedProduct: '',
     qty: 0,
     keterangan: '',
+    editId: null,
+    editKeterangan: '',
     openModal(type) {
         this.modalType = type;
         this.modalOpen = true;
+    },
+    openEditModal(id, currentKeterangan) {
+        this.editId = id;
+        this.editKeterangan = currentKeterangan || '';
+        this.editModalOpen = true;
     }
 }">
     <!-- Alert Messages -->
@@ -67,6 +75,7 @@
                         <th class="p-4 font-semibold uppercase tracking-wider text-xs">Produk</th>
                         <th class="p-4 font-semibold uppercase tracking-wider text-xs">Jumlah</th>
                         <th class="p-4 font-semibold uppercase tracking-wider text-xs">Keterangan</th>
+                        <th class="p-4 font-semibold uppercase tracking-wider text-xs w-10 text-center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -88,10 +97,15 @@
                             {{ $trx->tipe == 'in' ? '+' : '-' }}{{ number_format($trx->qty, 0) }}
                         </td>
                         <td class="p-4 text-slate-500 text-xs italic">{{ $trx->keterangan ?: '-' }}</td>
+                        <td class="p-4 text-center">
+                            <button @click="openEditModal({{ $trx->id }}, '{{ addslashes($trx->keterangan) }}')" class="text-slate-400 hover:text-blue-500 transition-colors p-1 rounded hover:bg-blue-50" title="Edit Catatan">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="p-12 text-center text-slate-500 italic">Belum ada riwayat transaksi stok</td>
+                        <td colspan="6" class="p-12 text-center text-slate-500 italic">Belum ada riwayat transaksi stok</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -167,6 +181,31 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Note Modal -->
+    <div x-show="editModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center" style="display: none;">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="editModalOpen = false" x-transition.opacity></div>
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden transform transition-all" x-transition>
+            <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-blue-50/50">
+                <h3 class="text-base font-bold text-slate-800">Edit Catatan</h3>
+                <button @click="editModalOpen = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-100">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form :action="'{{ url('stock-management/update-note') }}/' + editId" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="p-5">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Keterangan Baru</label>
+                    <textarea name="keterangan" x-model="editKeterangan" placeholder="Masukkan keterangan..." class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 resize-none h-24"></textarea>
+                </div>
+                <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                    <button type="button" @click="editModalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow">Simpan Catatan</button>
                 </div>
             </form>
         </div>

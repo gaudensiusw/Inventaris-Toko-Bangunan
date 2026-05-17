@@ -269,6 +269,13 @@
                 <span x-show="cart.length > 0" class="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full" x-text="cart.length + ' barang'"></span>
             </button>
         </div>
+        
+        <template x-if="requiresApproval && !['owner', 'supervisor'].includes(userRole) && cart.length > 0">
+            <div class="px-4 py-2 bg-orange-50 border-t border-orange-100 flex items-center gap-2 text-orange-700">
+                <svg class="w-4 h-4 flex-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                <span class="text-[10px] font-bold leading-tight">Sebagian barang menembus limit stok minimum. Membutuhkan izin Supervisor.</span>
+            </div>
+        </template>
     </div>
 
     <!-- ── UNIT SELECTION MODAL ────────────────────────────── -->
@@ -369,6 +376,36 @@
         </div>
     </div>
 
+    <!-- ── SUPERVISOR PIN MODAL ────────────────────────────── -->
+    <div x-show="pinModalOpen" class="fixed inset-0 z-[120] flex items-center justify-center" style="display: none;">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="!loading && (pinModalOpen = false)" x-transition.opacity></div>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden transform transition-all" x-transition>
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-inner">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7z"/></svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-800 mb-1">Otorisasi Supervisor</h3>
+                <p class="text-xs text-slate-500 mb-5">Stok menembus batas minimum. Masukkan kredensial Supervisor untuk melanjutkan transaksi.</p>
+                
+                <div class="space-y-3 text-left">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Email Supervisor</label>
+                        <input type="email" x-model="supervisorEmail" class="w-full border border-slate-300 rounded-lg text-sm px-3 py-2 focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Password</label>
+                        <input type="password" x-model="supervisorPassword" class="w-full border border-slate-300 rounded-lg text-sm px-3 py-2 focus:ring-orange-500 focus:border-orange-500">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 mt-6">
+                    <button @click="pinModalOpen = false" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-bold transition-colors">Batal</button>
+                    <button @click="verifyAndCheckout()" :disabled="!supervisorEmail || !supervisorPassword" class="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-bold transition-colors shadow disabled:opacity-50">Lanjutkan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -392,9 +429,13 @@ function posSystem() {
         currentTime: '',
         checkoutModalOpen: false,
         unitModalOpen: false,
+        pinModalOpen: false,
         selectedProduct: null,
         loading: false,
-
+        
+        userRole: '{{ auth()->user()->role }}',
+        supervisorEmail: '',
+        supervisorPassword: '',
 
         init() {
             this.updateTime();
@@ -414,7 +455,8 @@ function posSystem() {
 
         get filteredProducts() {
             let filtered = this.products.filter(p => {
-                const matchSearch = p.nama.toLowerCase().includes(this.search.toLowerCase());
+                const searchLower = this.search.toLowerCase();
+                const matchSearch = p.nama.toLowerCase().includes(searchLower) || (p.merk && p.merk.toLowerCase().includes(searchLower));
                 const matchCat = this.categoryFilter === '' || p.kategori_id == this.categoryFilter;
                 return matchSearch && matchCat;
             });
@@ -431,6 +473,14 @@ function posSystem() {
             return Math.ceil(this.filteredProducts.length / this.perPage);
         },
 
+        get requiresApproval() {
+            return this.cart.some(item => {
+                const product = this.products.find(p => p.id === item.produk_id);
+                if (!product) return false;
+                const stokPengurang = item.qty * item.isi;
+                return (product.stok - stokPengurang) < product.min_stok;
+            });
+        },
 
         get subtotal() {
             return this.cart.reduce((sum, item) => sum + (item.qty * (item.harga - (Number(item.diskon_rp) || 0))), 0);
@@ -554,6 +604,15 @@ function posSystem() {
 
         openCheckoutModal() {
             if (this.cart.length === 0) return;
+            if (this.requiresApproval && !['owner', 'supervisor'].includes(this.userRole)) {
+                this.pinModalOpen = true;
+            } else {
+                this.checkoutModalOpen = true;
+            }
+        },
+
+        verifyAndCheckout() {
+            this.pinModalOpen = false;
             this.checkoutModalOpen = true;
         },
 
@@ -575,6 +634,8 @@ function posSystem() {
                         metode_pembayaran:this.metode_pembayaran,
                         opsi_pengiriman:  this.opsi_pengiriman,
                         catatan:          this.catatan,
+                        supervisor_email: this.supervisorEmail,
+                        supervisor_password: this.supervisorPassword
                     })
                 });
 

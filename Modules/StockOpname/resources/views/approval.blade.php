@@ -19,7 +19,7 @@
             <p class="text-slate-500 text-sm">Menunggu verifikasi untuk sinkronisasi ke gudang</p>
         </div>
         <div class="flex gap-2">
-            <a href="{{ route('stockopname.history') }}" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors">Lihat Riwayat</a>
+            <a href="{{ route('stockopname.history') }}" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors">Lihat Riwayat Item</a>
             <a href="{{ route('stockopname.index') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-lg shadow-indigo-200">Audit Baru</a>
         </div>
     </div>
@@ -83,7 +83,67 @@
                 </tbody>
             </table>
         </div>
+        </div>
     </div>
+
+    <!-- RIWAYAT PERSETUJUAN -->
+    <div class="mt-8 mb-6">
+        <h2 class="text-xl font-bold text-slate-800">Riwayat Persetujuan</h2>
+        <p class="text-slate-500 text-sm">Log keputusan audit stok yang telah diproses</p>
+    </div>
+
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 uppercase tracking-widest text-[10px] font-black">
+                    <tr>
+                        <th class="p-4">Tanggal Diproses</th>
+                        <th class="p-4">Produk</th>
+                        <th class="p-4 text-center">Selisih</th>
+                        <th class="p-4">Petugas Pengaju</th>
+                        <th class="p-4 text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($history as $item)
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="p-4">
+                            <div class="font-bold text-slate-800">{{ $item->updated_at->format('d M Y') }}</div>
+                            <div class="text-[10px] text-slate-400">{{ $item->updated_at->format('H:i:s') }}</div>
+                        </td>
+                        <td class="p-4">
+                            <div class="font-bold text-slate-800">{{ $item->product->nama ?? '-' }}</div>
+                            <div class="text-[10px] text-slate-400">Stok Sistem: {{ $item->stok_sistem }} | Fisik: {{ $item->stok_fisik }}</div>
+                        </td>
+                        <td class="p-4 text-center font-black {{ $item->selisih < 0 ? 'text-red-500' : ($item->selisih > 0 ? 'text-blue-500' : 'text-emerald-500') }}">
+                            {{ $item->selisih > 0 ? '+' : '' }}{{ $item->selisih }}
+                        </td>
+                        <td class="p-4">
+                            <span class="font-medium text-slate-700">{{ $item->causer->name ?? 'Sistem' }}</span>
+                        </td>
+                        <td class="p-4 text-center">
+                            @if($item->status === 'approved')
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase">Disetujui</span>
+                            @else
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500 border border-slate-200 uppercase tracking-tighter line-through">Ditolak</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="5" class="p-8 text-center text-slate-500 italic">Belum ada riwayat persetujuan audit.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if($history->hasPages())
+        <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+            {{ $history->links() }}
+        </div>
+        @endif
+    </div>
+
 
     <!-- MODERN CONFIRMATION MODAL -->
     <template x-if="showConfirm">

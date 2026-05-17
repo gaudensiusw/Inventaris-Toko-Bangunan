@@ -53,4 +53,22 @@ class StockManagementController extends Controller
             return redirect()->back()->with('error', 'Gagal mencatat stok: ' . $e->getMessage());
         }
     }
+
+    public function updateNote(Request $request, $id)
+    {
+        $request->validate([
+            'keterangan' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $transaction = StockManagement::findOrFail($id);
+            $transaction->update([
+                'keterangan' => $request->keterangan
+            ]);
+
+            return redirect()->back()->with('success', 'Catatan berhasil diperbarui.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal memperbarui catatan: ' . $e->getMessage());
+        }
+    }
 }

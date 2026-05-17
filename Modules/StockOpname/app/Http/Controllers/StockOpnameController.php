@@ -16,7 +16,7 @@ class StockOpnameController extends Controller
         $categories = \Modules\Product\Models\Category::orderBy('nama')->get();
         $allProducts = Product::orderBy('nama')->get();
         
-        $query = Product::with('category');
+        $query = Product::with(['category', 'latestOpname.causer']);
 
         if ($request->search) {
             $query->where('nama', 'like', '%' . $request->search . '%');
@@ -94,10 +94,18 @@ class StockOpnameController extends Controller
 
     public function history()
     {
-        $history = StockOpname::with(['product', 'causer'])
-            ->whereIn('status', ['approved', 'rejected'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+        $user = auth()->user();
+        $query = StockOpname::with(['product', 'causer']);
+
+        if (in_array($user->role, ['owner', 'supervisor'])) {
+            // Only show approved opnames (actual item changes)
+            $query->where('status', 'approved');
+        } else {
+            // Operator sees their own history, including pending
+            $query->where('user_id', $user->id);
+        }
+
+        $history = $query->orderBy('updated_at', 'desc')->paginate(20);
             
         return view('stockopname::history', compact('history'));
     }
@@ -109,7 +117,12 @@ class StockOpnameController extends Controller
             ->orderBy('created_at', 'asc')
             ->get();
             
-        return view('stockopname::approval', compact('pending'));
+        $history = StockOpname::with(['product', 'causer'])
+            ->whereIn('status', ['approved', 'rejected'])
+            ->orderBy('updated_at', 'desc')
+            ->paginate(15);
+
+        return view('stockopname::approval', compact('pending', 'history'));
     }
 
     public function approve($id)

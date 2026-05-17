@@ -100,14 +100,14 @@
             <div>
                 <div class="flex items-center gap-3">
                     <h3 class="text-base font-bold text-slate-800">Daftar Audit Persediaan Barang</h3>
-                    <a href="{{ route('stockopname.history') }}" class="text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded font-bold uppercase tracking-widest transition-colors flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        {{ in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Lihat Riwayat' : 'Status Pengajuan' }}
-                    </a>
                 </div>
                 <p class="text-[11px] text-slate-500 uppercase tracking-widest font-black mt-0.5">Data yang Anda isi tersimpan otomatis di browser ini</p>
             </div>
             <div class="flex items-center gap-3">
+                <a href="{{ route('stockopname.history') }}" class="px-5 py-2.5 rounded-lg text-sm font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    {{ in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Lihat Riwayat' : 'Status Pengajuan' }}
+                </a>
                 <button type="button" @click="$store.opname.showConfirm = true" 
                     :class="$store.opname.count > 0 ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200' : 'bg-slate-300 cursor-not-allowed'"
                     :disabled="$store.opname.count === 0"
@@ -149,10 +149,16 @@
                     }">
                         <td class="p-4">
                             <div class="font-bold text-slate-800">{{ $p->nama }}</div>
-                            <div class="flex items-center gap-2 mt-1">
+                            <div class="flex items-center gap-2 mt-1 mb-1">
                                 <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter">{{ $p->unit }}</span>
                                 <span class="text-[10px] text-slate-400">{{ $p->category->nama ?? '-' }}</span>
                             </div>
+                            @if($p->latestOpname)
+                            <div class="text-[9px] text-slate-400 flex items-center gap-1 mt-1.5">
+                                <svg class="w-3 h-3 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Diubah: {{ $p->latestOpname->created_at->diffForHumans() }} oleh <span class="font-bold text-slate-500">{{ $p->latestOpname->causer->name ?? 'Sistem' }}</span>
+                            </div>
+                            @endif
                         </td>
                         <td class="p-4 text-center">
                             <span class="font-black text-slate-500">{{ number_format($p->stok, 0) }}</span>
