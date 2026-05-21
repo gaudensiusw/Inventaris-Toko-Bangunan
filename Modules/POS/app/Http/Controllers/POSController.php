@@ -194,4 +194,30 @@ class POSController extends Controller
         $pos = POS::with(['details.product', 'pelanggan'])->findOrFail($id);
         return view('pos::receipt', compact('pos'));
     }
+
+    public function getRecommendations(Request $request)
+    {
+        $request->validate([
+            'nama_produk' => 'required|string'
+        ]);
+
+        $rekomendasi = DB::table('t_rekomendasi')
+            ->where('barang_pemicu', $request->nama_produk)
+            ->orderBy('confidence', 'desc')
+            ->limit(3)
+            ->get();
+
+        if ($rekomendasi->count() > 0) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Rekomendasi ditemukan',
+                'data'    => $rekomendasi
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada rekomendasi untuk produk ini'
+            ]);
+        }
+    }
 }

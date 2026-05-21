@@ -8,4 +8,5 @@ Route::middleware(['auth', 'role:owner,operator,supervisor'])->group(function ()
     Route::get('/pos/history', [POSController::class, 'history'])->name('pos.history');
     Route::post('/pos', [POSController::class, 'store'])->name('pos.store');
     Route::get('/pos/receipt/{id}', [POSController::class, 'receipt'])->name('pos.receipt');
+    Route::get('/pos/rekomendasi', [POSController::class, 'getRecommendations'])->name('pos.rekomendasi');
 });

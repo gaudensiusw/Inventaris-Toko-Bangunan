@@ -90,7 +90,9 @@
                 <div class="flex gap-2">
                     <select name="role" class="border border-gray-300 text-gray-700 py-2 px-4 rounded-lg focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
                         <option value="">Semua Role</option>
-                        <option value="owner" {{ request('role') == 'owner' ? 'selected' : '' }}>Owner</option>
+                        @if(auth()->user()->role === 'owner')
+                            <option value="owner" {{ request('role') == 'owner' ? 'selected' : '' }}>Owner</option>
+                        @endif
                         <option value="supervisor" {{ request('role') == 'supervisor' ? 'selected' : '' }}>Supervisor</option>
                         <option value="operator" {{ request('role') == 'operator' ? 'selected' : '' }}>Operator</option>
                         <option value="gudang" {{ request('role') == 'gudang' ? 'selected' : '' }}>Gudang</option>
@@ -230,7 +232,9 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
                     <select id="role" name="role" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="owner">Owner</option>
+                        @if(auth()->user()->role === 'owner')
+                            <option value="owner">Owner</option>
+                        @endif
                         <option value="supervisor">Supervisor</option>
                         <option value="operator">Operator</option>
                         <option value="gudang">Gudang</option>

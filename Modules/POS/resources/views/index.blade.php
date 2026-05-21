@@ -406,6 +406,29 @@
         </div>
     </div>
 
+    <!-- ── REKOMENDASI TOAST ────────────────────────────── -->
+    <div x-show="showRekomendasi" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-y-4"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 translate-y-4"
+         class="fixed bottom-6 right-6 z-[130] bg-white border border-blue-200 shadow-xl rounded-xl p-4 max-w-sm border-l-4 border-l-blue-500" style="display: none;">
+        <div class="flex items-start gap-3">
+            <div class="text-blue-500 bg-blue-50 p-2 rounded-lg">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="flex-1">
+                <h4 class="text-sm font-bold text-slate-800">💡 Rekomendasi Pelengkap</h4>
+                <p class="text-xs text-slate-600 mt-1">Sering dibeli bersamaan: <span class="font-bold text-blue-600" x-text="rekomendasiText"></span></p>
+            </div>
+            <button @click="showRekomendasi = false" class="text-slate-400 hover:text-slate-600">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -432,6 +455,8 @@ function posSystem() {
         pinModalOpen: false,
         selectedProduct: null,
         loading: false,
+        rekomendasiText: '',
+        showRekomendasi: false,
         
         userRole: '{{ auth()->user()->role }}',
         supervisorEmail: '',
@@ -538,6 +563,24 @@ function posSystem() {
                 });
             }
             this.unitModalOpen = false;
+            this.fetchRecommendations(product.nama);
+        },
+
+        fetchRecommendations(namaBarang) {
+            fetch(`/pos/rekomendasi?nama_produk=${encodeURIComponent(namaBarang)}`)
+                .then(response => response.json())
+                .then(res => {
+                    if (res.success && res.data.length > 0) {
+                        let text = "";
+                        res.data.forEach(item => {
+                            let persen = Math.round(item.confidence * 100);
+                            text += `${item.barang_pelengkap} (${persen}%), `;
+                        });
+                        this.rekomendasiText = text.replace(/, $/, '');
+                        this.showRekomendasi = true;
+                    }
+                })
+                .catch(err => console.error(err));
         },
 
         removeFromCart(idx) {

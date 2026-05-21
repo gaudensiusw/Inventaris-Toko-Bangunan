@@ -14,9 +14,19 @@ class AccountController extends Controller
     {
         $query = User::query();
 
+        // If the logged in user is not an owner, exclude owner accounts
+        if (auth()->user()->role !== 'owner') {
+            $query->where('role', '!=', 'owner');
+        }
+
         // Optional filtering by role
         if ($request->filled('role')) {
-            $query->where('role', $request->role);
+            // Non-owners can't filter by owner role
+            if (auth()->user()->role !== 'owner' && $request->role === 'owner') {
+                $query->where('id', 0); // Force empty result
+            } else {
+                $query->where('role', $request->role);
+            }
         }
 
         // Optional search by name or email
@@ -30,9 +40,10 @@ class AccountController extends Controller
 
         $users = $query->orderBy('name')->get();
 
+        $isOwner = auth()->user()->role === 'owner';
         $stats = [
-            'total' => User::count(),
-            'active' => User::where('aktif', 1)->count(),
+            'total' => $isOwner ? User::count() : User::where('role', '!=', 'owner')->count(),
+            'active' => $isOwner ? User::where('aktif', 1)->count() : User::where('aktif', 1)->where('role', '!=', 'owner')->count(),
             'supervisor' => User::where('role', 'supervisor')->count(),
             'operator' => User::where('role', 'operator')->count(),
         ];
@@ -42,6 +53,10 @@ class AccountController extends Controller
 
     public function store(Request $request)
     {
+        if (auth()->user()->role !== 'owner' && $request->role === 'owner') {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk membuat akun Owner.'], 403);
+        }
+
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
@@ -74,8 +89,13 @@ class AccountController extends Controller
     {
         $user = User::findOrFail($id);
 
-        if (auth()->user()->role === 'supervisor' && $user->role === 'owner') {
-            abort(403, 'Supervisor tidak dapat mengubah/menghapus akun Owner');
+        if (auth()->user()->role !== 'owner') {
+            if ($user->role === 'owner') {
+                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk mengubah akun Owner.'], 403);
+            }
+            if ($request->role === 'owner') {
+                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk mengubah role menjadi Owner.'], 403);
+            }
         }
 
         $rules = [
@@ -109,12 +129,12 @@ class AccountController extends Controller
     {
         $user = User::findOrFail($id);
 
-        if ($user->id === auth()->id()) {
-            return response()->json(['success' => false, 'message' => 'Anda tidak dapat menghapus akun Anda sendiri.'], 403);
+        if (auth()->user()->role !== 'owner' && $user->role === 'owner') {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk menghapus akun Owner.'], 403);
         }
 
-        if ($user->role === 'owner' && auth()->user()->role !== 'owner') {
-            abort(403, 'Supervisor tidak dapat mengubah/menghapus akun Owner');
+        if ($user->id === auth()->id()) {
+            return response()->json(['success' => false, 'message' => 'Anda tidak dapat menghapus akun Anda sendiri.'], 403);
         }
 
         $user->delete();
@@ -126,12 +146,12 @@ class AccountController extends Controller
     {
         $user = User::findOrFail($id);
         
-        if ($user->id === auth()->id()) {
-            return response()->json(['success' => false, 'message' => 'Anda tidak dapat menonaktifkan akun Anda sendiri.'], 403);
+        if (auth()->user()->role !== 'owner' && $user->role === 'owner') {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk mengubah status akun Owner.'], 403);
         }
 
-        if ($user->role === 'owner' && auth()->user()->role !== 'owner') {
-            abort(403, 'Supervisor tidak dapat mengubah/menghapus akun Owner');
+        if ($user->id === auth()->id()) {
+            return response()->json(['success' => false, 'message' => 'Anda tidak dapat menonaktifkan akun Anda sendiri.'], 403);
         }
 
         $user->aktif = !$user->aktif;
@@ -144,8 +164,8 @@ class AccountController extends Controller
     {
         $user = User::findOrFail($id);
         
-        if (auth()->user()->role === 'supervisor' && $user->role === 'owner') {
-            abort(403, 'Supervisor tidak dapat mengubah/menghapus akun Owner');
+        if (auth()->user()->role !== 'owner' && $user->role === 'owner') {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk mereset password akun Owner.'], 403);
         }
 
         // Generate an 8-character random alphanumeric string
@@ -161,5 +181,33 @@ class AccountController extends Controller
         ]);
     }
 
+    public function getPermissions()
+    {
+        if (auth()->user()->role !== 'owner') {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses.'], 403);
+        }
 
+        $permissions = RolePermission::all()->keyBy('role_name');
+        return response()->json(['success' => true, 'data' => $permissions]);
+    }
+
+    public function updatePermissions(Request $request)
+    {
+        if (auth()->user()->role !== 'owner') {
+            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses.'], 403);
+        }
+
+        $data = $request->validate([
+            'permissions' => 'required|array'
+        ]);
+
+        foreach ($data['permissions'] as $role => $perms) {
+            RolePermission::updateOrCreate(
+                ['role_name' => $role],
+                ['permissions' => $perms]
+            );
+        }
+
+        return response()->json(['success' => true, 'message' => 'Hak akses berhasil diperbarui.']);
+    }
 }
