@@ -406,7 +406,7 @@
         </div>
     </div>
 
-    <!-- ── REKOMENDASI TOAST ────────────────────────────── -->
+    <!-- ── REKOMENDASI TOAST (DINONAKTIFKAN) ──────────────────
     <div x-show="showRekomendasi" 
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0 translate-y-4"
@@ -428,6 +428,7 @@
             </button>
         </div>
     </div>
+    ──────────────────────────────────────────────────────── -->
 
 </div>
 
@@ -563,25 +564,25 @@ function posSystem() {
                 });
             }
             this.unitModalOpen = false;
-            this.fetchRecommendations(product.nama);
+            // this.fetchRecommendations(product.nama); // Dinonaktifkan
         },
 
-        fetchRecommendations(namaBarang) {
-            fetch(`/pos/rekomendasi?nama_produk=${encodeURIComponent(namaBarang)}`)
-                .then(response => response.json())
-                .then(res => {
-                    if (res.success && res.data.length > 0) {
-                        let text = "";
-                        res.data.forEach(item => {
-                            let persen = Math.round(item.confidence * 100);
-                            text += `${item.barang_pelengkap} (${persen}%), `;
-                        });
-                        this.rekomendasiText = text.replace(/, $/, '');
-                        this.showRekomendasi = true;
-                    }
-                })
-                .catch(err => console.error(err));
-        },
+        // fetchRecommendations(namaBarang) {
+        //     fetch(`/pos/rekomendasi?nama_produk=${encodeURIComponent(namaBarang)}`)
+        //         .then(response => response.json())
+        //         .then(res => {
+        //             if (res.success && res.data.length > 0) {
+        //                 let text = "";
+        //                 res.data.forEach(item => {
+        //                     let persen = Math.round(item.confidence * 100);
+        //                     text += `${item.barang_pelengkap} (${persen}%), `;
+        //                 });
+        //                 this.rekomendasiText = text.replace(/, $/, '');
+        //                 this.showRekomendasi = true;
+        //             }
+        //         })
+        //         .catch(err => console.error(err));
+        // }, // Dinonaktifkan
 
         removeFromCart(idx) {
             this.cart.splice(idx, 1);
