@@ -64,8 +64,8 @@
                         </td>
                         <td class="p-4 text-right whitespace-nowrap">
                             <div class="flex justify-end gap-2">
-                                <button @click="confirmAction({{ $item->id }}, '{{ addslashes($item->product->nama) }}', 'approve')" class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-200 transition-colors">Setujui</button>
-                                <button @click="confirmAction({{ $item->id }}, '{{ addslashes($item->product->nama) }}', 'reject')" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-[10px] font-black uppercase hover:bg-red-200 transition-colors">Tolak</button>
+                                <button @click="confirmAction({{ $item->id }}, '{{ addslashes($item->product->nama ?? '-') }}', 'approve')" class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-200 transition-colors">Setujui</button>
+                                <button @click="confirmAction({{ $item->id }}, '{{ addslashes($item->product->nama ?? '-') }}', 'reject')" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-[10px] font-black uppercase hover:bg-red-200 transition-colors">Tolak</button>
                             </div>
                         </td>
                     </tr>
@@ -82,7 +82,6 @@
                     @endforelse
                 </tbody>
             </table>
-        </div>
         </div>
     </div>
 

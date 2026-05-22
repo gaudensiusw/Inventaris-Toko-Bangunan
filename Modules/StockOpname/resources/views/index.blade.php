@@ -133,7 +133,7 @@
                     @foreach($products as $index => $p)
                     <tr class="hover:bg-blue-50/30 transition-colors" x-data="{ 
                         id: {{ $p->id }},
-                        nama: '{{ addslashes($p->nama) }}',
+                        nama: {{ json_encode($p->nama) }},
                         sistem: {{ $p->stok }},
                         fisik: $store.opname.queue[{{ $p->id }}] ? $store.opname.queue[{{ $p->id }}].stok_fisik : '',
                         keterangan: $store.opname.queue[{{ $p->id }}] ? $store.opname.queue[{{ $p->id }}].keterangan : '',

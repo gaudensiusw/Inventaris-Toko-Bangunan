@@ -69,15 +69,15 @@
                                 @endif
                             </td>
                             <td class="py-4 px-3 xl:px-5 text-right space-x-2 whitespace-nowrap">
-                                <button onclick="event.stopPropagation(); openEditModal({{ $emp->id }}, '{{ $emp->kode_karyawan }}', '{{ addslashes($emp->nama) }}', '{{ $emp->jabatan_id }}', '{{ $emp->tanggal_masuk->format('Y-m-d') }}', {{ $emp->aktif ? 'true' : 'false' }}, '{{ $emp->no_hp }}', '{{ $emp->email }}', '{{ addslashes($emp->alamat) }}', {{ $emp->bonus_tetap ?? 500000 }}, {{ $emp->potongan ?? 0 }}, '{{ addslashes($emp->keterangan_potongan ?? '') }}')" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors" title="Edit">
+                                <button onclick="event.stopPropagation(); openEditModal({{ $emp->id }}, '{{ $emp->kode_karyawan }}', {{ json_encode($emp->nama) }}, '{{ $emp->jabatan_id }}', '{{ $emp->tanggal_masuk->format('Y-m-d') }}', {{ $emp->aktif ? 'true' : 'false' }}, '{{ $emp->no_hp }}', '{{ $emp->email }}', {{ json_encode($emp->alamat) }}, {{ $emp->bonus_tetap ?? 500000 }}, {{ $emp->potongan ?? 0 }}, {{ json_encode($emp->keterangan_potongan ?? '') }})" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors" title="Edit">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 </button>
                                 @if($emp->aktif)
-                                <button onclick="event.stopPropagation(); openToggleStatusModal({{ $emp->id }}, '{{ addslashes($emp->nama) }}', true)" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors" title="Nonaktifkan">
+                                <button onclick="event.stopPropagation(); openToggleStatusModal({{ $emp->id }}, {{ json_encode($emp->nama) }}, true)" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition-colors" title="Nonaktifkan">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
                                 </button>
                                 @else
-                                <button onclick="event.stopPropagation(); openToggleStatusModal({{ $emp->id }}, '{{ addslashes($emp->nama) }}', false)" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-green-600 hover:bg-green-50 transition-colors" title="Aktifkan">
+                                <button onclick="event.stopPropagation(); openToggleStatusModal({{ $emp->id }}, {{ json_encode($emp->nama) }}, false)" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-green-600 hover:bg-green-50 transition-colors" title="Aktifkan">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                 </button>
                                 @endif
