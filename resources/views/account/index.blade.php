@@ -19,7 +19,7 @@
     </div>
 
     <!-- Stat Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div class="flex items-center justify-between">
                 <div>
@@ -208,7 +208,7 @@
 
 <!-- Add/Edit Account Modal -->
 <div id="accountModal" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center backdrop-blur-sm transition-opacity duration-300 opacity-0">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md transform scale-95 transition-transform duration-300">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 transform scale-95 transition-transform duration-300">
         <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
             <h3 id="modalTitle" class="text-lg font-bold text-gray-800">Tambah Akun</h3>
             <button onclick="closeModal('accountModal')" class="text-gray-400 hover:text-gray-600 transition-colors">

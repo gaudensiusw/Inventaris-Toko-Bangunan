@@ -139,19 +139,19 @@
                 <!-- Calendar days -->
                 <template x-for="dayObj in daysInMonth()">
                     <div @click="dayObj && selectDate(dayObj.date)" 
-                        class="bg-white min-h-[60px] p-2 relative group hover:bg-blue-50/50 transition-all cursor-pointer"
+                        class="bg-white min-h-[48px] sm:min-h-[60px] p-1 sm:p-2 relative group hover:bg-blue-50/50 transition-all cursor-pointer"
                         :class="{ 'bg-blue-50 ring-1 ring-inset ring-blue-300 z-10': selectedDate === dayObj?.date }">
                         <template x-if="dayObj">
                             <div class="flex flex-col h-full">
-                                <span class="text-sm font-bold" 
+                                <span class="text-xs sm:text-sm font-bold" 
                                     :class="dayObj.date === new Date().toISOString().split('T')[0] ? 'text-blue-600 underline decoration-2 underline-offset-4' : 'text-slate-700'"
                                     x-text="dayObj.day"></span>
                                 
                                 <div class="mt-auto flex flex-wrap gap-1">
                                     <template x-if="billsByDate[dayObj.date]">
                                         <div class="flex items-center gap-1">
-                                            <div class="w-2 h-2 bg-red-500 rounded-full animate-bounce"></div>
-                                            <span class="text-[9px] font-black text-red-600" x-text="`${billsByDate[dayObj.date]}`"></span>
+                                            <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 rounded-full animate-bounce"></div>
+                                            <span class="text-[8px] sm:text-[9px] font-black text-red-600" x-text="`${billsByDate[dayObj.date]}`"></span>
                                         </div>
                                     </template>
                                 </div>
@@ -208,25 +208,26 @@
             <table class="w-full text-left text-sm whitespace-nowrap">
                 <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
                     <tr>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Supplier & Invoice</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Tgl Invoice</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Jatuh Tempo</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Total</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Status</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs text-right">Aksi</th>
+                        <th class="py-3 px-3 font-semibold uppercase tracking-wider text-xs">Supplier & Invoice</th>
+                        <th class="py-3 px-3 font-semibold uppercase tracking-wider text-xs hidden xl:table-cell">Tgl Invoice</th>
+                        <th class="py-3 px-3 font-semibold uppercase tracking-wider text-xs">Jatuh Tempo</th>
+                        <th class="py-3 px-3 font-semibold uppercase tracking-wider text-xs">Total</th>
+                        <th class="py-3 px-3 font-semibold uppercase tracking-wider text-xs">Status</th>
+                        <th class="py-3 px-3 font-semibold uppercase tracking-wider text-xs text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($bills as $bill)
                     <tr class="hover:bg-blue-50/30 transition-colors">
-                        <td class="py-4 px-5">
-                            <div class="font-bold text-slate-800">{{ $bill->supplier->company_name ?? 'N/A' }}</div>
+                        <td class="py-4 px-3 whitespace-normal">
+                            <div class="font-bold text-slate-800 leading-tight">{{ $bill->supplier->company_name ?? 'N/A' }}</div>
                             <div class="text-[10px] text-slate-500 uppercase mt-0.5">{{ $bill->no_invoice }}</div>
+                            <div class="text-[11px] text-slate-500 mt-0.5 xl:hidden">Tgl: {{ \Carbon\Carbon::parse($bill->tgl_invoice)->format('d M Y') }}</div>
                         </td>
-                        <td class="py-4 px-5 text-slate-600">
+                        <td class="py-4 px-3 text-slate-600 hidden xl:table-cell">
                             {{ \Carbon\Carbon::parse($bill->tgl_invoice)->format('d M Y') }}
                         </td>
-                        <td class="py-4 px-5">
+                        <td class="py-4 px-3">
                             <div class="font-medium {{ \Carbon\Carbon::parse($bill->jatuh_tempo)->isPast() && $bill->status != 'lunas' ? 'text-red-600' : 'text-slate-600' }}">
                                 {{ \Carbon\Carbon::parse($bill->jatuh_tempo)->format('d M Y') }}
                             </div>
@@ -234,10 +235,10 @@
                                 <div class="text-[10px] text-red-500 font-bold uppercase">Terlambat</div>
                             @endif
                         </td>
-                        <td class="py-4 px-5 font-bold text-slate-800">
+                        <td class="py-4 px-3 font-bold text-slate-800">
                             Rp {{ number_format($bill->total, 0, ',', '.') }}
                         </td>
-                        <td class="py-4 px-5">
+                        <td class="py-4 px-3">
                             @php
                                 $statusColors = [
                                     'belum_bayar' => 'bg-red-100 text-red-700 border-red-200',
@@ -256,7 +257,7 @@
                                 {{ $label }}
                             </span>
                         </td>
-                        <td class="py-4 px-5 text-right space-x-1">
+                        <td class="py-4 px-3 text-right space-x-1 whitespace-nowrap">
                             <button @click="openEditModal({{ $bill->toJson() }})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </button>
@@ -295,7 +296,7 @@
             </div>
             <form action="{{ route('tagihansupplier.store') }}" method="POST">
                 @csrf
-                <div class="p-6 grid grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Supplier <span class="text-red-500">*</span></label>
                         <select name="supplier_id" required class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
@@ -329,7 +330,7 @@
                             <option value="lunas">Lunas</option>
                         </select>
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-1 sm:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Catatan</label>
                         <textarea name="catatan" rows="2" placeholder="Keterangan tambahan..." class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"></textarea>
                     </div>
@@ -376,7 +377,7 @@
             <form :action="`/tagihan-supplier/${editForm.id}`" method="POST">
                 @csrf
                 @method('PUT')
-                <div class="p-6 grid grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Supplier <span class="text-red-500">*</span></label>
                         <select name="supplier_id" x-model="editForm.supplier_id" required class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
@@ -409,7 +410,7 @@
                             <option value="lunas">Lunas</option>
                         </select>
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-1 sm:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Catatan</label>
                         <textarea name="catatan" x-model="editForm.catatan" rows="2" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"></textarea>
                     </div>

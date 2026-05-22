@@ -14,9 +14,9 @@
     selectedUnit: {} 
 }" @keydown.escape.window="addModal = false; editModal = false; deleteModalOpen = false">
     
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <!-- Sidebar: Unit List Grouped by Category -->
-        <div class="lg:col-span-1 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-fit">
+        <div class="xl:col-span-1 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-fit">
             <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
                     <h3 class="font-bold text-slate-800 text-sm">Daftar Satuan</h3>
@@ -60,7 +60,7 @@
         </div>
 
         <!-- Detail Panel -->
-        <div class="lg:col-span-2 space-y-6">
+        <div class="xl:col-span-2 space-y-6">
             @if($activeUnit)
             <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden h-fit">
                 <div class="p-6 border-b border-slate-100 bg-slate-50/50 flex items-center gap-5">
@@ -80,7 +80,7 @@
                 
                 <div class="p-6">
                     <h4 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Produk Terkait (Terbaru)</h4>
-                    <div class="overflow-hidden border border-slate-100 rounded-xl">
+                    <div class="overflow-x-auto border border-slate-100 rounded-xl">
                         <table class="w-full text-left text-sm">
                             <thead class="bg-slate-50 text-slate-500">
                                 <tr>

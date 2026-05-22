@@ -4,10 +4,10 @@
 @section('header_title', 'POS / Operator')
 
 @section('content')
-<div x-data="posSystem()" x-init="init()" class="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">
+<div x-data="posSystem()" x-init="init()" class="flex flex-col lg:flex-row gap-6 h-auto lg:h-[calc(100vh-140px)] lg:min-h-[680px]">
 
     <!-- ── LEFT PANEL: Product Grid ─────────────────────────── -->
-    <div class="flex-1 flex flex-col min-h-0 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+    <div class="flex-1 flex flex-col h-[550px] lg:h-auto min-h-0 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <!-- Search & Filter -->
         <div class="p-4 border-b border-slate-200 flex flex-wrap items-center gap-3 bg-slate-50">
             <div class="flex-1 min-w-[200px] relative">
@@ -26,7 +26,7 @@
 
         <!-- Grid -->
         <div class="flex-1 overflow-y-auto p-4 bg-slate-50">
-            <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                 <template x-for="product in paginatedProducts" :key="product.id">
                     <div class="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow flex flex-col group cursor-pointer" @click="addToCart(product)">
                         <div class="h-28 bg-white flex items-center justify-center border-b border-slate-100 group-hover:bg-blue-50 transition-all relative overflow-hidden">
@@ -44,15 +44,15 @@
                                 </div>
                             </template>
                         </div>
-                        <div class="p-3 flex-1 flex flex-col">
-                            <h3 class="text-sm font-bold text-slate-800 line-clamp-2 leading-tight mb-0.5" x-text="product.nama"></h3>
+                        <div class="p-2.5 flex-1 flex flex-col">
+                            <h3 class="text-xs sm:text-sm font-bold text-slate-800 line-clamp-2 leading-tight mb-0.5" x-text="product.nama"></h3>
                             <template x-if="product.merk">
-                                <p class="text-[10px] font-black text-blue-600 uppercase tracking-tighter mb-1" x-text="product.merk"></p>
+                                <p class="text-[9px] sm:text-[10px] font-black text-blue-600 uppercase tracking-tighter mb-0.5 sm:mb-1" x-text="product.merk"></p>
                             </template>
-                            <p class="text-[11px] text-slate-500 mb-2">Stok: <span class="font-bold" :class="product.stok <= 10 ? 'text-red-500' : 'text-slate-700'" x-text="product.stok + ' ' + product.unit"></span></p>
-                            <div class="mt-auto flex items-center justify-between">
-                                <p class="text-sm font-bold text-[#2563eb]" x-text="formatCurrency(product.harga_jual)"></p>
-                                <div class="w-6 h-6 bg-green-500 group-hover:bg-green-600 rounded-full flex items-center justify-center transition-colors">
+                            <p class="text-[10px] sm:text-[11px] text-slate-500 mb-1.5 sm:mb-2">Stok: <span class="font-bold" :class="product.stok <= 10 ? 'text-red-500' : 'text-slate-700'" x-text="product.stok + ' ' + product.unit"></span></p>
+                            <div class="mt-auto flex items-center justify-between gap-1">
+                                <p class="text-xs sm:text-sm font-bold text-[#2563eb] truncate" x-text="formatCurrency(product.harga_jual)"></p>
+                                <div class="w-6 h-6 bg-green-500 group-hover:bg-green-600 rounded-full flex items-center justify-center transition-colors flex-shrink-0">
                                     <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                                 </div>
                             </div>
@@ -83,10 +83,10 @@
     </div>
 
     <!-- ── RIGHT PANEL: Order Summary ───────────────────────── -->
-    <div class="w-full lg:w-[400px] xl:w-[440px] flex flex-col min-h-0 bg-white border border-slate-200 rounded-xl shadow-sm flex-shrink-0">
+    <div class="w-full lg:w-[400px] xl:w-[440px] flex flex-col h-[550px] lg:h-auto min-h-0 bg-white border border-slate-200 rounded-xl shadow-sm flex-shrink-0">
 
         <!-- Header Info -->
-        <div class="p-4 border-b border-slate-200 bg-slate-50 space-y-2.5">
+        <div class="p-3 border-b border-slate-200 bg-slate-50 space-y-2">
             <!-- Customer (free text) -->
             <div class="flex items-center gap-3">
                 <label class="text-xs font-bold text-slate-500 uppercase w-24 flex-shrink-0">Pelanggan</label>
@@ -136,13 +136,13 @@
         </div>
 
         <!-- Cart Items -->
-        <div class="flex-1 overflow-y-auto px-4 py-2">
+        <div class="flex-1 min-h-[180px] overflow-y-auto px-4 py-2">
             <table class="w-full text-left text-sm">
                 <thead>
-                    <tr class="border-b border-slate-200 text-slate-500 text-[11px]">
+                    <tr class="border-b border-slate-200 text-slate-500 text-[10px] sm:text-[11px]">
                         <th class="pb-2 font-semibold">Nama Barang</th>
-                        <th class="pb-2 font-semibold text-center w-24">Jml</th>
-                        <th class="pb-2 font-semibold text-right w-20">Potongan</th>
+                        <th class="pb-2 font-semibold text-center w-20 sm:w-24">Jml</th>
+                        <th class="pb-2 font-semibold text-right w-16 sm:w-20">Potongan</th>
                         <th class="pb-2 font-semibold text-right">Subtotal</th>
                         <th class="pb-2 w-6"></th>
                     </tr>
@@ -187,9 +187,9 @@
         </div>
 
         <!-- Options + Totals -->
-        <div class="px-4 pt-3 pb-2 border-t border-slate-100 space-y-3 bg-slate-50/50">
+        <div class="px-3 pt-2.5 pb-2 border-t border-slate-100 space-y-2 bg-slate-50/50">
             <!-- Catatan -->
-            <textarea x-model="catatan" placeholder="Catatan untuk pelanggan/pengiriman..." rows="2" class="w-full border border-slate-300 rounded-lg text-xs p-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"></textarea>
+            <textarea x-model="catatan" placeholder="Catatan untuk pelanggan/pengiriman..." rows="1" class="w-full border border-slate-300 rounded-lg text-xs p-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"></textarea>
 
             <!-- Pengiriman -->
             <div class="flex flex-col gap-2">
@@ -214,7 +214,7 @@
             <!-- Metode Pembayaran -->
             <div>
                 <label class="text-xs font-bold text-slate-500 uppercase block mb-1.5">Pembayaran</label>
-                <div class="grid grid-cols-4 gap-1.5">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                     <button @click="metode_pembayaran = 'Cash'"
                         :class="metode_pembayaran === 'Cash' ? 'bg-slate-800 text-white border-slate-800 ring-2 ring-slate-800 ring-offset-1' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
                         class="py-1.5 text-xs font-bold rounded-lg border transition-all">Tunai</button>
@@ -257,7 +257,7 @@
         </div>
 
         <!-- Action Buttons -->
-        <div class="p-3 bg-white border-t border-slate-200 flex gap-2">
+        <div class="p-2.5 bg-white border-t border-slate-200 flex gap-2">
             <button @click="clearCart()" class="flex-none py-2.5 px-3 rounded-lg text-xs font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>

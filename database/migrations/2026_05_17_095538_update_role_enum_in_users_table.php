@@ -16,7 +16,9 @@ return new class extends Migration
         \Illuminate\Support\Facades\DB::table('users')->where('role', 'kasir')->update(['role' => 'operator']);
 
         // Alter enum column
-        \Illuminate\Support\Facades\DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('owner', 'supervisor', 'operator', 'gudang') NOT NULL DEFAULT 'operator'");
+        if (config('database.default') === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('owner', 'supervisor', 'operator', 'gudang') NOT NULL DEFAULT 'operator'");
+        }
     }
 
     /**
@@ -25,6 +27,8 @@ return new class extends Migration
     public function down(): void
     {
         // Revert to old schema (we keep all options to avoid data loss on rollback)
-        \Illuminate\Support\Facades\DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('owner', 'admin', 'supervisor', 'kasir', 'gudang', 'operator') NOT NULL DEFAULT 'kasir'");
+        if (config('database.default') === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('owner', 'admin', 'supervisor', 'kasir', 'gudang', 'operator') NOT NULL DEFAULT 'kasir'");
+        }
     }
 };

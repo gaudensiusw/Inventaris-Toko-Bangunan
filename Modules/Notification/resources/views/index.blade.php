@@ -111,7 +111,7 @@
 
     <!-- Notification List -->
     <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div class="px-8 py-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+        <div class="px-6 sm:px-8 py-4 sm:py-6 border-b border-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-slate-50/30">
             <h3 class="font-bold text-slate-800">Daftar Notifikasi</h3>
             <button @click="markAllAsRead" 
                 class="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">Tandai semua dibaca</button>
@@ -119,8 +119,8 @@
 
         <div class="divide-y divide-slate-50">
             <template x-for="(notif, index) in filteredNotifications" :key="index">
-                <div class="p-8 hover:bg-slate-50/50 transition-all flex gap-6 group">
-                    <div class="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+                <div class="p-4 sm:p-8 hover:bg-slate-50/50 transition-all flex gap-4 sm:gap-6 group">
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
                         :class="{
                             'bg-red-50 text-red-600': notif.category === 'stok_rendah',
                             'bg-orange-50 text-orange-600': notif.category === 'tagihan',
@@ -142,7 +142,7 @@
                                     'text-green-600': notif.category === 'penjualan'
                                 }"
                                 x-text="notif.type"></span>
-                            <span class="text-[11px] text-slate-400 font-bold" x-text="new Date(notif.created_at).toLocaleDateString()"></span>
+                            <span class="text-[11px] text-slate-400 font-bold" x-text="notif.time"></span>
                         </div>
                         <p class="text-[15px] text-slate-700 leading-relaxed font-medium" x-text="notif.message"></p>
                         <div class="mt-3 flex items-center gap-2">
@@ -151,7 +151,7 @@
                             <button @click="deleteNotification(index)" class="text-xs font-bold text-slate-500 hover:text-red-500 transition-colors">Hapus</button>
                         </div>
                     </div>
-                    <div x-show="!notif.is_read" class="w-2.5 h-2.5 bg-blue-500 rounded-full mt-2 ring-4 ring-blue-100"></div>
+                    <div x-show="notif.unread" class="w-2.5 h-2.5 bg-blue-500 rounded-full mt-2 ring-4 ring-blue-100"></div>
                 </div>
             </template>
 

@@ -94,28 +94,34 @@
             </button>
         </div>
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm whitespace-nowrap">
+            <table class="w-full text-left text-xs xl:text-sm whitespace-nowrap">
                 <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
                     <tr>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Nama Perusahaan / Toko</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Nama Kontak (PIC)</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Info Kontak</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Alamat</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Jml Produk</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs text-right">Aksi</th>
+                        <th class="py-3 px-3 lg:px-4 font-semibold uppercase tracking-wider text-xs">Nama Perusahaan / Toko</th>
+                        <th class="py-3 px-3 lg:px-4 font-semibold uppercase tracking-wider text-xs hidden xl:table-cell">Nama Kontak (PIC)</th>
+                        <th class="py-3 px-3 lg:px-4 font-semibold uppercase tracking-wider text-xs">Info Kontak</th>
+                        <th class="py-3 px-3 lg:px-4 font-semibold uppercase tracking-wider text-xs hidden xl:table-cell">Alamat</th>
+                        <th class="py-3 px-3 lg:px-4 font-semibold uppercase tracking-wider text-xs">Jml Produk</th>
+                        <th class="py-3 px-3 lg:px-4 font-semibold uppercase tracking-wider text-xs text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($suppliers as $index => $supplier)
                     <tr class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-slate-50/50' }} hover:bg-blue-50/30 transition-colors">
-                        <td class="py-4 px-5">
-                            <div class="font-bold text-slate-800">{{ $supplier->company_name }}</div>
-                            <div class="text-[11px] text-slate-500 mt-0.5">Sejak {{ $supplier->created_at->format('M Y') }}</div>
+                        <td class="py-4 px-3 lg:px-4 whitespace-normal">
+                            <div class="font-bold text-slate-800 leading-tight">{{ $supplier->company_name }}</div>
+                            <div class="text-[12px] text-slate-600 mt-1 xl:hidden">PIC: <span class="font-semibold">{{ $supplier->contact_person }}</span></div>
+                            @if($supplier->address)
+                                <div class="text-[11px] text-slate-500 mt-0.5 xl:hidden max-w-[200px] truncate">
+                                    {{ $supplier->address }}
+                                </div>
+                            @endif
+                            <div class="text-[11px] text-slate-400 mt-0.5">Sejak {{ $supplier->created_at->format('M Y') }}</div>
                         </td>
-                        <td class="py-4 px-5 font-medium text-slate-700">
+                        <td class="py-4 px-3 lg:px-4 font-medium text-slate-700 hidden xl:table-cell">
                             {{ $supplier->contact_person }}
                         </td>
-                        <td class="py-4 px-5">
+                        <td class="py-4 px-3 lg:px-4">
                             <div class="flex flex-col gap-1">
                                 <div class="flex items-center gap-1.5 text-slate-600 text-[13px]">
                                     <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
@@ -127,7 +133,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="py-4 px-5">
+                        <td class="py-4 px-3 lg:px-4 hidden xl:table-cell">
                             <div class="flex items-start gap-1.5 text-slate-600 text-[13px] max-w-[200px] whitespace-normal">
                                 <svg class="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                 <div>
@@ -143,7 +149,7 @@
                                 {{ $supplier->products_count }} produk
                             </span>
                         </td>
-                        <td class="py-4 px-5 text-right space-x-2">
+                        <td class="py-4 px-5 text-right space-x-2 whitespace-nowrap">
                             <button @click="openEditModal({{ $supplier->toJson() }})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block" title="Edit">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </button>
@@ -216,7 +222,7 @@
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nama Kontak (PIC) <span class="text-red-500">*</span></label>
                         <input type="text" name="contact_person" required placeholder="Contoh: Pak Budi" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Phone</label>
                             <input type="text" name="phone" placeholder="+62-21-1234567" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
@@ -226,7 +232,7 @@
                             <input type="email" name="email" placeholder="contact@supplier.com" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Kota</label>
                             <input type="text" name="city" placeholder="Contoh: Surabaya" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
@@ -292,7 +298,7 @@
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nama Kontak (PIC) <span class="text-red-500">*</span></label>
                         <input type="text" name="contact_person" x-model="editForm.contact_person" required class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Phone</label>
                             <input type="text" name="phone" x-model="editForm.phone" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
@@ -302,7 +308,7 @@
                             <input type="email" name="email" x-model="editForm.email" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">City</label>
                             <input type="text" name="city" x-model="editForm.city" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">

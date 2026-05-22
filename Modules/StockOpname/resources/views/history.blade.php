@@ -5,7 +5,7 @@
 
 @section('content')
 <div class="p-6">
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">{{ in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Riwayat Stok Opname' : 'Status Pengajuan Audit' }}</h2>
             <p class="text-slate-500 text-sm">{{ in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Log riwayat seluruh stok fisik yang berhasil disinkronisasi ke sistem' : 'Pantau status hasil audit yang telah Anda ajukan ke sistem' }}</p>

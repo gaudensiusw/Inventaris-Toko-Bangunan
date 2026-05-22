@@ -15,6 +15,8 @@ class NotificationController extends Controller
 {
     public function index()
     {
+        $lastRead = auth()->user()->last_read_notifications_at;
+
         $counts = [
             'stok_rendah' => Product::whereRaw('stok <= min_stok')->where('stok', '>', 0)->count(),
             'tagihan'     => TagihanSupplier::where('status', '!=', 'lunas')->count(),
@@ -33,7 +35,7 @@ class NotificationController extends Controller
                 'type' => 'Persetujuan Audit',
                 'message' => "Pengajuan audit baru untuk " . ($a->product->nama ?? 'Produk') . " dengan selisih " . $a->selisih . ". Perlu verifikasi Owner.",
                 'time' => $a->created_at->diffForHumans(),
-                'unread' => true,
+                'unread' => !$lastRead || $a->created_at->gt($lastRead),
                 'category' => 'audit',
                 'url' => route('stockopname.approval')
             ];
@@ -46,7 +48,7 @@ class NotificationController extends Controller
                 'type' => 'Stok Rendah',
                 'message' => "Stok {$p->nama} menipis (Sisa: {$p->stok} {$p->unit}). Segera lakukan reorder!",
                 'time' => $p->updated_at->diffForHumans(),
-                'unread' => true,
+                'unread' => !$lastRead || $p->updated_at->gt($lastRead),
                 'category' => 'stok_rendah'
             ];
         }
@@ -59,7 +61,7 @@ class NotificationController extends Controller
                 'type' => 'Tagihan',
                 'message' => "Tagihan {$b->no_invoice} (" . ($b->supplier->company_name ?? 'Supplier') . ") " . ($isOverdue ? 'telah melewati jatuh tempo!' : 'jatuh tempo pada ' . Carbon::parse($b->jatuh_tempo)->format('d M Y')),
                 'time' => $b->created_at->diffForHumans(),
-                'unread' => true,
+                'unread' => !$lastRead || $b->created_at->gt($lastRead),
                 'category' => 'tagihan'
             ];
         }
@@ -71,7 +73,7 @@ class NotificationController extends Controller
                 'type' => 'Penjualan',
                 'message' => "Transaksi baru {$s->no_transaksi} oleh " . ($s->nama_pelanggan ?: 'Umum') . " sebesar Rp " . number_format($s->total_tagihan, 0, ',', '.'),
                 'time' => $s->created_at->diffForHumans(),
-                'unread' => false,
+                'unread' => !$lastRead || $s->created_at->gt($lastRead),
                 'category' => 'penjualan'
             ];
         }

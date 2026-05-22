@@ -5,9 +5,9 @@
 
 @section('content')
 <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
-    <div class="p-4 border-b border-slate-200 bg-slate-50 flex justify-between items-center">
+    <div class="p-4 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
         <h3 class="text-base font-bold text-slate-800">Daftar Transaksi Penjualan</h3>
-        <a href="{{ route('pos.index') }}" class="bg-[#2563eb] hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm">
+        <a href="{{ route('pos.index') }}" class="text-center bg-[#2563eb] hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-sm">
             + Transaksi Baru
         </a>
     </div>
@@ -47,7 +47,7 @@
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 uppercase border border-red-200">Belum Bayar</span>
                         @endif
                     </td>
-                    <td class="p-4 text-center">
+                    <td class="p-4 text-center whitespace-nowrap">
                         <a href="{{ route('pos.receipt', $t->id) }}" target="_blank" class="text-blue-600 hover:text-blue-800 font-bold text-xs flex items-center justify-center gap-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2-2H7a2 2 0 00-2 2v4m10 0h2"></path></svg>
                             Struk

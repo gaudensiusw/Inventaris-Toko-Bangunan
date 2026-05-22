@@ -22,9 +22,9 @@
     selectedCat: {},
     selectedSub: {}
 }" @keydown.escape.window="addCatModal = false; editCatModal = false; addSubModal = false; editSubModal = false; deleteModalOpen = false">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <!-- Sidebar / Category List -->
-        <div class="lg:col-span-1 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-fit">
+        <div class="xl:col-span-1 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-fit">
             <div class="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <h3 class="font-bold text-slate-800">Daftar Kategori</h3>
                 <button @click="addCatModal = true" class="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
@@ -58,7 +58,7 @@
         </div>
 
         <!-- Sub-Category Detail -->
-        <div class="lg:col-span-2 space-y-6">
+        <div class="xl:col-span-2 space-y-6">
             @php
                 $activeCat = $categories->find(request('id')) ?? $categories->first();
             @endphp
@@ -75,7 +75,7 @@
                         Tambah Sub
                     </button>
                 </div>
-                <div class="p-0">
+                <div class="p-0 overflow-x-auto">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-slate-50 text-slate-500 border-b border-slate-100">
                             <tr>
@@ -87,7 +87,7 @@
                             @forelse($activeCat->subCategories as $sub)
                             <tr class="hover:bg-slate-50/50 transition-colors">
                                 <td class="py-4 px-5 font-medium text-slate-700">{{ $sub->nama }}</td>
-                                <td class="py-4 px-5 text-right space-x-1">
+                                <td class="py-4 px-5 text-right space-x-1 whitespace-nowrap">
                                     <button @click='selectedSub = @json($sub); editSubModal = true' class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg inline-block">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </button>

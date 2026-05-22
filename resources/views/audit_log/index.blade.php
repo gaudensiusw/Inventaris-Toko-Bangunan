@@ -16,14 +16,14 @@
 
     <!-- Filters -->
     <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
-        <form method="GET" action="{{ route('audit-logs.index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <form method="GET" action="{{ route('audit-logs.index') }}" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
             <!-- Search -->
-            <div class="md:col-span-1">
+            <div class="sm:col-span-2 md:col-span-1">
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama pelaku..." class="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
             </div>
             
             <!-- Filter Role -->
-            <div class="md:col-span-1">
+            <div>
                 <select name="role" class="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Semua Role</option>
                     <option value="owner" {{ request('role') == 'owner' ? 'selected' : '' }}>Owner</option>
@@ -31,9 +31,9 @@
                     <option value="gudang" {{ request('role') == 'gudang' ? 'selected' : '' }}>Gudang</option>
                 </select>
             </div>
-
+ 
             <!-- Filter Modul -->
-            <div class="md:col-span-1">
+            <div>
                 <select name="modul" class="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Semua Modul</option>
                     <option value="User" {{ request('modul') == 'User' ? 'selected' : '' }}>User (Akun)</option>
@@ -43,9 +43,9 @@
                     <option value="Stock" {{ request('modul') == 'Stock' ? 'selected' : '' }}>Stok/Opname</option>
                 </select>
             </div>
-
+ 
             <!-- Filter Aksi -->
-            <div class="md:col-span-1">
+            <div>
                 <select name="aksi" class="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Semua Aksi</option>
                     <option value="created" {{ request('aksi') == 'created' ? 'selected' : '' }}>Created</option>
@@ -53,9 +53,9 @@
                     <option value="deleted" {{ request('aksi') == 'deleted' ? 'selected' : '' }}>Deleted</option>
                 </select>
             </div>
-
+ 
             <!-- Buttons -->
-            <div class="md:col-span-1 flex gap-2">
+            <div class="sm:col-span-2 md:col-span-1 flex gap-2">
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-sm text-sm">
                     Cari
                 </button>
@@ -149,8 +149,8 @@
 
 <!-- Modal Detail -->
 <div id="modalDetail" class="fixed inset-0 z-50 hidden bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
-    <div class="min-h-screen px-4 text-center">
-        <div class="inline-block align-middle bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all max-w-2xl w-full">
             <div class="px-6 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50">
                 <h3 class="text-lg font-bold text-slate-800">Detail Perubahan Data</h3>
                 <button type="button" onclick="document.getElementById('modalDetail').classList.add('hidden')" class="text-slate-400 hover:text-slate-500 transition-colors">
@@ -207,7 +207,7 @@
         if (eventName === 'updated' && hasNew) {
             html += `
             <div class="col-span-1 md:col-span-2">
-                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                <div class="border border-slate-200 rounded-lg overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>
@@ -244,7 +244,7 @@
         } else if (eventName === 'created' && hasNew) {
             html += `
             <div class="col-span-1 md:col-span-2">
-                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                <div class="border border-slate-200 rounded-lg overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>
@@ -274,7 +274,7 @@
         } else if (eventName === 'deleted' && hasOld) {
             html += `
             <div class="col-span-1 md:col-span-2">
-                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                <div class="border border-slate-200 rounded-lg overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr>

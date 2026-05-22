@@ -74,19 +74,26 @@
                 addModalOpen: config.initialAddModal,
                 editModalOpen: config.initialEditModal,
                 deleteModalOpen: false,
+                barcodePrintModalOpen: false,
+                selectedProducts: [],
+                currentPageProductIds: [],
+                printProducts: [],
+                printLayout: 'a4',
                 editForm: {
                     id: null, nama: '', sku: '', merk: '', unit: '',
                     harga_beli_kemasan: 0, isi_kemasan_beli: 1,
                     harga_beli: 0, harga_jual: 0, margin: 0,
                     stok: 0, min_stok: 0, units: [],
                     kategori_id: null, sub_kategori_id: null,
-                    supplier_id: null, imagePreview: null
+                    supplier_id: null, imagePreview: null,
+                    skuAuto: false
                 },
                 addForm: {
                     harga_beli_kemasan: 0, isi_kemasan_beli: 1,
                     harga_beli: 0, harga_jual: 0, margin: 0,
                     kategori_id: null, sub_kategori_id: null,
-                    units: [], unit: '', imagePreview: null
+                    units: [], unit: '', imagePreview: null,
+                    skuAuto: true
                 },
                 editSubCategories: [],
                 addSubCategories: [],
@@ -108,15 +115,42 @@
                         this.addForm.kategori_id = config.oldKategoriId;
                         this.addForm.sub_kategori_id = config.oldSubKategoriId;
                         this.addForm.units = (config.oldUnits && config.oldUnits.length > 0) ? config.oldUnits : [];
+                        const oldSku = {!! json_encode(old('sku', '')) !!};
+                        this.addForm.sku = oldSku;
+                        this.addForm.skuAuto = oldSku === '' || oldSku === '[Otomatis]';
 
                         if (config.editFormData && config.editFormData.id) {
                             this.editForm = Object.assign(this.editForm, config.editFormData);
                             this.editForm.harga_beli_kemasan = Math.floor(this.editForm.harga_beli);
                             this.editForm.isi_kemasan_beli = 1;
+                            this.editForm.skuAuto = !config.editFormData.sku;
                             if (this.editForm.harga_beli > 0) {
                                 this.editForm.margin = parseFloat(((this.editForm.harga_jual / this.editForm.harga_beli - 1) * 100).toFixed(2));
                             }
                         }
+
+                        this.$watch('addForm.skuAuto', value => {
+                            if (value) this.addForm.sku = '[Otomatis]';
+                            else if (this.addForm.sku === '[Otomatis]') this.addForm.sku = '';
+                        });
+                        this.$watch('addForm.kategori_id', value => {
+                            if (!value) {
+                                this.addForm.skuAuto = false;
+                                if (this.addForm.sku === '[Otomatis]') this.addForm.sku = '';
+                            }
+                        });
+                        this.$watch('editForm.skuAuto', value => {
+                            if (value) this.editForm.sku = '[Otomatis]';
+                            else if (this.editForm.sku === '[Otomatis]') this.editForm.sku = '';
+                        });
+                        this.$watch('editForm.kategori_id', value => {
+                            if (!value) {
+                                this.editForm.skuAuto = false;
+                                if (this.editForm.sku === '[Otomatis]') this.editForm.sku = '';
+                            }
+                        });
+
+                        this.currentPageProductIds = Object.keys(window.productData || {}).map(Number);
 
                         if (config.initialAddModal && config.oldKategoriId) {
                             this.fetchSubCategories('add', config.oldKategoriId, false);
@@ -240,17 +274,128 @@
                         });
                     }
 
+                    this.editForm.skuAuto = !product.sku;
                     this.editModalOpen = true;
                 },
 
                 openDeleteModal(product) {
                     this.deleteForm = product;
                     this.deleteModalOpen = true;
+                },
+
+                toggleSelectAll(checked) {
+                    if (checked) {
+                        this.selectedProducts = [...this.currentPageProductIds];
+                    } else {
+                        this.selectedProducts = [];
+                    }
+                },
+
+                toggleSelectProduct(id) {
+                    const idx = this.selectedProducts.indexOf(id);
+                    if (idx > -1) {
+                        this.selectedProducts.splice(idx, 1);
+                    } else {
+                        this.selectedProducts.push(id);
+                    }
+                },
+
+                openBarcodePrintModal() {
+                    this.printProducts = this.selectedProducts.map(id => {
+                        const prod = window.productData[id];
+                        return {
+                            id: prod.id,
+                            nama: prod.nama,
+                            sku: prod.sku || '[Otomatis]',
+                            qty: 1
+                        };
+                    });
+                    this.printLayout = 'a4';
+                    this.barcodePrintModalOpen = true;
+                },
+
+                removePrintProduct(index) {
+                    this.printProducts.splice(index, 1);
+                    if (this.printProducts.length === 0) {
+                        this.barcodePrintModalOpen = false;
+                    }
+                },
+
+                printBarcodes() {
+                    const invalidProds = this.printProducts.filter(p => p.sku === '[Otomatis]' || !p.sku);
+                    if (invalidProds.length > 0) {
+                        Swal.fire({
+                            title: 'Pemberitahuan',
+                            text: 'Beberapa produk terpilih belum memiliki SKU di database. Silakan edit produk tersebut terlebih dahulu dan centang "Generate SKU Otomatis" agar mendapatkan kode SKU yang unik sebelum dicetak.',
+                            icon: 'warning',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#2563eb'
+                        });
+                        return;
+                    }
+
+                    const printArea = document.getElementById('print-barcode-area');
+                    if (!printArea) return;
+                    printArea.innerHTML = ''; // clear first
+
+                    const allLabels = [];
+                    this.printProducts.forEach(prod => {
+                        const qty = parseInt(prod.qty) || 1;
+                        for (let i = 0; i < qty; i++) {
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'barcode-label';
+
+                            const nameEl = document.createElement('div');
+                            nameEl.className = 'label-title';
+                            nameEl.innerText = prod.nama;
+                            wrapper.appendChild(nameEl);
+
+                            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                            svg.className = 'barcode-svg';
+                            wrapper.appendChild(svg);
+
+                            allLabels.push({ wrapper, svg, sku: prod.sku });
+                        }
+                    });
+
+                    // Group labels into pages of 30 (A4 layout)
+                    const labelsPerPage = 30;
+                    for (let i = 0; i < allLabels.length; i += labelsPerPage) {
+                        const pageDiv = document.createElement('div');
+                        pageDiv.className = 'print-page layout-a4';
+                        
+                        const pageItems = allLabels.slice(i, i + labelsPerPage);
+                        pageItems.forEach(item => {
+                            pageDiv.appendChild(item.wrapper);
+                        });
+                        
+                        printArea.appendChild(pageDiv);
+                    }
+
+                    // Render barcodes (A4 layout sizing)
+                    allLabels.forEach(item => {
+                        try {
+                            JsBarcode(item.svg, item.sku, {
+                                format: "CODE128",
+                                width: 1.2,
+                                height: 25,
+                                displayValue: true,
+                                fontSize: 10,
+                                margin: 2
+                            });
+                        } catch (e) {
+                            console.error("Gagal generate barcode untuk SKU: " + item.sku, e);
+                        }
+                    });
+
+                    setTimeout(() => {
+                        window.print();
+                    }, 300);
                 }
             };
         }
     </script>
-    <div x-data="productManager()">
+    <div x-data="productManager()" x-init="currentPageProductIds = {{ json_encode($products->pluck('id')->toArray()) }}">
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
@@ -332,6 +477,13 @@
                         </svg>
                         Kategori & Sub
                     </a>
+                    <button x-show="selectedProducts.length > 0" @click="openBarcodePrintModal()" type="button"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm" style="display: none;">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                        </svg>
+                        Cetak Barcode Terpilih (<span x-text="selectedProducts.length"></span>)
+                    </button>
                     <button @click="addForm.units = []; addUnit('add'); addModalOpen = true"
                         class="bg-[#0f172a] hover:bg-slate-800 text-white px-4 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-colors shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -377,24 +529,29 @@
                 </form>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm whitespace-nowrap">
+                <table class="w-full text-left text-xs xl:text-sm whitespace-nowrap">
                     <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
                         <tr>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">FOTO</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Info Produk</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Merk</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Kategori</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Supplier</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Stok</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Harga</th>
-                            <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs text-right">Aksi</th>
+                            <th class="py-3 px-2 xl:px-3 font-semibold text-xs w-10">
+                                <input type="checkbox" @change="toggleSelectAll($event.target.checked)" :checked="selectedProducts.length > 0 && selectedProducts.length === currentPageProductIds.length" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer">
+                            </th>
+                            <th class="py-3 px-2 xl:px-3 font-semibold uppercase tracking-wider text-xs hidden xl:table-cell">FOTO</th>
+                            <th class="py-3 px-2 xl:px-3 font-semibold uppercase tracking-wider text-xs">Info Produk</th>
+                            <th class="py-3 px-2 xl:px-3 font-semibold uppercase tracking-wider text-xs hidden xl:table-cell">Kategori</th>
+                            <th class="py-3 px-2 xl:px-3 font-semibold uppercase tracking-wider text-xs hidden xl:table-cell">Supplier</th>
+                            <th class="py-3 px-2 xl:px-3 font-semibold uppercase tracking-wider text-xs">Stok</th>
+                            <th class="py-3 px-2 xl:px-3 font-semibold uppercase tracking-wider text-xs">Harga</th>
+                            <th class="py-3 px-2 xl:px-3 font-semibold uppercase tracking-wider text-xs text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse($products as $index => $product)
                             <tr
                                 class="{{ $index % 2 == 0 ? 'bg-white' : 'bg-slate-50/50' }} hover:bg-blue-50/30 transition-colors">
-                                <td class="py-4 px-5">
+                                <td class="py-4 px-2 xl:px-3 w-10">
+                                    <input type="checkbox" :value="{{ $product->id }}" :checked="selectedProducts.includes({{ $product->id }})" @change="toggleSelectProduct({{ $product->id }})" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer">
+                                </td>
+                                <td class="py-4 px-2 xl:px-3 hidden xl:table-cell">
                                     <div class="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0">
                                         @if($product->image)
                                             <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->nama }}" class="w-full h-full object-cover">
@@ -405,20 +562,26 @@
                                         @endif
                                     </div>
                                 </td>
-                                <td class="py-4 px-5">
-                                    <div class="font-bold text-slate-800">{{ $product->nama }}</div>
-                                    @if($product->sku)
-                                        <div class="text-[11px] text-slate-500 mt-0.5">SKU: {{ $product->sku }}</div>
-                                    @endif
+                                <td class="py-4 px-2 xl:px-3 whitespace-normal max-w-[200px] lg:max-w-[250px] xl:max-w-none break-words">
+                                    <div class="font-bold text-slate-800 leading-tight">{{ $product->nama }}</div>
+                                    <div class="flex flex-wrap items-center gap-1.5 mt-1">
+                                        @if($product->sku)
+                                            <span class="text-[10px] text-slate-500 font-mono">SKU: {{ $product->sku }}</span>
+                                        @endif
+                                        @if($product->merk)
+                                            <span class="text-[9px] px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded font-bold uppercase tracking-wider border border-blue-100/50 shadow-sm">{{ $product->merk }}</span>
+                                        @endif
+                                        @if($product->category)
+                                            <span class="xl:hidden text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded font-bold uppercase tracking-wider border border-slate-200/50 shadow-sm">
+                                                {{ $product->category->nama }}
+                                                @if($product->subCategory)
+                                                    • {{ $product->subCategory->nama }}
+                                                @endif
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
-                                <td class="py-4 px-5">
-                                    @if($product->merk)
-                                        <span class="text-[11px] px-2 py-1 bg-blue-50 text-blue-700 rounded-lg font-bold uppercase tracking-wider border border-blue-100 shadow-sm">{{ $product->merk }}</span>
-                                    @else
-                                        <span class="text-xs text-slate-400 italic">No Brand</span>
-                                    @endif
-                                </td>
-                                <td class="py-4 px-5">
+                                <td class="py-4 px-2 xl:px-3 hidden xl:table-cell">
                                     <div class="font-bold text-slate-700 text-[13px]">{{ $product->category->nama ?? 'Uncategorized' }}</div>
                                     @if($product->subCategory)
                                         <div class="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
@@ -427,12 +590,12 @@
                                         </div>
                                     @endif
                                 </td>
-                                <td class="py-4 px-5">
+                                <td class="py-4 px-2 xl:px-3 hidden xl:table-cell">
                                     <div class="text-slate-600 text-[13px]">
                                         {{ $product->supplier->company_name ?? 'No Supplier' }}
                                     </div>
                                 </td>
-                                <td class="py-4 px-5">
+                                <td class="py-4 px-2 xl:px-3">
                                     <div class="flex flex-col">
                                         <span
                                             class="font-bold {{ $product->stok <= $product->min_stok ? 'text-red-600' : 'text-slate-800' }}">
@@ -441,17 +604,15 @@
                                         <span class="text-[10px] text-slate-500 uppercase">Min: {{ $product->min_stok }}</span>
                                     </div>
                                 </td>
-                                <td class="py-4 px-5">
+                                <td class="py-4 px-2 xl:px-3">
                                     <div class="flex flex-col">
-                                        <span class="text-xs text-slate-500">Sell: <span class="font-bold text-blue-600">Rp
-                                                {{ number_format($product->harga_jual, 0, ',', '.') }}</span></span>
-                                        <span class="text-xs text-slate-400">Buy: Rp
-                                            {{ number_format($product->harga_beli, 0, ',', '.') }}</span>
+                                        <span class="font-bold text-blue-600 text-xs xl:text-sm">Rp {{ number_format($product->harga_jual, 0, ',', '.') }}</span>
+                                        <span class="text-[10px] text-slate-400 mt-0.5 font-medium">Beli: Rp {{ number_format($product->harga_beli, 0, ',', '.') }}</span>
                                     </div>
                                 </td>
-                                <td class="py-4 px-5 text-right space-x-2">
+                                <td class="py-4 px-2 xl:px-3 text-right space-x-1 lg:space-x-2">
                                     <button @click="openEditModal(productData[{{ $product->id }}])"
-                                        class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block"
+                                        class="p-1 xl:p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block"
                                         title="Edit">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -460,7 +621,7 @@
                                         </svg>
                                     </button>
                                     <button @click="openDeleteModal(productData[{{ $product->id }}])"
-                                        class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-block"
+                                        class="p-1 xl:p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors inline-block"
                                         title="Delete">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -472,7 +633,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="py-12 text-center text-slate-500">
+                                <td colspan="100" class="py-12 text-center text-slate-500">
                                     <svg class="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor"
                                         viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -523,7 +684,7 @@
                 <form action="{{ route('product.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nama Produk <span class="text-red-500">*</span></label>
                                 <input type="text" name="nama" value="{{ old('nama') }}" required
@@ -538,13 +699,21 @@
                                     placeholder="Contoh: Holcim, Rucika, dll">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">SKU (Opsional)</label>
-                                <input type="text" name="sku" value="{{ old('sku') }}"
-                                    class="w-full border rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white {{ $errors->has('sku') ? 'border-red-400' : 'border-slate-300' }}"
-                                    placeholder="Kosongkan jika otomatis">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide">SKU</label>
+                                    <label class="flex items-center gap-1 text-[11px] text-slate-500 cursor-pointer">
+                                        <input type="checkbox" x-model="addForm.skuAuto" :disabled="!addForm.kategori_id" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5">
+                                        <span class="font-bold">Otomatis</span>
+                                    </label>
+                                </div>
+                                <input type="text" name="sku" x-model="addForm.sku"
+                                    :disabled="addForm.skuAuto"
+                                    :class="addForm.skuAuto ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed font-medium' : 'bg-white border-slate-300 text-slate-800'"
+                                    class="w-full border rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500">
                                 @error('sku')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                                <p class="text-[10px] text-slate-400 mt-1" x-show="!addForm.kategori_id">Pilih kategori terlebih dahulu untuk auto SKU</p>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Product Image</label>
@@ -566,7 +735,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label
                                      class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Category</label>
@@ -634,8 +803,8 @@
                                         <button type="button" @click="removeUnit('add', index)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-lg">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
                                         </button>
-                                        <div class="grid grid-cols-12 gap-4">
-                                            <div class="col-span-4">
+                                        <div class="grid grid-cols-2 sm:grid-cols-12 gap-3">
+                                            <div class="col-span-2 sm:col-span-4">
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Pilih Satuan</label>
                                                 <select :name="`units[${index}][nama]`" x-model="unit.nama"
                                                     @change="if(unit.is_base) addForm.unit = $event.target.value"
@@ -649,7 +818,7 @@
                                                     </template>
                                                 </select>
                                             </div>
-                                            <div class="col-span-3">
+                                            <div class="col-span-2 sm:col-span-3">
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jumlah Isi</label>
                                                 <div class="relative">
                                                     <input type="number" step="1" min="1" :name="`units[${index}][isi]`" x-model="unit.isi" 
@@ -658,14 +827,14 @@
                                                     <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold" x-text="addForm.unit || 'Unit'"></span>
                                                 </div>
                                             </div>
-                                            <div class="col-span-4">
+                                            <div class="col-span-2 sm:col-span-4">
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga Jual (Rp)</label>
                                                 <input type="text" :value="formatNumber(unit.harga_jual)" 
                                                     @input="unit.harga_jual = unformatNumber($event.target.value); if(unit.is_base) { addForm.harga_jual = unit.harga_jual; updatePrices('add', 'jual') }"
                                                     class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 font-mono bg-slate-50/50 font-bold text-blue-600">
                                                 <input type="hidden" :name="`units[${index}][harga_jual]`" :value="unit.harga_jual">
                                             </div>
-                                            <div class="col-span-1 flex flex-col items-center justify-center pt-1">
+                                            <div class="col-span-2 sm:col-span-1 flex flex-row sm:flex-col items-center justify-between sm:justify-center pt-1 px-2 border-t border-dashed border-slate-100 sm:border-t-0 mt-2 sm:mt-0">
                                                 <label class="text-[8px] font-black text-slate-400 uppercase mb-1 text-center leading-none">Utama?</label>
                                                 <input type="checkbox" :name="`units[${index}][is_base]`" value="1" x-model="unit.is_base" 
                                                     @change="if($event.target.checked) { 
@@ -694,7 +863,7 @@
                                 </template>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Stock
                                     <span class="text-red-500">*</span></label>
@@ -791,7 +960,7 @@
                     @method('PUT')
                     <input type="hidden" name="edit_id" :value="editForm.id">
                     <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Product
                                     Name <span class="text-red-500">*</span></label>
@@ -808,12 +977,21 @@
                                     placeholder="Contoh: Holcim, Rucika, dll">
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">SKU (Opsional)</label>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide">SKU</label>
+                                    <label class="flex items-center gap-1 text-[11px] text-slate-500 cursor-pointer">
+                                        <input type="checkbox" x-model="editForm.skuAuto" :disabled="!editForm.kategori_id" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5">
+                                        <span class="font-bold">Otomatis</span>
+                                    </label>
+                                </div>
                                 <input type="text" name="sku" x-model="editForm.sku"
-                                    class="w-full border rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white {{ $errors->has('sku') ? 'border-red-400' : 'border-slate-300' }}">
+                                    :disabled="editForm.skuAuto"
+                                    :class="editForm.skuAuto ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed font-medium' : 'bg-white border-slate-300 text-slate-800'"
+                                    class="w-full border rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500">
                                 @error('sku')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                                <p class="text-[10px] text-slate-400 mt-1" x-show="!editForm.kategori_id">Pilih kategori terlebih dahulu untuk auto SKU</p>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Product Image</label>
@@ -838,7 +1016,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label
                                     class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Category</label>
@@ -906,8 +1084,8 @@
                                         <button type="button" @click="removeUnit('edit', index)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-lg">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
                                         </button>
-                                        <div class="grid grid-cols-12 gap-4">
-                                            <div class="col-span-4">
+                                        <div class="grid grid-cols-2 sm:grid-cols-12 gap-3">
+                                            <div class="col-span-2 sm:col-span-4">
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Pilih Satuan</label>
                                                 <select :name="`units[${index}][nama]`" x-model="unit.nama"
                                                     @change="if(unit.is_base) editForm.unit = $event.target.value"
@@ -921,7 +1099,7 @@
                                                     </template>
                                                 </select>
                                             </div>
-                                            <div class="col-span-3">
+                                            <div class="col-span-2 sm:col-span-3">
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jumlah Isi</label>
                                                 <div class="relative">
                                                     <input type="number" step="1" min="1" :name="`units[${index}][isi]`" x-model="unit.isi" 
@@ -930,14 +1108,14 @@
                                                     <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold" x-text="editForm.unit || 'Unit'"></span>
                                                 </div>
                                             </div>
-                                            <div class="col-span-4">
+                                            <div class="col-span-2 sm:col-span-4">
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga Jual (Rp)</label>
                                                 <input type="text" :value="formatNumber(unit.harga_jual)" 
                                                     @input="unit.harga_jual = unformatNumber($event.target.value); if(unit.is_base) { editForm.harga_jual = unit.harga_jual; updatePrices('edit', 'jual') }"
                                                     class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 font-mono bg-slate-50/50 font-bold text-blue-600">
                                                 <input type="hidden" :name="`units[${index}][harga_jual]`" :value="unit.harga_jual">
                                             </div>
-                                            <div class="col-span-1 flex flex-col items-center justify-center pt-1">
+                                            <div class="col-span-2 sm:col-span-1 flex flex-row sm:flex-col items-center justify-between sm:justify-center pt-1 px-2 border-t border-dashed border-slate-100 sm:border-t-0 mt-2 sm:mt-0">
                                                 <label class="text-[8px] font-black text-slate-400 uppercase mb-1 text-center leading-none">Utama?</label>
                                                 <input type="checkbox" :name="`units[${index}][is_base]`" value="1" x-model="unit.is_base" 
                                                     @change="if($event.target.checked) { 
@@ -966,7 +1144,7 @@
                                 </template>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Stock
                                     <span class="text-red-500">*</span></label>
@@ -1071,5 +1249,171 @@
                 </div>
             </div>
         </div>
+
+        <!-- BARCODE PRINT MODAL -->
+        <div x-show="barcodePrintModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center" style="display: none;">
+            <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="barcodePrintModalOpen = false"
+                x-transition.opacity></div>
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl relative z-10 m-4 overflow-hidden transform transition-all"
+                x-transition>
+                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">Cetak Barcode Terpilih</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Konfigurasi jumlah cetak barcode stiker A4 (3 Kolom x 10 Baris)</p>
+                    </div>
+                    <button @click="barcodePrintModalOpen = false"
+                        class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg hover:bg-slate-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+
+                    <!-- Products List Table -->
+                    <div class="border border-slate-200 rounded-lg overflow-x-auto">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
+                                <tr>
+                                    <th class="py-2.5 px-4 font-semibold text-xs uppercase">Nama Produk</th>
+                                    <th class="py-2.5 px-4 font-semibold text-xs uppercase">SKU</th>
+                                    <th class="py-2.5 px-4 font-semibold text-xs uppercase w-32">Jumlah Cetak</th>
+                                    <th class="py-2.5 px-4 font-semibold text-xs uppercase text-right w-12">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <template x-for="(prod, index) in printProducts" :key="prod.id">
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="py-3 px-4">
+                                            <div class="font-medium text-slate-800" x-text="prod.nama"></div>
+                                        </td>
+                                        <td class="py-3 px-4 text-xs font-mono text-slate-600">
+                                            <template x-if="prod.sku === '[Otomatis]'">
+                                                <span class="text-red-500 font-bold text-[10px] bg-red-50 px-2 py-0.5 rounded border border-red-100 block w-max">Belum Ada SKU</span>
+                                            </template>
+                                            <template x-if="prod.sku !== '[Otomatis]'">
+                                                <span x-text="prod.sku"></span>
+                                            </template>
+                                        </td>
+                                        <td class="py-3 px-4">
+                                            <input type="number" min="1" x-model="prod.qty" class="w-full border border-slate-300 rounded px-2 py-1 text-xs text-center font-bold">
+                                        </td>
+                                        <td class="py-3 px-4 text-right">
+                                            <button type="button" @click="removePrintProduct(index)" class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <button type="button" @click="selectedProducts = []; barcodePrintModalOpen = false" class="text-xs text-red-600 hover:text-red-800 font-bold uppercase">Kosongkan Pilihan</button>
+                    <div class="flex gap-3">
+                        <button type="button" @click="barcodePrintModalOpen = false"
+                            class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Cancel</button>
+                        <button type="button" @click="printBarcodes()"
+                            class="px-5 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold text-white shadow transition-colors flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            Cetak Barcode
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HIDDEN PRINT AREA -->
+        <div id="print-barcode-area"></div>
     </div>
+
+    @push('scripts')
+        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+    @endpush
+
+    <style>
+        @page {
+            margin: 0;
+        }
+        @media print {
+            /* Hide everything on page */
+            body * {
+                visibility: hidden;
+            }
+            /* Show print container and its descendants */
+            #print-barcode-area, #print-barcode-area * {
+                visibility: visible;
+            }
+            #print-barcode-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                display: block !important;
+                background: white;
+            }
+
+            /* A4 Grid: 3 Columns x 10 Rows layout */
+            .print-page.layout-a4 {
+                width: 210mm;
+                height: 297mm;
+                padding: 8mm 9mm 12mm 9mm;
+                box-sizing: border-box;
+                display: grid !important;
+                grid-template-columns: repeat(3, 62mm);
+                grid-template-rows: repeat(10, 25mm);
+                grid-gap: 3mm;
+                background: white;
+                page-break-after: always;
+                break-after: page;
+            }
+            .print-page.layout-a4:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+            .print-page.layout-a4 .barcode-label {
+                width: 62mm;
+                height: 25mm;
+                border: 1px dashed #bbb;
+                box-sizing: border-box;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                padding: 1.5mm;
+                overflow: hidden;
+                background: white;
+            }
+            .print-page.layout-a4 .label-title {
+                font-size: 7px;
+                font-weight: bold;
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                width: 100%;
+                margin-bottom: 0.5mm;
+                text-transform: uppercase;
+                font-family: sans-serif;
+                color: #000;
+            }
+            .print-page.layout-a4 .barcode-svg {
+                max-width: 100%;
+                max-height: 16mm;
+                display: block;
+            }
+        }
+        @media screen {
+            #print-barcode-area {
+                display: none;
+            }
+        }
+    </style>
 @endsection

@@ -20,12 +20,12 @@
     @endif
 
     <!-- Header Actions -->
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
             <h2 class="text-xl font-bold text-slate-800">Riwayat Pembelian</h2>
             <p class="text-sm text-slate-500">Kelola transaksi kulakan & penambahan stok</p>
         </div>
-        <button @click="addModalOpen = true; if(form.items.length === 0) addItem();" class="bg-[#0f172a] hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2">
+        <button @click="addModalOpen = true; if(form.items.length === 0) addItem();" class="w-full sm:w-auto bg-[#0f172a] hover:bg-slate-800 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center justify-center gap-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
             Buat Pembelian Baru
         </button>
@@ -68,7 +68,7 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 uppercase border border-amber-200 animate-pulse">Pending</span>
                             @endif
                         </td>
-                        <td class="py-4 px-5 text-right space-x-1">
+                        <td class="py-4 px-5 text-right space-x-1 whitespace-nowrap">
                             @if($p->status === 'pending')
                                 <button type="button" @click="confirmReceive(@js($p))" class="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors inline-block" title="Terima Barang & Update Stok">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -345,7 +345,7 @@
                     </div>
                 </div>
                 <h4 class="text-xs font-black text-slate-700 uppercase tracking-widest mb-3">Item Dibeli</h4>
-                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                <div class="border border-slate-200 rounded-lg overflow-x-auto">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
                             <tr>

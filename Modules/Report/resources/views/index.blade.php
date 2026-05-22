@@ -46,7 +46,7 @@
     </div>
 
     <!-- KPI Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 page-break-inside-avoid">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 page-break-inside-avoid">
         <!-- Total Revenue -->
         <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <div class="flex justify-between items-start mb-4">
@@ -213,7 +213,7 @@
     </div>
 
     <!-- Bottom Invoices Row -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 page-break-inside-avoid">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 page-break-inside-avoid">
         <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm border-b-4 border-b-green-500">
             <p class="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">Tagihan Lunas</p>
             <h3 class="text-2xl font-black text-green-600 mb-1">Rp {{ number_format($invoiceStats['paid_amount'] / 1000000, 2) }}M</h3>

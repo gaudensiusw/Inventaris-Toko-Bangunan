@@ -354,7 +354,7 @@
 
             <!-- Page Content -->
             <main class="flex-1 overflow-auto bg-slate-50 custom-scrollbar">
-                <div class="p-6 md:p-8 max-w-7xl mx-auto">
+                <div class="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
                     @yield('content')
                 </div>
             </main>

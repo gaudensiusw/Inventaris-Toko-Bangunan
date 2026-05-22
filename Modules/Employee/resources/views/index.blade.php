@@ -18,10 +18,10 @@
     </div>
 
     <!-- Master-Detail Layout -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
         <!-- Left Panel: Daftar Karyawan -->
-        <div class="lg:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="xl:col-span-2 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
             <div class="p-5 border-b border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <h2 class="text-lg font-bold text-slate-900">Daftar Karyawan</h2>
                 <form method="GET" action="{{ route('employee.index') }}" class="flex items-center gap-2">
@@ -40,24 +40,24 @@
                 <table class="w-full text-left text-sm whitespace-nowrap">
                     <thead class="bg-slate-50 text-slate-600 border-b border-slate-200 sticky top-0 z-10">
                         <tr>
-                            <th class="py-3 px-5 font-semibold text-xs tracking-wider uppercase">No</th>
-                            <th class="py-3 px-5 font-semibold text-xs tracking-wider uppercase">Nama Karyawan</th>
-                            <th class="py-3 px-5 font-semibold text-xs tracking-wider uppercase">Jabatan</th>
-                            <th class="py-3 px-5 font-semibold text-xs tracking-wider uppercase">Gaji Harian</th>
-                            <th class="py-3 px-5 font-semibold text-xs tracking-wider uppercase">Status</th>
-                            <th class="py-3 px-5 font-semibold text-xs tracking-wider uppercase text-right">Aksi</th>
+                            <th class="py-3 px-3 xl:px-5 font-semibold text-xs tracking-wider uppercase">No</th>
+                            <th class="py-3 px-3 xl:px-5 font-semibold text-xs tracking-wider uppercase">Nama Karyawan</th>
+                            <th class="py-3 px-3 xl:px-5 font-semibold text-xs tracking-wider uppercase">Jabatan</th>
+                            <th class="py-3 px-3 xl:px-5 font-semibold text-xs tracking-wider uppercase">Gaji Harian</th>
+                            <th class="py-3 px-3 xl:px-5 font-semibold text-xs tracking-wider uppercase">Status</th>
+                            <th class="py-3 px-3 xl:px-5 font-semibold text-xs tracking-wider uppercase text-right">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @foreach($employees as $index => $emp)
                         <tr class="hover:bg-slate-50 transition-colors cursor-pointer employee-row" data-id="{{ $emp->id }}" onclick="loadEmployeeDetail({{ $emp->id }})">
-                            <td class="py-4 px-5 text-slate-500">{{ $employees->firstItem() + $index }}</td>
-                            <td class="py-4 px-5">
+                            <td class="py-4 px-3 xl:px-5 text-slate-500">{{ $employees->firstItem() + $index }}</td>
+                            <td class="py-4 px-3 xl:px-5">
                                 <div class="font-bold text-slate-900">{{ $emp->nama }}</div>
                             </td>
-                            <td class="py-4 px-5 text-slate-700 font-medium">{{ $emp->jabatan->nama_jabatan ?? '-' }}</td>
-                            <td class="py-4 px-5 text-slate-600">Rp {{ number_format($emp->jabatan->gaji_harian ?? 0, 0, ',', '.') }}</td>
-                            <td class="py-4 px-5">
+                            <td class="py-4 px-3 xl:px-5 text-slate-700 font-medium">{{ $emp->jabatan->nama_jabatan ?? '-' }}</td>
+                            <td class="py-4 px-3 xl:px-5 text-slate-600">Rp {{ number_format($emp->jabatan->gaji_harian ?? 0, 0, ',', '.') }}</td>
+                            <td class="py-4 px-3 xl:px-5">
                                 @if($emp->aktif)
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
                                         Aktif
@@ -68,7 +68,7 @@
                                     </span>
                                 @endif
                             </td>
-                            <td class="py-4 px-5 text-right space-x-2">
+                            <td class="py-4 px-3 xl:px-5 text-right space-x-2 whitespace-nowrap">
                                 <button onclick="event.stopPropagation(); openEditModal({{ $emp->id }}, '{{ $emp->kode_karyawan }}', '{{ addslashes($emp->nama) }}', '{{ $emp->jabatan_id }}', '{{ $emp->tanggal_masuk->format('Y-m-d') }}', {{ $emp->aktif ? 'true' : 'false' }}, '{{ $emp->no_hp }}', '{{ $emp->email }}', '{{ addslashes($emp->alamat) }}', {{ $emp->bonus_tetap ?? 500000 }}, {{ $emp->potongan ?? 0 }}, '{{ addslashes($emp->keterangan_potongan ?? '') }}')" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors" title="Edit">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 </button>
@@ -93,7 +93,7 @@
         </div>
 
         <!-- Right Panel: Detail Panel -->
-        <div class="lg:col-span-1 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-[600px]">
+        <div class="xl:col-span-1 bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-[600px]">
             <div class="p-5 border-b border-slate-200 bg-white">
                 <h2 class="text-lg font-bold text-slate-900">Detail Karyawan</h2>
             </div>
@@ -185,7 +185,7 @@
                     
                     <div class="border border-slate-200 rounded-lg overflow-hidden">
                         <!-- Days Header -->
-                        <div class="grid grid-cols-7 bg-slate-50 border-b border-slate-200 text-xs font-medium text-slate-500 text-center py-2">
+                        <div class="grid grid-cols-7 bg-slate-50 border-b border-slate-200 text-[10px] sm:text-xs font-medium text-slate-500 text-center py-2">
                             <div>Min</div><div>Sen</div><div>Sel</div><div>Rab</div><div>Kam</div><div>Jum</div><div>Sab</div>
                         </div>
                         <!-- Calendar Grid -->
@@ -201,8 +201,8 @@
 </div>
 
 <!-- Modal Tambah Karyawan -->
-<div id="modalTambah" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
+<div id="modalTambah" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
         <div class="p-5 border-b border-slate-200 flex justify-between items-center">
             <h2 class="text-lg font-bold">Tambah Karyawan Baru</h2>
             <button onclick="document.getElementById('modalTambah').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">
@@ -237,7 +237,7 @@
 </div>
 
 <!-- Modal Edit Karyawan -->
-<div id="modalEdit" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden">
+<div id="modalEdit" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
         <div class="p-6 border-b border-slate-100 flex justify-between items-start bg-white">
             <div>
@@ -254,7 +254,7 @@
                 @method('PUT')
                 
                 <!-- Row 1: Kode Karyawan & Status -->
-                <div class="grid grid-cols-2 gap-5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Kode Karyawan <span class="text-red-500">*</span></label>
                         <input type="text" id="editKode" name="kode_karyawan" readonly class="w-full bg-slate-100 border-transparent text-slate-500 rounded-lg shadow-sm focus:ring-0 cursor-not-allowed">
@@ -275,7 +275,7 @@
                 </div>
 
                 <!-- Row 3: Posisi & Tanggal Bergabung -->
-                <div class="grid grid-cols-2 gap-5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Posisi <span class="text-red-500">*</span></label>
                         <select id="editJabatan" name="jabatan_id" required class="w-full border-slate-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" onchange="updateEditGajiPokok()">
@@ -291,7 +291,7 @@
                 </div>
 
                 <!-- Row 4: Telepon & Email -->
-                <div class="grid grid-cols-2 gap-5">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <div>
                         <label class="block text-sm font-bold text-slate-700 mb-1">Telepon <span class="text-red-500">*</span></label>
                         <input type="text" id="editTelepon" name="no_hp" class="w-full border-slate-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
@@ -311,7 +311,7 @@
                 <!-- Informasi Gaji Section -->
                 <div class="pt-4 border-t border-slate-100">
                     <h3 class="text-base font-bold text-slate-900 mb-4">Informasi Gaji</h3>
-                    <div class="grid grid-cols-2 gap-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Gaji Pokok per Hari <span class="text-red-500">*</span></label>
                             <input type="text" id="editGajiPokok" readonly class="w-full bg-slate-50 border-slate-200 text-slate-600 rounded-lg shadow-sm cursor-not-allowed">
@@ -323,8 +323,8 @@
                             <p class="text-xs text-slate-500 mt-1">Bonus yang diberikan setiap bulan</p>
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-5 mt-5">
-                        <div class="col-span-2 bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-center justify-between">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-5">
+                        <div class="col-span-1 sm:col-span-2 bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-center justify-between">
                             <span class="text-sm font-bold text-blue-900">Total Potongan Saat Ini</span>
                             <span class="text-sm font-bold text-red-600" id="editTotalPotonganText">Rp 0</span>
                         </div>
@@ -351,15 +351,15 @@
 </div>
 
 <!-- Modal Preview Slip Gaji -->
-<div id="modalSlip" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden">
+<div id="modalSlip" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
         <!-- Header Blue Gradient -->
-        <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 text-white flex justify-between items-start m-4 rounded-xl shadow-md">
+        <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 sm:p-6 text-white flex flex-col sm:flex-row gap-4 justify-between items-start m-4 rounded-xl shadow-md">
             <div>
                 <h2 class="text-xl font-bold" id="slipNama">Nama Karyawan</h2>
                 <p class="text-blue-100 text-sm mt-1"><span id="slipJabatan">Jabatan</span> - <span id="slipKode">EMP-000</span></p>
             </div>
-            <div class="text-right">
+            <div class="text-left sm:text-right">
                 <p class="text-blue-200 text-xs uppercase tracking-wider font-bold">Periode</p>
                 <p class="font-bold text-sm" id="slipPeriode">Mei 2026</p>
             </div>
@@ -369,34 +369,34 @@
             <!-- Ringkasan Kehadiran -->
             <div>
                 <h3 class="text-sm font-bold text-slate-800 mb-3">Ringkasan Kehadiran</h3>
-                <div class="grid grid-cols-4 gap-3">
+                <div class="grid grid-cols-4 gap-2 sm:gap-3">
                     <div class="flex flex-col items-center justify-center">
                         <div class="w-10 h-10 rounded-full bg-green-50 text-green-500 flex items-center justify-center mb-1 border border-green-100">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         </div>
                         <span class="font-bold text-slate-900" id="slipHadir">0</span>
-                        <span class="text-[10px] text-slate-500 uppercase">Hadir</span>
+                        <span class="text-[8px] sm:text-[10px] text-slate-500 uppercase">Hadir</span>
                     </div>
                     <div class="flex flex-col items-center justify-center">
                         <div class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-1 border border-red-100">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </div>
                         <span class="font-bold text-slate-900" id="slipAlpha">0</span>
-                        <span class="text-[10px] text-slate-500 uppercase">Tidak Hadir</span>
+                        <span class="text-[8px] sm:text-[10px] text-slate-500 uppercase">Tidak Hadir</span>
                     </div>
                     <div class="flex flex-col items-center justify-center">
                         <div class="w-10 h-10 rounded-full bg-yellow-50 text-yellow-500 flex items-center justify-center mb-1 border border-yellow-100">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </div>
                         <span class="font-bold text-slate-900" id="slipSakit">0</span>
-                        <span class="text-[10px] text-slate-500 uppercase">Sakit</span>
+                        <span class="text-[8px] sm:text-[10px] text-slate-500 uppercase">Sakit</span>
                     </div>
                     <div class="flex flex-col items-center justify-center">
                         <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-1 border border-blue-100">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                         </div>
                         <span class="font-bold text-slate-900" id="slipIzin">0</span>
-                        <span class="text-[10px] text-slate-500 uppercase">Cuti</span>
+                        <span class="text-[8px] sm:text-[10px] text-slate-500 uppercase">Cuti</span>
                     </div>
                 </div>
             </div>
@@ -454,7 +454,7 @@
 </div>
 
 <!-- Modal Input Absensi -->
-<div id="modalAbsensi" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden">
+<div id="modalAbsensi" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
         <div class="p-6 border-b border-slate-100 flex justify-between items-start bg-white">
             <div>
@@ -514,7 +514,7 @@
 </div>
 
 <!-- Modal Konfirmasi Status -->
-<div id="modalToggleStatus" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden backdrop-blur-sm">
+<div id="modalToggleStatus" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden backdrop-blur-sm p-4">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
         <div class="p-6 text-center">
             <div class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
@@ -623,11 +623,11 @@
                 let dayCounter = 1;
                 for (let i = 0; i < 42; i++) {
                     const cell = document.createElement('div');
-                    cell.className = 'border-b border-r border-slate-200 h-20 p-1 flex flex-col relative';
+                    cell.className = 'border-b border-r border-slate-200 h-14 sm:h-20 p-0.5 sm:p-1 flex flex-col relative';
                     
                     if (i >= firstDay && dayCounter <= daysInMonth) {
                         const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayCounter).padStart(2, '0')}`;
-                        cell.innerHTML = `<span class="text-xs font-medium text-slate-700 absolute top-1 left-2">${dayCounter}</span>`;
+                        cell.innerHTML = `<span class="text-[10px] sm:text-xs font-medium text-slate-700 absolute top-0.5 left-1 sm:top-1 sm:left-2">${dayCounter}</span>`;
                         
                         if (emp.aktif) {
                             cell.className += ' hover:bg-slate-100 cursor-pointer transition-colors';
@@ -641,31 +641,31 @@
                         if (statusData) {
                             const status = statusData.status;
                             const isPaid = statusData.status_bayar == 1;
-
+ 
                             let colorClass = 'text-slate-600';
                             let bgClass = 'bg-slate-100';
                             if (status === 'hadir') { colorClass = 'text-green-700'; bgClass = 'bg-green-50 border border-green-100'; }
                             if (status === 'izin') { colorClass = 'text-yellow-700'; bgClass = 'bg-yellow-50 border border-yellow-100'; }
                             if (status === 'sakit') { colorClass = 'text-orange-700'; bgClass = 'bg-orange-50 border border-orange-100'; }
                             if (status === 'alpha') { colorClass = 'text-red-700'; bgClass = 'bg-red-50 border border-red-100'; }
-
+ 
                             if (isPaid) {
                                 bgClass += ' opacity-60';
                             }
-
+ 
                             cell.innerHTML += `
-                                <div class="mt-auto mb-1 mx-1">
-                                    <div class="px-1 py-0.5 text-[10px] rounded font-semibold uppercase text-center truncate ${bgClass} ${colorClass}">
+                                <div class="mt-auto mb-0.5 sm:mb-1 mx-0.5 sm:mx-1">
+                                    <div class="px-0.5 sm:px-1 py-0.5 text-[8px] sm:text-[10px] rounded font-semibold uppercase text-center truncate ${bgClass} ${colorClass}">
                                         ${status}
                                     </div>
-                                    ${isPaid ? '<div class="text-[9px] text-center text-slate-500 font-bold mt-0.5 flex items-center justify-center gap-1"><svg class="w-3 h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Paid</div>' : ''}
+                                    ${isPaid ? '<div class="text-[8px] sm:text-[9px] text-center text-slate-500 font-bold mt-0.5 flex items-center justify-center gap-0.5 sm:gap-1"><svg class="w-2.5 h-2.5 sm:w-3 sm:h-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Paid</div>' : ''}
                                 </div>
                             `;
                         } else {
                             if(dayCounter <= date.getDate()){
                                 cell.innerHTML += `
-                                    <div class="mt-auto mb-1 mx-1">
-                                        <div class="px-1 py-0.5 text-[10px] rounded text-slate-400 uppercase text-center truncate bg-slate-50 border border-slate-100">
+                                    <div class="mt-auto mb-0.5 sm:mb-1 mx-0.5 sm:mx-1">
+                                        <div class="px-0.5 sm:px-1 py-0.5 text-[8px] sm:text-[10px] rounded text-slate-400 uppercase text-center truncate bg-slate-50 border border-slate-100">
                                             0
                                         </div>
                                     </div>

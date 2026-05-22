@@ -13,14 +13,14 @@
         this.showConfirm = true;
     }
 }">
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
             <h2 class="text-2xl font-bold text-slate-800">Persetujuan Audit Stok</h2>
             <p class="text-slate-500 text-sm">Menunggu verifikasi untuk sinkronisasi ke gudang</p>
         </div>
-        <div class="flex gap-2">
-            <a href="{{ route('stockopname.history') }}" class="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors">Lihat Riwayat Item</a>
-            <a href="{{ route('stockopname.index') }}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-lg shadow-indigo-200">Audit Baru</a>
+        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <a href="{{ route('stockopname.history') }}" class="w-full sm:w-auto text-center px-4 py-2 bg-slate-100 text-slate-600 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors">Lihat Riwayat Item</a>
+            <a href="{{ route('stockopname.index') }}" class="w-full sm:w-auto text-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all shadow-lg shadow-indigo-200">Audit Baru</a>
         </div>
     </div>
 
@@ -62,7 +62,7 @@
                                 <span class="font-medium text-slate-700">{{ $item->causer->name ?? 'Sistem' }}</span>
                             </div>
                         </td>
-                        <td class="p-4 text-right">
+                        <td class="p-4 text-right whitespace-nowrap">
                             <div class="flex justify-end gap-2">
                                 <button @click="confirmAction({{ $item->id }}, '{{ addslashes($item->product->nama) }}', 'approve')" class="px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black uppercase hover:bg-emerald-200 transition-colors">Setujui</button>
                                 <button @click="confirmAction({{ $item->id }}, '{{ addslashes($item->product->nama) }}', 'reject')" class="px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-[10px] font-black uppercase hover:bg-red-200 transition-colors">Tolak</button>

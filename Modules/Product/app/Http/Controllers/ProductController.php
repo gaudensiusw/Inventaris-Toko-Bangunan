@@ -90,6 +90,30 @@ class ProductController extends Controller
             $validated['image'] = $path;
         }
 
+        if (empty($validated['sku']) || $validated['sku'] === '[Otomatis]') {
+            $kategoriId = $request->kategori_id;
+            $prefix = $kategoriId ? (string)$kategoriId : '99';
+            
+            $counter = 1;
+            do {
+                $lastSku = Product::where('sku', 'LIKE', $prefix . '%')
+                    ->orderByRaw('CAST(sku AS UNSIGNED) DESC')
+                    ->value('sku');
+
+                if ($lastSku) {
+                    $prefixLength = strlen($prefix);
+                    $serial = (int)substr($lastSku, $prefixLength);
+                    $newSerial = str_pad($serial + $counter, 5, '0', STR_PAD_LEFT);
+                } else {
+                    $newSerial = str_pad($counter, 5, '0', STR_PAD_LEFT);
+                }
+                $potentialSku = $prefix . $newSerial;
+                $counter++;
+            } while (Product::where('sku', $potentialSku)->exists());
+            
+            $validated['sku'] = $potentialSku;
+        }
+
         $product = Product::create($validated);
 
         if ($request->filled('units')) {
@@ -153,6 +177,30 @@ class ProductController extends Controller
             }
             $path = $request->file('image')->store('products', 'public');
             $validated['image'] = $path;
+        }
+
+        if (empty($validated['sku']) || $validated['sku'] === '[Otomatis]') {
+            $kategoriId = $request->kategori_id;
+            $prefix = $kategoriId ? (string)$kategoriId : '99';
+            
+            $counter = 1;
+            do {
+                $lastSku = Product::where('sku', 'LIKE', $prefix . '%')
+                    ->orderByRaw('CAST(sku AS UNSIGNED) DESC')
+                    ->value('sku');
+
+                if ($lastSku) {
+                    $prefixLength = strlen($prefix);
+                    $serial = (int)substr($lastSku, $prefixLength);
+                    $newSerial = str_pad($serial + $counter, 5, '0', STR_PAD_LEFT);
+                } else {
+                    $newSerial = str_pad($counter, 5, '0', STR_PAD_LEFT);
+                }
+                $potentialSku = $prefix . $newSerial;
+                $counter++;
+            } while (Product::where('sku', $potentialSku)->exists());
+            
+            $validated['sku'] = $potentialSku;
         }
 
         $product->update($validated);

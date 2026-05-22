@@ -30,6 +30,7 @@ class User extends Authenticatable
         'role',
         'aktif',
         'last_login_at',
+        'last_read_notifications_at',
     ];
 
     /**
@@ -53,6 +54,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'last_login_at' => 'datetime',
+            'last_read_notifications_at' => 'datetime',
         ];
     }
 

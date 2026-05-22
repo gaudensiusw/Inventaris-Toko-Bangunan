@@ -11,7 +11,7 @@
 
     <!-- Inventory Stats -->
     <h3 class="text-lg font-bold text-slate-800">Inventori & Produk</h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <!-- Total Produk -->
         <div class="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm">
             <div class="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
@@ -92,7 +92,7 @@
 
     <!-- Finance & Stakeholders -->
     <h3 class="text-lg font-bold text-slate-800 mt-8">Keuangan & Relasi</h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <!-- Total Hutang -->
         <a href="{{ route('notification.index', ['category' => 'tagihan']) }}" class="rounded-xl border border-slate-200 bg-white text-slate-950 shadow-sm hover:border-orange-300 transition-all group">
             <div class="p-6 flex flex-row items-center justify-between space-y-0 pb-2">

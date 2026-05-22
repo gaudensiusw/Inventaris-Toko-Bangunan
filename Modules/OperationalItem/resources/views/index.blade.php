@@ -42,31 +42,31 @@
             <table class="w-full text-left text-sm whitespace-nowrap">
                 <thead class="bg-slate-50 text-slate-500 border-b border-slate-200">
                     <tr>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Nama Barang</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Kategori</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Jumlah</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Nilai / Satuan</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs">Status</th>
-                        <th class="py-3 px-5 font-semibold uppercase tracking-wider text-xs text-right">Aksi</th>
+                        <th class="py-3 px-3 font-semibold uppercase tracking-wider text-xs">Nama Barang</th>
+                        <th class="py-3 px-3 font-semibold uppercase tracking-wider text-xs">Kategori</th>
+                        <th class="py-3 px-3 font-semibold uppercase tracking-wider text-xs">Jumlah</th>
+                        <th class="py-3 px-3 font-semibold uppercase tracking-wider text-xs">Nilai / Satuan</th>
+                        <th class="py-3 px-3 font-semibold uppercase tracking-wider text-xs">Status</th>
+                        <th class="py-3 px-3 font-semibold uppercase tracking-wider text-xs text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($items as $item)
                     <tr class="hover:bg-blue-50/30 transition-colors">
-                        <td class="py-4 px-5">
+                        <td class="py-4 px-3">
                             <div class="font-bold text-slate-800">{{ $item->nama }}</div>
                             <div class="text-[10px] text-slate-500 mt-0.5">Beli: {{ \Carbon\Carbon::parse($item->tanggal_pembelian)->format('d M Y') }}</div>
                         </td>
-                        <td class="py-4 px-5">
+                        <td class="py-4 px-3">
                             <span class="text-slate-700 font-medium">{{ $item->kategori ?: '-' }}</span>
                         </td>
-                        <td class="py-4 px-5 font-bold text-slate-800">
+                        <td class="py-4 px-3 font-bold text-slate-800">
                             {{ number_format($item->jumlah, 0) }} {{ $item->satuan }}
                         </td>
-                        <td class="py-4 px-5 text-slate-600">
+                        <td class="py-4 px-3 text-slate-600">
                             Rp {{ number_format($item->harga, 0, ',', '.') }}
                         </td>
-                        <td class="py-4 px-5">
+                        <td class="py-4 px-3">
                             @php
                                 $statusColors = [
                                     'aktif' => 'bg-green-100 text-green-700 border-green-200',
@@ -79,7 +79,7 @@
                                 {{ $item->status }}
                             </span>
                         </td>
-                        <td class="py-4 px-5 text-right space-x-1">
+                        <td class="py-4 px-3 text-right space-x-1 whitespace-nowrap">
                             <button @click="openEditModal({{ $item->toJson() }})" class="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-block" title="Edit">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </button>
@@ -118,8 +118,8 @@
             </div>
             <form action="{{ route('operationalitem.store') }}" method="POST">
                 @csrf
-                <div class="p-6 grid grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
-                    <div class="col-span-2">
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
+                    <div class="col-span-1 sm:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nama Barang <span class="text-red-500">*</span></label>
                         <input type="text" name="nama" required placeholder="Contoh: Printer Epson L3210" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                     </div>
@@ -151,7 +151,7 @@
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Tanggal Pembelian</label>
                         <input type="date" name="tanggal_pembelian" value="{{ date('Y-m-d') }}" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-1 sm:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Deskripsi / Catatan</label>
                         <textarea name="deskripsi" rows="2" placeholder="Informasi tambahan..." class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"></textarea>
                     </div>
@@ -180,8 +180,8 @@
             <form :action="`/operational-items/${editForm.id}`" method="POST">
                 @csrf
                 @method('PUT')
-                <div class="p-6 grid grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
-                    <div class="col-span-2">
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
+                    <div class="col-span-1 sm:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nama Barang <span class="text-red-500">*</span></label>
                         <input type="text" name="nama" x-model="editForm.nama" required class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                     </div>
@@ -213,7 +213,7 @@
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Tanggal Pembelian</label>
                         <input type="date" name="tanggal_pembelian" x-model="editForm.tanggal_pembelian" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-1 sm:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Deskripsi / Catatan</label>
                         <textarea name="deskripsi" x-model="editForm.deskripsi" rows="2" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"></textarea>
                     </div>

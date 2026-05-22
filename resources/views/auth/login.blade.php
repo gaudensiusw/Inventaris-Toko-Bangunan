@@ -117,17 +117,17 @@
                         <div class="flex-grow border-t border-slate-100"></div>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-4">
+                    <div class="grid grid-cols-3 gap-2">
                         <button onclick="quickLogin('operator@tokobangunan.com')"
-                            class="py-3 px-2 bg-white border border-slate-200 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-2xl text-xs font-bold text-slate-600 transition-all shadow-sm active:scale-95">
+                            class="py-2.5 px-1 bg-white border border-slate-200 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-2xl text-[11px] sm:text-xs font-bold text-slate-600 transition-all shadow-sm active:scale-95 truncate">
                             Operator
                         </button>
                         <button onclick="quickLogin('supervisor@tokobangunan.com')"
-                            class="py-3 px-2 bg-white border border-slate-200 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-2xl text-xs font-bold text-slate-600 transition-all shadow-sm active:scale-95">
+                            class="py-2.5 px-1 bg-white border border-slate-200 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-2xl text-[11px] sm:text-xs font-bold text-slate-600 transition-all shadow-sm active:scale-95 truncate" title="Supervisor">
                             Supervisor
                         </button>
                         <button onclick="quickLogin('owner@tokobangunan.com')"
-                            class="py-3 px-2 bg-white border border-slate-200 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-2xl text-xs font-bold text-slate-600 transition-all shadow-sm active:scale-95">
+                            class="py-2.5 px-1 bg-white border border-slate-200 hover:border-blue-600 hover:bg-blue-50 hover:text-blue-700 rounded-2xl text-[11px] sm:text-xs font-bold text-slate-600 transition-all shadow-sm active:scale-95 truncate">
                             Owner
                         </button>
                     </div>

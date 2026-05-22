@@ -84,10 +84,10 @@
     </div>
 
     <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         
         <!-- Left: Customer List -->
-        <div class="lg:col-span-4 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[700px]">
+        <div class="xl:col-span-4 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[700px]">
             <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
                 <h3 class="font-bold text-slate-800">Daftar Pelanggan</h3>
                 <button @click="addModalOpen = true" class="p-1.5 bg-[#0f172a] text-white rounded-lg hover:bg-slate-800 transition-colors">
@@ -131,7 +131,7 @@
         </div>
 
         <!-- Right: Detail Panel -->
-        <div class="lg:col-span-8 space-y-6">
+        <div class="xl:col-span-8 space-y-6">
             @if($selected_customer)
             <!-- Customer Detail Header -->
             <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
@@ -170,7 +170,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-6 pt-6 border-t border-slate-100">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 pt-6 border-t border-slate-100">
                     <div>
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Piutang Berjalan</p>
                         <h4 class="text-xl font-black text-red-600">Rp {{ number_format($selected_customer->transactions->where('status_pembayaran', '!=', 'lunas')->sum(fn($t) => $t->total_tagihan - $t->jumlah_bayar), 0, ',', '.') }}</h4>
@@ -325,8 +325,8 @@
             </div>
             <form action="{{ route('customer.store') }}" method="POST">
                 @csrf
-                <div class="p-6 grid grid-cols-2 gap-4">
-                    <div class="col-span-2">
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="col-span-1 sm:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nama Lengkap <span class="text-red-500">*</span></label>
                         <input type="text" name="nama" required class="w-full border border-slate-300 rounded-lg text-sm p-2.5 bg-white">
                     </div>
@@ -355,7 +355,7 @@
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Tenor Bayar (Hari)</label>
                         <input type="number" name="tenor_bayar" value="30" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 bg-white font-bold">
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-1 sm:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Alamat</label>
                         <textarea name="alamat" rows="2" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 resize-none bg-white"></textarea>
                     </div>
@@ -381,8 +381,8 @@
             <form :action="`/customers/${editForm.id}`" method="POST">
                 @csrf
                 @method('PUT')
-                <div class="p-6 grid grid-cols-2 gap-4">
-                    <div class="col-span-2">
+                <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="col-span-1 sm:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nama Lengkap <span class="text-red-500">*</span></label>
                         <input type="text" name="nama" x-model="editForm.nama" required class="w-full border border-slate-300 rounded-lg text-sm p-2.5 bg-white">
                     </div>
@@ -411,7 +411,7 @@
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Tenor Bayar (Hari)</label>
                         <input type="number" name="tenor_bayar" x-model="editForm.tenor_bayar" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 bg-white font-bold">
                     </div>
-                    <div class="col-span-2">
+                    <div class="col-span-1 sm:col-span-2">
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Alamat</label>
                         <textarea name="alamat" x-model="editForm.alamat" rows="2" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 resize-none bg-white"></textarea>
                     </div>

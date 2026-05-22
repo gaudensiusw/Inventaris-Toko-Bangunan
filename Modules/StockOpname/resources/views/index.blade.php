@@ -80,7 +80,7 @@
 <div x-data>
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-6">
         <!-- Persistent Bar -->
-        <div x-show="$store.opname.count > 0" class="bg-indigo-600 px-5 py-3 flex items-center justify-between" x-cloak>
+        <div x-show="$store.opname.count > 0" class="bg-indigo-600 px-5 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3" x-cloak>
             <div class="flex items-center gap-3 text-white">
                 <div class="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
@@ -96,14 +96,14 @@
             </div>
         </div>
 
-        <div class="p-5 border-b border-slate-200 bg-slate-50/50 flex justify-between items-center">
+        <div class="p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <div class="flex items-center gap-3">
                     <h3 class="text-base font-bold text-slate-800">Daftar Audit Persediaan Barang</h3>
                 </div>
                 <p class="text-[11px] text-slate-500 uppercase tracking-widest font-black mt-0.5">Data yang Anda isi tersimpan otomatis di browser ini</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
                 <a href="{{ route('stockopname.history') }}" class="px-5 py-2.5 rounded-lg text-sm font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors flex items-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     {{ in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Lihat Riwayat' : 'Status Pengajuan' }}
