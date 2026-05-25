@@ -95,11 +95,16 @@ class POSController extends Controller
             $nama_pelanggan = $request->nama_pelanggan ?: 'Umum';
 
             if ($request->metode_pembayaran === 'Bon') {
-                if (!$request->nama_pelanggan) {
-                    throw new \Exception("Pembayaran BON wajib menyertakan Nama Pelanggan.");
+                if (!$request->nama_pelanggan || strtolower($request->nama_pelanggan) === 'umum') {
+                    throw new \Exception("Pembayaran BON wajib menyertakan Nama Pelanggan yang spesifik.");
                 }
+                $status_pembayaran = 'belum_bayar';
+                $jumlah_bayar = 0; 
+                $jatuh_tempo = $request->jatuh_tempo ?: now()->addDays(30);
+            }
 
-                // Find existing or create new customer
+            // Find existing or create new customer for ANY payment method if customer name is provided
+            if ($request->filled('nama_pelanggan') && strtolower($request->nama_pelanggan) !== 'umum') {
                 $customer = Customer::firstOrCreate(
                     ['nama' => $request->nama_pelanggan],
                     [
@@ -117,9 +122,11 @@ class POSController extends Controller
 
                 $pelanggan_id = $customer->id;
                 $nama_pelanggan = $customer->nama;
-                $status_pembayaran = 'belum_bayar';
-                $jumlah_bayar = 0; 
-                $jatuh_tempo = $request->jatuh_tempo ?: now()->addDays($customer->tenor_bayar ?: 30);
+
+                // Adjust jatuh_tempo for Bon based on customer preference
+                if ($request->metode_pembayaran === 'Bon') {
+                    $jatuh_tempo = $request->jatuh_tempo ?: now()->addDays($customer->tenor_bayar ?: 30);
+                }
             }
 
             $no_transaksi = 'TRX-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));

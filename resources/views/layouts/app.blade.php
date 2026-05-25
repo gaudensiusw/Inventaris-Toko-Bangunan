@@ -68,7 +68,7 @@
                 </div>
 
                 <!-- Navigation -->
-                <div class="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">
+                <div id="sidebar-nav" class="flex-1 overflow-y-auto px-3 py-4 custom-scrollbar">
                     <nav class="space-y-1">
                         <!-- MAIN -->
                         <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mt-4 mb-3">Main
@@ -99,13 +99,23 @@
                         @endif
 
                         <a href="{{ url('/pos') }}"
-                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('pos') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('pos') && !request()->is('pos/history*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z">
                                 </path>
                             </svg>
                             <span class="flex-1 text-sm font-medium">POS / Cashier</span>
+                        </a>
+
+                        <a href="{{ route('pos.history') }}"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('pos/history*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+                            </svg>
+                            <span class="flex-1 text-sm font-medium">Riwayat Transaksi</span>
                         </a>
 
                         @if(in_array(auth()->user()->role, ['owner', 'supervisor']))
@@ -224,15 +234,37 @@
                                 </a>
                             @endif
 
-                            <a href="{{ route('customer.index') }}"
-                                class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('customers*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
-                                <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
-                                    </path>
-                                </svg>
-                                <span class="flex-1 text-sm font-medium">Pelanggan</span>
-                            </a>
+                            <div x-data="{ dropdownOpen: {{ request()->is('customers*') ? 'true' : 'false' }} }" 
+                                 :class="dropdownOpen ? 'bg-slate-950/40 border border-slate-800/80 rounded-xl p-1 my-1 shadow-inner' : 'border border-transparent'"
+                                 class="space-y-1 transition-all duration-300 border">
+                                <button @click="dropdownOpen = !dropdownOpen"
+                                    class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors {{ request()->is('customers*') ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                                    <div class="flex items-center gap-3">
+                                        <svg class="w-5 h-5 flex-shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+                                            </path>
+                                        </svg>
+                                        <span class="text-sm font-medium">Pelanggan</span>
+                                    </div>
+                                    <svg :class="dropdownOpen ? 'rotate-180 text-blue-400' : 'text-slate-400'" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                
+                                <div x-show="dropdownOpen" x-transition class="ml-4 pl-3.5 border-l border-slate-700/50 space-y-1 my-1" style="display: none;">
+                                    <a href="{{ route('customer.index', ['filter' => 'hutang']) }}"
+                                        class="flex items-center gap-2.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors {{ request()->is('customers*') && request()->get('filter') === 'hutang' ? 'text-blue-400 bg-blue-500/10' : 'text-slate-400 hover:text-white hover:bg-slate-800/40' }}">
+                                        <span class="w-1.5 h-1.5 rounded-full {{ request()->is('customers*') && request()->get('filter') === 'hutang' ? 'bg-blue-400 animate-pulse' : 'bg-slate-600' }}"></span>
+                                        Pelanggan Hutang
+                                    </a>
+                                    <a href="{{ route('customer.index') }}"
+                                        class="flex items-center gap-2.5 py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors {{ request()->is('customers*') && !request()->has('filter') ? 'text-blue-400 bg-blue-500/10' : 'text-slate-400 hover:text-white hover:bg-slate-800/40' }}">
+                                        <span class="w-1.5 h-1.5 rounded-full {{ request()->is('customers*') && !request()->has('filter') ? 'bg-blue-400 animate-pulse' : 'bg-slate-600' }}"></span>
+                                        Semua Pelanggan
+                                    </a>
+                                </div>
+                            </div>
 
                             <a href="{{ route('operationalitem.index') }}"
                                 class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('operational-items*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
@@ -464,6 +496,27 @@
                         submitBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
                     }
                 }, 8000);
+        // Persist sidebar scroll position across page reloads
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarNav = document.getElementById('sidebar-nav');
+            if (sidebarNav) {
+                // Restore scroll position
+                const savedScroll = localStorage.getItem('sidebar_scroll_position');
+                if (savedScroll) {
+                    sidebarNav.scrollTop = parseInt(savedScroll, 10);
+                }
+
+                // Save scroll position on scroll
+                sidebarNav.addEventListener('scroll', function() {
+                    localStorage.setItem('sidebar_scroll_position', sidebarNav.scrollTop);
+                });
+                
+                // Also save scroll position on click of any sidebar link
+                sidebarNav.querySelectorAll('a, button').forEach(el => {
+                    el.addEventListener('click', function() {
+                        localStorage.setItem('sidebar_scroll_position', sidebarNav.scrollTop);
+                    });
+                });
             }
         });
     </script>

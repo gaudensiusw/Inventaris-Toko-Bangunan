@@ -109,8 +109,8 @@
                         </template>
                     </div>
 
-                    <template x-if="metode_pembayaran === 'Bon' && nama_pelanggan">
-                        <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.5 rounded">AUTO-SAVE</span>
+                    <template x-if="nama_pelanggan && nama_pelanggan.toLowerCase() !== 'umum'">
+                        <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-blue-600 text-white font-bold px-1.5 py-0.5 rounded">AUTO-SAVE</span>
                     </template>
                 </div>
             </div>
@@ -228,8 +228,11 @@
                         :class="metode_pembayaran === 'Bon' ? 'bg-slate-800 text-white border-slate-800 ring-2 ring-slate-800 ring-offset-1' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'"
                         class="py-1.5 text-xs font-bold rounded-lg border transition-all">Bon</button>
                 </div>
-                <template x-if="metode_pembayaran === 'Bon'">
-                    <p class="text-[10px] text-amber-600 mt-1.5 font-medium">⚠ Pembayaran Bon — nama pelanggan akan dicatat secara otomatis</p>
+                <template x-if="nama_pelanggan && nama_pelanggan.toLowerCase() !== 'umum'">
+                    <p class="text-[10px] text-blue-600 mt-1.5 font-semibold">✓ Nama pelanggan & transaksi akan otomatis disimpan ke database</p>
+                </template>
+                <template x-if="metode_pembayaran === 'Bon' && (!nama_pelanggan || nama_pelanggan.toLowerCase() === 'umum')">
+                    <p class="text-[10px] text-amber-600 mt-1.5 font-medium">⚠ Pembayaran BON wajib menyertakan Nama Pelanggan yang spesifik.</p>
                 </template>
             </div>
 

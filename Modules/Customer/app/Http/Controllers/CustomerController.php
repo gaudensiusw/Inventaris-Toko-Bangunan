@@ -11,13 +11,20 @@ class CustomerController extends Controller
 {
     public function index(Request $request)
     {
-        $customers = Customer::withSum(['transactions as total_hutang' => function($query) {
+        $query = Customer::withSum(['transactions as total_hutang' => function($query) {
             $query->where('status_pembayaran', '!=', 'lunas');
         }], 'total_tagihan')
         ->withSum(['transactions as total_dibayar' => function($query) {
             $query->where('status_pembayaran', '!=', 'lunas');
-        }], 'jumlah_bayar')
-        ->latest()->get();
+        }], 'jumlah_bayar');
+
+        if ($request->get('filter') === 'hutang') {
+            $query->whereHas('transactions', function($q) {
+                $q->where('status_pembayaran', '!=', 'lunas');
+            });
+        }
+
+        $customers = $query->latest()->get();
 
         // Calculate global stats
         $stats = [
@@ -29,7 +36,16 @@ class CustomerController extends Controller
             'sebagian_count'    => \Modules\POS\Models\POS::where('status_pembayaran', 'sebagian')->count(),
             'aktif_count'       => Customer::whereHas('transactions', function($q) {
                 $q->where('status_pembayaran', '!=', 'lunas');
-            })->count()
+            })->count(),
+            
+            // General Stats
+            'total_pelanggan' => Customer::count(),
+            'kontraktor_count' => Customer::where('kategori', 'Kontraktor')->count(),
+            'tukang_count'     => Customer::where('kategori', 'Tukang')->count(),
+            'umum_retail_count' => Customer::where(function($q) {
+                                    $q->whereIn('kategori', ['Umum', 'Retail'])
+                                      ->orWhereNull('kategori');
+                                  })->count(),
         ];
 
         $selected_id = $request->id ?: ($customers->first()->id ?? null);
