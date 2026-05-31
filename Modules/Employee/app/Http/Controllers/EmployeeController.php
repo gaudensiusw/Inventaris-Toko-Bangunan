@@ -277,7 +277,7 @@ class EmployeeController extends Controller
     {
         $now = \Carbon\Carbon::now();
         
-        $employee = \Modules\Employee\Models\Karyawan::findOrFail($id);
+        $employee = \Modules\Employee\Models\Karyawan::with('jabatan')->findOrFail($id);
 
         if (!$employee->aktif) {
             abort(403, 'Aksi ditolak. Karyawan sudah nonaktif.');
@@ -287,6 +287,30 @@ class EmployeeController extends Controller
         $keterangan_potongan = $employee->keterangan_potongan;
         $bonus = $employee->bonus_tetap ?? 0;
 
+        // 1. Dapatkan rekap absensi yang belum dibayar untuk menghitung gaji pokok secara historis
+        $unpaidAbsensis = \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
+            ->where('status_bayar', 0)
+            ->get();
+            
+        $jumlahHariKerja = $unpaidAbsensis->where('status', 'hadir')->count();
+        $gajiHarian = $employee->jabatan->gaji_harian ?? 0;
+        $totalGajiPokok = $jumlahHariKerja * $gajiHarian;
+
+        // 2. Simpan transaksi penggajian ke database (Tabel penggajian) agar tercatat historis
+        \Illuminate\Support\Facades\DB::table('penggajian')->insert([
+            'karyawan_id' => $id,
+            'periode_mulai' => \Carbon\Carbon::now()->startOfMonth()->toDateString(),
+            'periode_selesai' => \Carbon\Carbon::now()->toDateString(),
+            'tanggal_bayar' => $now->toDateString(),
+            'jumlah_hari_kerja' => $jumlahHariKerja,
+            'total_gaji_pokok' => $totalGajiPokok,
+            'bonus_mingguan' => $bonus, // bonus disimpan di kolom bonus_mingguan/bonus_tetap
+            'catatan' => $keterangan_potongan ?? 'Pembayaran gaji',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        // 3. Update status absensi menjadi dibayarkan
         \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
             ->where('status_bayar', 0)
             ->update([
@@ -294,8 +318,9 @@ class EmployeeController extends Controller
                 'tanggal_pembayaran' => $now
             ]);
 
+        // 4. Reset potongan & keterangan potongan, namun pertahankan bonus_tetap jika itu adalah nilai bawaan
         $employee->update([
-            'bonus_tetap' => 0,
+            // 'bonus_tetap' => 0, // Dibiarkan tetap (tidak direset) karena merupakan Bonus Tetap bulanan
             'potongan' => 0,
             'keterangan_potongan' => null
         ]);

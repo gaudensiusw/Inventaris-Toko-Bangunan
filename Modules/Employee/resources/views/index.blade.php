@@ -319,7 +319,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Bonus Tetap</label>
-                            <input type="number" id="editBonus" name="bonus_tetap" value="500000" class="w-full border-slate-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            <input type="number" id="editBonus" name="bonus_tetap" value="{{ old('bonus_tetap', 500000) }}" class="w-full border-slate-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
                             <p class="text-xs text-slate-500 mt-1">Bonus yang diberikan setiap bulan</p>
                         </div>
                     </div>
@@ -352,7 +352,7 @@
 
 <!-- Modal Preview Slip Gaji -->
 <div id="modalSlip" class="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 hidden p-4">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
         <!-- Header Blue Gradient -->
         <div class="bg-gradient-to-r from-blue-500 to-indigo-600 p-4 sm:p-6 text-white flex flex-col sm:flex-row gap-4 justify-between items-start m-4 rounded-xl shadow-md">
             <div>
@@ -369,29 +369,29 @@
             <!-- Ringkasan Kehadiran -->
             <div>
                 <h3 class="text-sm font-bold text-slate-800 mb-3">Ringkasan Kehadiran</h3>
-                <div class="grid grid-cols-4 gap-2 sm:gap-3">
-                    <div class="flex flex-col items-center justify-center">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="flex flex-col items-center justify-center p-2 bg-slate-50 border border-slate-100 rounded-lg">
                         <div class="w-10 h-10 rounded-full bg-green-50 text-green-500 flex items-center justify-center mb-1 border border-green-100">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         </div>
                         <span class="font-bold text-slate-900" id="slipHadir">0</span>
                         <span class="text-[8px] sm:text-[10px] text-slate-500 uppercase">Hadir</span>
                     </div>
-                    <div class="flex flex-col items-center justify-center">
+                    <div class="flex flex-col items-center justify-center p-2 bg-slate-50 border border-slate-100 rounded-lg">
                         <div class="w-10 h-10 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-1 border border-red-100">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                         </div>
                         <span class="font-bold text-slate-900" id="slipAlpha">0</span>
                         <span class="text-[8px] sm:text-[10px] text-slate-500 uppercase">Tidak Hadir</span>
                     </div>
-                    <div class="flex flex-col items-center justify-center">
+                    <div class="flex flex-col items-center justify-center p-2 bg-slate-50 border border-slate-100 rounded-lg">
                         <div class="w-10 h-10 rounded-full bg-yellow-50 text-yellow-500 flex items-center justify-center mb-1 border border-yellow-100">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </div>
                         <span class="font-bold text-slate-900" id="slipSakit">0</span>
                         <span class="text-[8px] sm:text-[10px] text-slate-500 uppercase">Sakit</span>
                     </div>
-                    <div class="flex flex-col items-center justify-center">
+                    <div class="flex flex-col items-center justify-center p-2 bg-slate-50 border border-slate-100 rounded-lg">
                         <div class="w-10 h-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-1 border border-blue-100">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                         </div>
@@ -405,32 +405,32 @@
             <div class="border border-slate-100 rounded-xl p-5 shadow-sm">
                 <h3 class="text-sm font-bold text-slate-800 mb-4">Rincian Gaji</h3>
                 <div class="space-y-3">
-                    <div class="flex justify-between items-center">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-1 sm:gap-0">
                         <span class="text-slate-600 text-sm flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             Gaji Pokok
                         </span>
                         <span class="text-slate-800 text-sm font-medium"><span id="slipHariHadir">0</span> hari &times; <span id="slipGajiHarian">Rp 0</span></span>
                     </div>
-                    <div class="flex justify-between items-center pl-6 py-2 border-b border-slate-100">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center pl-0 sm:pl-6 py-2 border-b border-slate-100 gap-1 sm:gap-0">
                         <span class="text-slate-500 text-sm">Subtotal Gaji Pokok</span>
                         <span class="text-slate-800 text-sm font-bold" id="slipSubtotal">Rp 0</span>
                     </div>
-                    <div class="flex justify-between items-center pt-2 border-b border-slate-100 pb-3">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-2 border-b border-slate-100 pb-3 gap-1 sm:gap-0">
                         <span class="text-slate-600 text-sm flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                             Bonus
                         </span>
                         <span class="text-green-600 font-bold" id="slipBonus">Rp 0</span>
                     </div>
-                    <div class="flex justify-between items-center pt-2 border-b border-slate-100 pb-3">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-2 border-b border-slate-100 pb-3 gap-1 sm:gap-0">
                         <span class="text-red-600 text-sm flex items-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             Potongan
                         </span>
                         <span class="text-red-600 font-bold" id="slipPotongan">- Rp 0</span>
                     </div>
-                    <div class="flex justify-between items-center pt-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center pt-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100 gap-1 sm:gap-0">
                         <span class="font-bold text-blue-900 flex items-center gap-2">
                             <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
                             Total Gaji
@@ -442,7 +442,7 @@
         </div>
 
         <div class="p-6 border-t border-slate-100 bg-slate-50 flex flex-col gap-4">
-            <div class="grid grid-cols-2 gap-4 mt-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
                 <button type="button" onclick="document.getElementById('modalSlip').classList.add('hidden')" class="w-full py-3 text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-xl font-bold transition-colors">Tutup</button>
                 <button type="button" id="btnProsesPembayaran" class="w-full py-3 text-white bg-[#0A0F2C] hover:bg-[#111942] rounded-xl font-bold transition-colors flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
