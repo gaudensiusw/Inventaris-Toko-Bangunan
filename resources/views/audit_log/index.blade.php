@@ -27,11 +27,11 @@
                 <select name="role" class="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     <option value="">Semua Role</option>
                     <option value="owner" {{ request('role') == 'owner' ? 'selected' : '' }}>Owner</option>
+                    <option value="supervisor" {{ request('role') == 'supervisor' ? 'selected' : '' }}>Supervisor</option>
                     <option value="operator" {{ request('role') == 'operator' ? 'selected' : '' }}>Operator</option>
-                    <option value="gudang" {{ request('role') == 'gudang' ? 'selected' : '' }}>Gudang</option>
                 </select>
             </div>
- 
+            
             <!-- Filter Modul -->
             <div>
                 <select name="modul" class="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
@@ -43,7 +43,7 @@
                     <option value="Stock" {{ request('modul') == 'Stock' ? 'selected' : '' }}>Stok/Opname</option>
                 </select>
             </div>
- 
+            
             <!-- Filter Aksi -->
             <div>
                 <select name="aksi" class="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
@@ -51,6 +51,7 @@
                     <option value="created" {{ request('aksi') == 'created' ? 'selected' : '' }}>Created</option>
                     <option value="updated" {{ request('aksi') == 'updated' ? 'selected' : '' }}>Updated</option>
                     <option value="deleted" {{ request('aksi') == 'deleted' ? 'selected' : '' }}>Deleted</option>
+                    <option value="GENERATED" {{ request('aksi') == 'GENERATED' ? 'selected' : '' }}>Generated</option>
                 </select>
             </div>
  
@@ -106,17 +107,28 @@
                     <td class="px-6 py-4 whitespace-nowrap">
                         @php
                             $actionColor = 'text-slate-600 bg-slate-100';
-                            if ($log->description === 'created') $actionColor = 'text-green-700 bg-green-50 border border-green-200';
-                            if ($log->description === 'updated') $actionColor = 'text-blue-700 bg-blue-50 border border-blue-200';
-                            if ($log->description === 'deleted') $actionColor = 'text-red-700 bg-red-50 border border-red-200';
+                            if ($log->description === 'created' || $log->event === 'created') $actionColor = 'text-green-700 bg-green-50 border border-green-200';
+                            if ($log->description === 'updated' || $log->event === 'updated') $actionColor = 'text-blue-700 bg-blue-50 border border-blue-200';
+                            if ($log->description === 'deleted' || $log->event === 'deleted') $actionColor = 'text-red-700 bg-red-50 border border-red-200';
+                            if ($log->event === 'GENERATED') $actionColor = 'text-purple-700 bg-purple-50 border border-purple-200';
                         @endphp
                         <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold uppercase {{ $actionColor }}">
-                            {{ $log->description }}
+                            {{ $log->event ?? $log->description }}
                         </span>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap text-right">
+                        @php
+                            $subjectName = 'ID: ' . $log->subject_id;
+                            if ($log->subject) {
+                                if ($log->subject instanceof \Modules\Employee\Models\Absensi) {
+                                    $subjectName = 'Absensi - ' . ($log->subject->karyawan->nama ?? 'Karyawan ID: ' . $log->subject->karyawan_id);
+                                } else {
+                                    $subjectName = $log->subject->nama ?? $log->subject->name ?? $log->subject->kode_karyawan ?? $log->subject->nama_jabatan ?? 'ID: ' . $log->subject_id;
+                                }
+                            }
+                        @endphp
                         <div class="flex items-center justify-end gap-2">
-                            <button type="button" onclick="openDetailModal({{ json_encode($log->properties) }}, {{ json_encode($log->description) }}, {{ json_encode($log->subject ? ($log->subject->name ?? $log->subject->kode_karyawan ?? $log->subject->nama_jabatan ?? 'ID: ' . $log->subject_id) : 'ID: ' . $log->subject_id) }})" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip" title="Lihat Detail">
+                            <button type="button" onclick="openDetailModal({{ json_encode($log->properties) }}, {{ json_encode($log->event ?? $log->description) }}, {{ json_encode($subjectName) }}, {{ json_encode($log->description) }})" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip" title="Lihat Detail">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             </button>
                             @if(auth()->user()->role === 'owner')
@@ -172,18 +184,36 @@
 
 @push('scripts')
 <script>
-    function openDetailModal(properties, eventName, subjectName) {
+    // Format currency IDR helper
+    const formatRp = (angka) => {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+    };
+
+    // Employee ID to name mapping from backend
+    const karyawanMap = @json($karyawanMap);
+
+    function openDetailModal(properties, eventName, subjectName, description = '') {
         let html = '';
         
         // Identity Header
+        let headerBg = 'bg-blue-50 border-blue-100';
+        let headerTextClass = 'text-blue-600';
+        let headerIconBg = 'bg-blue-200 text-blue-700';
+        
+        if (eventName === 'GENERATED') {
+            headerBg = 'bg-purple-50 border-purple-100';
+            headerTextClass = 'text-purple-600';
+            headerIconBg = 'bg-purple-200 text-purple-700';
+        }
+
         html += `
         <div class="col-span-1 md:col-span-2 mb-4">
-            <div class="bg-blue-50 rounded-lg p-3 border border-blue-100 flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center font-bold">
+            <div class="${headerBg} rounded-lg p-3 border flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full ${headerIconBg} flex items-center justify-center font-bold">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                 </div>
                 <div>
-                    <p class="text-xs text-blue-600 font-semibold uppercase tracking-wider">Target Data (Subject)</p>
+                    <p class="text-xs ${headerTextClass} font-semibold uppercase tracking-wider">Target Data (Subject)</p>
                     <p class="text-sm font-bold text-slate-800">${subjectName}</p>
                 </div>
             </div>
@@ -196,15 +226,62 @@
 
         const formatValue = (key, val) => {
             if (val === null || val === undefined || val === '') return '<span class="text-slate-400 italic">- (Kosong)</span>';
-            if (key === 'aktif' || key === 'status') {
+            
+            // Format Employee Relational ID to Name
+            if (key === 'karyawan_id') {
+                const name = karyawanMap[val] ?? `Karyawan ID: ${val}`;
+                return `<span class="text-slate-800 font-semibold">${name}</span>`;
+            }
+            
+            // Format Potongan / JSON
+            if (key === 'keterangan_potongan' || (typeof val === 'string' && val.startsWith('[') && val.endsWith(']'))) {
+                try {
+                    const parsed = typeof val === 'string' ? JSON.parse(val) : val;
+                    if (Array.isArray(parsed)) {
+                        if (parsed.length === 0) return '<span class="text-slate-400 italic">- (Kosong)</span>';
+                        return parsed.map(item => {
+                            return `<div class="text-slate-800 font-medium">${item.keterangan || 'Potongan'}: ${formatRp(item.nominal || 0)}</div>`;
+                        }).join('');
+                    }
+                } catch (e) {
+                    // Fall back
+                }
+            }
+
+            if (key === 'aktif') {
                 if (val == 1 || val === true || val === 'aktif' || val === '1') return '<span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-green-100 text-green-700 border border-green-200">Aktif</span>';
                 return '<span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">Nonaktif</span>';
             }
+
+            if (key === 'status') {
+                if (val == 1 || val === true || val === 'aktif' || val === '1') return '<span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-green-100 text-green-700 border border-green-200">Aktif</span>';
+                if (val === 'nonaktif' || val == 0 || val === false || val === '0') return '<span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-slate-100 text-slate-600 border border-slate-200">Nonaktif</span>';
+                
+                let badgeClass = 'bg-slate-100 text-slate-700';
+                if (val === 'hadir') badgeClass = 'bg-green-100 text-green-800 border border-green-200';
+                if (val === 'izin') badgeClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+                if (val === 'sakit') badgeClass = 'bg-orange-100 text-orange-800 border border-orange-200';
+                if (val === 'alpha') badgeClass = 'bg-red-100 text-red-800 border border-red-200';
+                return `<span class="inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase ${badgeClass}">${val}</span>`;
+            }
+
             if (typeof val === 'object') return `<span class="text-slate-800 font-mono text-xs">${JSON.stringify(val)}</span>`;
             return `<span class="text-slate-800 break-words">${val}</span>`;
         };
 
-        if (eventName === 'updated' && hasNew) {
+        if (eventName === 'GENERATED') {
+            html += `
+            <div class="col-span-1 md:col-span-2">
+                <div class="bg-purple-50 rounded-xl p-5 border border-purple-100 flex flex-col gap-2">
+                    <h4 class="text-sm font-bold text-purple-900 flex items-center gap-1.5">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Aktivitas Slip Gaji & Payroll
+                    </h4>
+                    <p class="text-sm text-purple-800 font-semibold mt-1">${description}</p>
+                </div>
+            </div>
+            `;
+        } else if (eventName === 'updated' && hasNew) {
             html += `
             <div class="col-span-1 md:col-span-2">
                 <div class="border border-slate-200 rounded-lg overflow-x-auto">
