@@ -29,8 +29,42 @@ class EmployeeController extends Controller
 
         $employees = $query->paginate(15)->appends($request->query());
         $jabatans = \Modules\Employee\Models\Jabatan::all();
-        
-        return view('employee::index', compact('employees', 'jabatans', 'status', 'search'));
+
+        // 1. Read month and year from request, default to current month and year
+        $month = intval($request->query('month', \Carbon\Carbon::now()->month));
+        $year = intval($request->query('year', \Carbon\Carbon::now()->year));
+
+        // 2. Calculate Prev/Next month & year using Carbon
+        $currentDate = \Carbon\Carbon::createFromDate($year, $month, 1);
+        $prevDate = $currentDate->copy()->subMonth();
+        $nextDate = $currentDate->copy()->addMonth();
+
+        $prevMonth = $prevDate->month;
+        $prevYear = $prevDate->year;
+        $nextMonth = $nextDate->month;
+        $nextYear = $nextDate->year;
+
+        // 3. Make dynamic statistics label based on the month
+        $monthNamesIndo = [
+            1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MARET', 4 => 'APRIL',
+            5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS',
+            9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER'
+        ];
+        $monthNameHeader = $monthNamesIndo[$month] ?? strtoupper($currentDate->translatedFormat('F'));
+
+        $now = \Carbon\Carbon::now();
+        if ($month === $now->month && $year === $now->year) {
+            $statistikLabel = "STATISTIK KEHADIRAN (DI BULAN INI)";
+        } else {
+            $statistikLabel = "STATISTIK KEHADIRAN ({$monthNameHeader})";
+        }
+
+        $activeEmployeeId = $request->query('id');
+
+        return view('employee::index', compact(
+            'employees', 'jabatans', 'status', 'search',
+            'month', 'year', 'prevMonth', 'prevYear', 'nextMonth', 'nextYear', 'statistikLabel', 'monthNameHeader', 'activeEmployeeId'
+        ));
     }
 
     public function store(Request $request)
@@ -124,16 +158,16 @@ class EmployeeController extends Controller
         return redirect()->back()->with('success', "Karyawan berhasil {$statusText}");
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
         $employee = \Modules\Employee\Models\Karyawan::with('jabatan')->findOrFail($id);
 
-        $currentMonth = \Carbon\Carbon::now()->month;
-        $currentYear = \Carbon\Carbon::now()->year;
+        $month = intval($request->query('month', \Carbon\Carbon::now()->month));
+        $year = intval($request->query('year', \Carbon\Carbon::now()->year));
 
         $allAbsensisMonth = \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
-            ->whereMonth('tanggal', $currentMonth)
-            ->whereYear('tanggal', $currentYear)
+            ->whereMonth('tanggal', $month)
+            ->whereYear('tanggal', $year)
             ->get();
 
         $unpaidAbsensis = $allAbsensisMonth->where('status_bayar', 0);
@@ -156,12 +190,45 @@ class EmployeeController extends Controller
             ];
         }
 
+        // Calculate Prev/Next month & year using Carbon
+        $currentDate = \Carbon\Carbon::createFromDate($year, $month, 1);
+        $prevDate = $currentDate->copy()->subMonth();
+        $nextDate = $currentDate->copy()->addMonth();
+
+        $prevMonth = $prevDate->month;
+        $prevYear = $prevDate->year;
+        $nextMonth = $nextDate->month;
+        $nextYear = $nextDate->year;
+
+        // Dynamic statistics label
+        $monthNamesIndo = [
+            1 => 'JANUARI', 2 => 'FEBRUARI', 3 => 'MARET', 4 => 'APRIL',
+            5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS',
+            9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOVEMBER', 12 => 'DESEMBER'
+        ];
+        $monthNameHeader = $monthNamesIndo[$month] ?? strtoupper($currentDate->translatedFormat('F'));
+
+        $now = \Carbon\Carbon::now();
+        if ($month === $now->month && $year === $now->year) {
+            $statistikLabel = "STATISTIK KEHADIRAN (DI BULAN INI)";
+        } else {
+            $statistikLabel = "STATISTIK KEHADIRAN ({$monthNameHeader})";
+        }
+
         return response()->json([
             'employee' => $employee,
             'rekap_absensi' => $rekap,
             'absensi_harian' => $allAbsensisMonth,
             'kalender_absensi' => $kalender_absensi,
             'estimasi_gaji' => $estimasi_gaji,
+            'month' => $month,
+            'year' => $year,
+            'prevMonth' => $prevMonth,
+            'prevYear' => $prevYear,
+            'nextMonth' => $nextMonth,
+            'nextYear' => $nextYear,
+            'statistikLabel' => $statistikLabel,
+            'monthNameHeader' => $monthNameHeader,
         ]);
     }
 
@@ -184,8 +251,8 @@ class EmployeeController extends Controller
 
         $query = \Modules\Employee\Models\Absensi::where('karyawan_id', $id);
 
-        $currentMonth = \Carbon\Carbon::now()->month;
-        $currentYear = \Carbon\Carbon::now()->year;
+        $currentMonth = intval($request->query('month', \Carbon\Carbon::now()->month));
+        $currentYear = intval($request->query('year', \Carbon\Carbon::now()->year));
 
         if ($tanggalPembayaran) {
             $query->where('tanggal_pembayaran', $tanggalPembayaran);
@@ -216,6 +283,19 @@ class EmployeeController extends Controller
                 $potongan_details = [['keterangan' => $keterangan_potongan, 'nominal' => $potongan]];
             }
         }
+
+        $monthNamesIndo = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        $monthName = $monthNamesIndo[$currentMonth] ?? \Carbon\Carbon::createFromDate($currentYear, $currentMonth, 1)->translatedFormat('F');
+
+        activity('Employee')
+            ->performedOn($employee)
+            ->causedBy(auth()->user())
+            ->event('GENERATED')
+            ->log("Mencetak Slip Gaji {$employee->nama} Periode {$monthName} {$currentYear}");
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('employee::slip_gaji', compact('employee', 'rekap', 'gaji_harian', 'total_gaji_pokok', 'bonus', 'potongan', 'potongan_details', 'total_gaji', 'currentMonth', 'currentYear', 'tanggalPembayaran'));
         
@@ -282,14 +362,20 @@ class EmployeeController extends Controller
         if (!$employee->aktif) {
             abort(403, 'Aksi ditolak. Karyawan sudah nonaktif.');
         }
+
+        // Read active month and year from request, defaulting to current
+        $month = intval($request->query('month', \Carbon\Carbon::now()->month));
+        $year = intval($request->query('year', \Carbon\Carbon::now()->year));
         
         $potongan = $employee->potongan ?? 0;
         $keterangan_potongan = $employee->keterangan_potongan;
         $bonus = $employee->bonus_tetap ?? 0;
 
-        // 1. Dapatkan rekap absensi yang belum dibayar untuk menghitung gaji pokok secara historis
+        // 1. Dapatkan rekap absensi yang belum dibayar untuk menghitung gaji pokok secara historis pada bulan/tahun spesifik
         $unpaidAbsensis = \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
             ->where('status_bayar', 0)
+            ->whereMonth('tanggal', $month)
+            ->whereYear('tanggal', $year)
             ->get();
             
         $jumlahHariKerja = $unpaidAbsensis->where('status', 'hadir')->count();
@@ -299,8 +385,8 @@ class EmployeeController extends Controller
         // 2. Simpan transaksi penggajian ke database (Tabel penggajian) agar tercatat historis
         \Illuminate\Support\Facades\DB::table('penggajian')->insert([
             'karyawan_id' => $id,
-            'periode_mulai' => \Carbon\Carbon::now()->startOfMonth()->toDateString(),
-            'periode_selesai' => \Carbon\Carbon::now()->toDateString(),
+            'periode_mulai' => \Carbon\Carbon::createFromDate($year, $month, 1)->startOfMonth()->toDateString(),
+            'periode_selesai' => \Carbon\Carbon::createFromDate($year, $month, 1)->endOfMonth()->toDateString(),
             'tanggal_bayar' => $now->toDateString(),
             'jumlah_hari_kerja' => $jumlahHariKerja,
             'total_gaji_pokok' => $totalGajiPokok,
@@ -310,9 +396,11 @@ class EmployeeController extends Controller
             'updated_at' => $now,
         ]);
 
-        // 3. Update status absensi menjadi dibayarkan
+        // 3. Update status absensi menjadi dibayarkan secara spesifik bulan/tahun ini
         \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
             ->where('status_bayar', 0)
+            ->whereMonth('tanggal', $month)
+            ->whereYear('tanggal', $year)
             ->update([
                 'status_bayar' => 1,
                 'tanggal_pembayaran' => $now
@@ -325,6 +413,19 @@ class EmployeeController extends Controller
             'keterangan_potongan' => null
         ]);
 
+        $monthNamesIndo = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        $monthName = $monthNamesIndo[$month] ?? \Carbon\Carbon::createFromDate($year, $month, 1)->translatedFormat('F');
+
+        activity('Employee')
+            ->performedOn($employee)
+            ->causedBy(auth()->user())
+            ->event('GENERATED')
+            ->log("Melakukan Pembayaran Gaji {$employee->nama} Periode {$monthName} {$year}");
+
         return response()->json([
             'success' => true,
             'message' => 'Gaji berhasil dibayarkan',
@@ -333,7 +434,9 @@ class EmployeeController extends Controller
                 'tanggal_pembayaran' => $now->toDateTimeString(),
                 'bonus' => $bonus,
                 'potongan' => $potongan,
-                'keterangan_potongan' => $keterangan_potongan
+                'keterangan_potongan' => $keterangan_potongan,
+                'month' => $month,
+                'year' => $year
             ])
         ]);
     }

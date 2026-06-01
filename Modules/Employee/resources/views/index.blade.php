@@ -140,14 +140,14 @@
                 </div>
 
                 <!-- Generate Slip Button -->
-                <a href="#" id="btnGenerateSlip" class="w-full mt-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg py-3 flex items-center justify-center gap-2 font-medium transition-colors">
+                <a href="{{ route('employee.slipGaji', ['id' => $activeEmployeeId ?? 0, 'month' => $month, 'year' => $year]) }}" id="btnGenerateSlip" class="w-full mt-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg py-3 flex items-center justify-center gap-2 font-medium transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     Generate Slip Gaji
                 </a>
 
                 <!-- Statistik Kehadiran -->
                 <div>
-                    <h4 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Statistik Kehadiran (Bulan Ini)</h4>
+                    <h4 id="statistikTitle" class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">{{ $statistikLabel }}</h4>
                     <div class="grid grid-cols-2 gap-3">
                         <div class="bg-green-50 p-3 rounded-lg border border-green-100 flex flex-col justify-center items-center">
                             <span class="text-2xl font-bold text-green-700" id="statHadir">0</span>
@@ -173,11 +173,11 @@
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-base font-bold text-slate-900">Kalender Absensi</h4>
                         <div class="flex items-center gap-3">
-                            <button class="p-1 rounded hover:bg-slate-100 text-slate-500">
+                            <button type="button" id="btnPrevMonth" class="p-1 rounded hover:bg-slate-100 text-slate-500">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                             </button>
-                            <span class="text-sm font-medium text-slate-700" id="calendarMonthName">Mei 2026</span>
-                            <button class="p-1 rounded hover:bg-slate-100 text-slate-500">
+                            <span class="text-sm font-medium text-slate-700" id="calendarMonthName">{{ ucfirst(strtolower($monthNameHeader)) }} {{ $year }}</span>
+                            <button type="button" id="btnNextMonth" class="p-1 rounded hover:bg-slate-100 text-slate-500">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                             </button>
                         </div>
@@ -534,13 +534,26 @@
 </div>
 
 <script>
+    // Dynamic active state variables for AJAX tracking
+    let currentEmployeeId = {{ $activeEmployeeId ?? 'null' }};
+    let currentViewedMonth = {{ $month }};
+    let currentViewedYear = {{ $year }};
+    let prevMonth = {{ $prevMonth }};
+    let prevYear = {{ $prevYear }};
+    let nextMonth = {{ $nextMonth }};
+    let nextYear = {{ $nextYear }};
+
     // Format currency IDR
     const formatRp = (angka) => {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
     };
 
     // Load Employee Detail
-    function loadEmployeeDetail(id) {
+    function loadEmployeeDetail(id, targetMonth = null, targetYear = null) {
+        if (targetMonth) currentViewedMonth = targetMonth;
+        if (targetYear) currentViewedYear = targetYear;
+        currentEmployeeId = id;
+
         // Highlight active row
         document.querySelectorAll('.employee-row').forEach(row => {
             row.classList.remove('bg-blue-50', 'border-l-4', 'border-blue-600');
@@ -551,7 +564,7 @@
         }
 
         // Fetch Data
-        fetch(`/employees/${id}`)
+        fetch(`/employees/${id}?month=${currentViewedMonth}&year=${currentViewedYear}`)
             .then(response => response.json())
             .then(data => {
                 document.getElementById('detailEmptyState').classList.add('hidden');
@@ -559,6 +572,14 @@
 
                 const emp = data.employee;
                 const rekap = data.rekap_absensi;
+                
+                // Update global active state variables
+                currentViewedMonth = data.month;
+                currentViewedYear = data.year;
+                prevMonth = data.prevMonth;
+                prevYear = data.prevYear;
+                nextMonth = data.nextMonth;
+                nextYear = data.nextYear;
                 
                 // Populate Info
                 document.getElementById('detailInisial').textContent = emp.nama.charAt(0).toUpperCase();
@@ -589,6 +610,7 @@
                     btnSlip.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-slate-400', 'hover:bg-slate-400');
                     btnSlip.classList.add('bg-slate-900', 'hover:bg-slate-800');
                     btnSlip.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg> Generate Slip Gaji';
+                    btnSlip.href = `/employees/${emp.id}/slip-gaji?month=${data.month}&year=${data.year}`;
                     btnSlip.onclick = function(e) {
                         e.preventDefault();
                         openPreviewModal(emp, rekap, gajiHarian, totalGajiPokok, bonus, potongan, totalGaji);
@@ -605,11 +627,12 @@
                 document.getElementById('statIzin').textContent = rekap.izin;
                 document.getElementById('statSakit').textContent = rekap.sakit;
                 document.getElementById('statAlpha').textContent = rekap.alpha;
+                document.getElementById('statistikTitle').textContent = data.statistikLabel;
 
                 // Riwayat Kalender
-                const date = new Date();
-                const year = date.getFullYear();
-                const month = date.getMonth();
+                const today = new Date();
+                const year = data.year;
+                const month = data.month - 1; // JS months are 0-11
                 
                 const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
                 document.getElementById('calendarMonthName').textContent = `${monthNames[month]} ${year}`;
@@ -662,7 +685,8 @@
                                 </div>
                             `;
                         } else {
-                            if(dayCounter <= date.getDate()){
+                            const cellDate = new Date(year, month, dayCounter);
+                            if (cellDate <= today) {
                                 cell.innerHTML += `
                                     <div class="mt-auto mb-0.5 sm:mb-1 mx-0.5 sm:mx-1">
                                         <div class="px-0.5 sm:px-1 py-0.5 text-[8px] sm:text-[10px] rounded text-slate-400 uppercase text-center truncate bg-slate-50 border border-slate-100">
@@ -740,7 +764,7 @@
             btn.innerHTML = 'Memproses...';
             btn.disabled = true;
 
-            fetch(`/employees/${emp.id}/bayar-gaji`, {
+            fetch(`/employees/${emp.id}/bayar-gaji?month=${currentViewedMonth}&year=${currentViewedYear}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -905,5 +929,26 @@
         
         document.getElementById('modalToggleStatus').classList.remove('hidden');
     }
+
+    // Auto-load employee details and register navigation buttons if present
+    window.addEventListener('DOMContentLoaded', () => {
+        // Register Prev/Next month button click handlers
+        document.getElementById('btnPrevMonth').addEventListener('click', () => {
+            if (currentEmployeeId) {
+                loadEmployeeDetail(currentEmployeeId, prevMonth, prevYear);
+            }
+        });
+        document.getElementById('btnNextMonth').addEventListener('click', () => {
+            if (currentEmployeeId) {
+                loadEmployeeDetail(currentEmployeeId, nextMonth, nextYear);
+            }
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const empId = urlParams.get('id');
+        if (empId) {
+            loadEmployeeDetail(empId);
+        }
+    });
 </script>
 @endsection

@@ -40,8 +40,9 @@ class AuditLogController extends Controller
         }
 
         $logs = $query->orderBy('created_at', 'desc')->paginate(15)->appends($request->query());
+        $karyawanMap = \Modules\Employee\Models\Karyawan::pluck('nama', 'id')->toArray();
 
-        return view('audit_log.index', compact('logs'));
+        return view('audit_log.index', compact('logs', 'karyawanMap'));
     }
 
     public function destroy($id)
