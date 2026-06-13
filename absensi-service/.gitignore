@@ -1,0 +1,9 @@
+# folder cache Python
+__pycache__/
+
+# model AI (diunduh manual saja)
+models/*.tflite
+
+# dataset wajah (tiap toko punya dataset berbeda)
+data/
+*.pkl

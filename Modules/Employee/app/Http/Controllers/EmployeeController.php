@@ -116,6 +116,8 @@ class EmployeeController extends Controller
             'bonus_tetap' => 'nullable|numeric|min:0',
             'potongan' => 'nullable|numeric|min:0',
             'keterangan_potongan' => 'nullable|string|max:255',
+            'foto_wajah' => 'nullable|array|max:3',
+            'foto_wajah.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         $newPotongan = $employee->potongan + ($request->potongan ?? 0);
@@ -145,6 +147,58 @@ class EmployeeController extends Controller
             'keterangan_potongan' => $newKet,
             'aktif' => $request->has('aktif') ? 1 : 0,
         ]);
+
+        // Proses unggah foto wajah untuk Face Recognition
+        $fotoListBase64 = [];
+        if ($request->hasFile('foto_wajah')) {
+            $files = $request->file('foto_wajah');
+            foreach ($files as $file) {
+                if ($file->isValid()) {
+                    $fileData = file_get_contents($file->getRealPath());
+                    $base64 = 'data:' . $file->getMimeType() . ';base64,' . base64_encode($fileData);
+                    $fotoListBase64[] = $base64;
+                }
+            }
+        }
+
+        if (!empty($fotoListBase64)) {
+            $faceSuccess = true;
+            $faceErrorMsg = '';
+
+            try {
+                $faceRecognitionUrl = env('FACE_RECOGNITION_URL', 'http://localhost:5000');
+                // Mengirim request POST ke server Python Flask endpoint /registrasi
+                $response = \Illuminate\Support\Facades\Http::timeout(15)->post("{$faceRecognitionUrl}/registrasi", [
+                    'nama' => $employee->nama,
+                    'foto_list' => $fotoListBase64
+                ]);
+
+                if ($response->successful()) {
+                    $resData = $response->json();
+                    if (isset($resData['status']) && $resData['status'] === 'success') {
+                        $faceSuccess = true;
+                    } else {
+                        $faceSuccess = false;
+                        $faceErrorMsg = $resData['message'] ?? 'Respon gagal dari server Face Recognition.';
+                    }
+                } else {
+                    $faceSuccess = false;
+                    $faceErrorMsg = 'Server Face Recognition mengembalikan respon error (' . $response->status() . ').';
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Gagal terhubung ke face recognition registrasi', [
+                    'message' => $e->getMessage()
+                ]);
+                $faceSuccess = false;
+                $faceErrorMsg = 'Tidak dapat terhubung ke server Face Recognition. Pastikan service Python aktif.';
+            }
+
+            if ($faceSuccess) {
+                return redirect()->back()->with('success', 'Data karyawan berhasil diperbarui dan registrasi wajah berhasil dilakukan.');
+            } else {
+                return redirect()->back()->with('warning', 'Data karyawan berhasil diperbarui, namun registrasi wajah GAGAL: ' . $faceErrorMsg);
+            }
+        }
 
         return redirect()->back()->with('success', 'Data karyawan berhasil diperbarui');
     }

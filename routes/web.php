@@ -16,6 +16,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/chart-data', [DashboardController::class, 'chartData'])->name('dashboard.chart-data');
 
+    Route::get('/absensi/kamera', [\App\Http\Controllers\FaceAbsensiController::class, 'index'])->name('absensi.kamera');
+    Route::post('/absensi/kamera', [\App\Http\Controllers\FaceAbsensiController::class, 'store'])->name('absensi.kamera.store');
+
     Route::get('/audit-logs', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('audit-logs.index');
     Route::delete('/audit-logs/{id}', [\App\Http\Controllers\AuditLogController::class, 'destroy'])->name('audit-logs.destroy');
 

@@ -183,6 +183,16 @@
                             <span class="flex-1 text-sm font-medium">Stock Opname</span>
                         </a>
 
+                        <a href="{{ route('absensi.kamera') }}"
+                            class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->is('absensi/kamera*') ? 'bg-[#2563eb] text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z">
+                                </path>
+                            </svg>
+                            <span class="flex-1 text-sm font-medium">Absensi Kamera</span>
+                        </a>
+
                         @if(in_array(auth()->user()->role, ['owner', 'supervisor']))
                             <!-- MANAJEMEN -->
                             <div class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mt-6 mb-3">

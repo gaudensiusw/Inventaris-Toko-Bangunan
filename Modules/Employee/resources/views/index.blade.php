@@ -4,6 +4,33 @@
 @section('header_title', 'Manajemen Karyawan')
 
 @section('content')
+    @if(session('success'))
+        <div class="mb-6 p-4 bg-green-50 text-green-800 text-sm rounded-xl border border-green-200 flex items-center gap-3 shadow-sm animate-fade-in">
+            <svg class="w-5 h-5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div>
+                <span class="font-bold">Sukses!</span> {{ session('success') }}
+            </div>
+        </div>
+    @endif
+
+    @if(session('warning'))
+        <div class="mb-6 p-4 bg-amber-50 text-amber-800 text-sm rounded-xl border border-amber-200 flex items-center gap-3 shadow-sm animate-fade-in">
+            <svg class="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <div>
+                <span class="font-bold">Peringatan!</span> {{ session('warning') }}
+            </div>
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="mb-6 p-4 bg-red-50 text-red-800 text-sm rounded-xl border border-red-200 flex items-center gap-3 shadow-sm animate-fade-in">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <div>
+                <span class="font-bold">Error!</span> {{ session('error') }}
+            </div>
+        </div>
+    @endif
+
 <div class="space-y-6">
     <!-- Header Section -->
     <div class="flex items-center justify-between">
@@ -249,7 +276,7 @@
             </button>
         </div>
         <div class="flex-1 overflow-y-auto p-6">
-            <form id="formEdit" method="POST" class="space-y-5">
+            <form id="formEdit" method="POST" enctype="multipart/form-data" class="space-y-5">
                 @csrf
                 @method('PUT')
                 
@@ -338,6 +365,16 @@
                             <input type="text" id="editKetPotongan" name="keterangan_potongan" class="w-full border-slate-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: Kasbon tambahan">
                             <p class="text-xs text-slate-500 mt-1">Akan digabungkan dengan keterangan lama</p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Registrasi Wajah Section -->
+                <div class="pt-4 border-t border-slate-100">
+                    <h3 class="text-base font-bold text-slate-900 mb-4">Registrasi Wajah (Face Recognition)</h3>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">Unggah Foto Wajah Karyawan</label>
+                        <input type="file" name="foto_wajah[]" multiple accept="image/*" class="w-full text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 border border-slate-200 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500">
+                        <p class="text-xs text-slate-500 mt-1.5">Unggah 1 hingga 3 foto wajah dengan pencahayaan baik dan menghadap ke depan. Kosongkan jika tidak ingin mendaftarkan ulang wajah.</p>
                     </div>
                 </div>
 
