@@ -25,7 +25,7 @@ class POSController extends Controller
     public function history()
     {
         $user = auth()->user();
-        $query = POS::with('pelanggan')->latest();
+        $query = POS::with(['pelanggan', 'details.product'])->latest();
 
         // If operator, only show their own transactions
         if ($user->role === 'operator') {
@@ -127,6 +127,20 @@ class POSController extends Controller
                 if ($request->metode_pembayaran === 'Bon') {
                     $jatuh_tempo = $request->jatuh_tempo ?: now()->addDays($customer->tenor_bayar ?: 30);
                 }
+            } else {
+                // If customer name is empty or is 'umum', link to the default 'Umum' customer
+                $umumCustomer = Customer::firstOrCreate(
+                    ['kode' => 'CUST-UMUM'],
+                    [
+                        'nama' => 'Umum',
+                        'kategori' => 'Umum',
+                        'limit_kredit' => 0,
+                        'tenor_bayar' => 30,
+                        'status' => 'aktif'
+                    ]
+                );
+                $pelanggan_id = $umumCustomer->id;
+                $nama_pelanggan = 'Umum';
             }
 
             $no_transaksi = 'TRX-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
