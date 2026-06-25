@@ -23,8 +23,15 @@ class Product extends Model
         'min_stok',
         'harga_beli',
         'harga_jual',
+        'aktif_grosir',
+        'min_qty_grosir',
+        'harga_grosir',
         'sku',
         'image'
+    ];
+
+    protected $casts = [
+        'aktif_grosir' => 'boolean',
     ];
 
     public function category()

@@ -332,6 +332,27 @@
                         </div>
                     </button>
                 </template>
+
+                <!-- Opsi Grosir -->
+                <template x-if="selectedProduct?.aktif_grosir && selectedProduct?.harga_grosir > 0">
+                    <button @click="addGrosirToCart(selectedProduct)"
+                        class="w-full border-2 border-emerald-400 bg-emerald-50 hover:bg-emerald-100 p-4 rounded-xl transition-all group">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="text-left flex-1">
+                                <div class="flex items-center gap-2 mb-0.5">
+                                    <span class="bg-emerald-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Harga Grosir</span>
+                                </div>
+                                <div class="font-bold text-emerald-800 group-hover:text-emerald-900 mt-1" x-text="selectedProduct?.unit + ' (Grosir \u2265 ' + selectedProduct?.min_qty_grosir + ')'"></div>
+                                <div class="text-[10px] text-emerald-600 font-semibold mt-0.5" x-text="'Beli minimal ' + selectedProduct?.min_qty_grosir + ' ' + selectedProduct?.unit + ', harga lebih hemat!'"></div>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <div class="font-black text-emerald-600 text-base" x-text="formatCurrency(selectedProduct?.harga_grosir)"></div>
+                                <div class="text-[10px] text-slate-400 line-through" x-text="formatCurrency(selectedProduct?.harga_jual)"></div>
+                                <div class="text-[9px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded mt-0.5" x-text="'Hemat ' + formatCurrency(selectedProduct?.harga_jual - selectedProduct?.harga_grosir) + '/satuan'"></div>
+                            </div>
+                        </div>
+                    </button>
+                </template>
             </div>
             <div class="p-4 border-t border-slate-100 bg-white flex justify-center">
                 <button @click="unitModalOpen = false" class="text-xs font-bold text-slate-500 hover:text-slate-700">Kembali ke Daftar Barang</button>
@@ -567,7 +588,40 @@ function posSystem() {
                 });
             }
             this.unitModalOpen = false;
-            // this.fetchRecommendations(product.nama); // Dinonaktifkan
+        },
+
+        addGrosirToCart(product) {
+            const minQty = product.min_qty_grosir || 1;
+            const cartId = product.id + '-grosir';
+            const idx = this.cart.findIndex(i => i.cartId === cartId);
+            const availableQty = product.stok;
+
+            if (idx > -1) {
+                // Sudah ada di cart, tambah qty 1
+                if (this.cart[idx].qty < availableQty) {
+                    this.cart[idx].qty++;
+                } else {
+                    alert(`Stok tidak mencukupi. Maks: ${availableQty} ${product.unit}`);
+                }
+            } else {
+                if (availableQty < minQty) {
+                    alert(`Stok tidak mencukupi untuk pembelian grosir (minimal ${minQty} ${product.unit}). Stok saat ini: ${availableQty}`);
+                    return;
+                }
+                this.cart.push({
+                    cartId: cartId,
+                    produk_id: product.id,
+                    nama: product.nama,
+                    satuan_nama: product.unit + ' (Grosir)',
+                    isi: 1,
+                    qty: minQty,
+                    harga: product.harga_grosir,
+                    diskon_rp: 0,
+                    is_grosir: true,
+                    min_qty_grosir: minQty
+                });
+            }
+            this.unitModalOpen = false;
         },
 
         // fetchRecommendations(namaBarang) {

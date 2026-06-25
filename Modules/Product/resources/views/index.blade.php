@@ -35,6 +35,9 @@
                 'harga_jual'      => (int)$p->harga_jual,
                 'stok'            => (int)$p->stok,
                 'min_stok'        => (int)$p->min_stok,
+                'aktif_grosir'    => (bool)$p->aktif_grosir,
+                'min_qty_grosir'  => (int)$p->min_qty_grosir,
+                'harga_grosir'    => (int)$p->harga_grosir,
                 'image'           => $p->image,
                 'units'           => $p->units->map(function($u) {
                     return [
@@ -86,14 +89,16 @@
                     stok: 0, min_stok: 0, units: [],
                     kategori_id: null, sub_kategori_id: null,
                     supplier_id: null, imagePreview: null,
-                    skuAuto: false
+                    skuAuto: false,
+                    aktif_grosir: false, min_qty_grosir: 10, harga_grosir: 0
                 },
                 addForm: {
                     harga_beli_kemasan: 0, isi_kemasan_beli: 1,
                     harga_beli: 0, harga_jual: 0, margin: 0,
                     kategori_id: null, sub_kategori_id: null,
                     units: [], unit: '', imagePreview: null,
-                    skuAuto: true
+                    skuAuto: true,
+                    aktif_grosir: false, min_qty_grosir: 10, harga_grosir: 0
                 },
                 editSubCategories: [],
                 addSubCategories: [],
@@ -236,13 +241,14 @@
                     }
                 },
 
-                async openEditModal(product) {
+                    async openEditModal(product) {
                     this.editForm = Object.assign({
                         id: null, nama: '', sku: '', merk: '', unit: '',
                         harga_beli: 0, harga_jual: 0, margin: 0,
                         stok: 0, min_stok: 0, units: [],
                         kategori_id: null, sub_kategori_id: null,
-                        supplier_id: null, imagePreview: null
+                        supplier_id: null, imagePreview: null,
+                        aktif_grosir: false, min_qty_grosir: 10, harga_grosir: 0
                     }, JSON.parse(JSON.stringify(product)));
 
                     this.editForm.harga_beli = Math.floor(this.editForm.harga_beli);
@@ -925,6 +931,54 @@
                         <!-- Hidden but synced fields -->
                         <input type="hidden" name="unit" :value="addForm.unit">
                         <input type="hidden" name="harga_jual" :value="addForm.harga_jual">
+
+                        <!-- HARGA GROSIR SECTION (ADD) -->
+                        <div class="border border-emerald-200 bg-emerald-50/40 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                    <h4 class="text-[11px] font-black text-emerald-700 uppercase tracking-widest">Harga Grosir</h4>
+                                </div>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <span class="text-[10px] font-bold text-slate-500">Aktifkan</span>
+                                    <div class="relative">
+                                        <input type="checkbox" name="aktif_grosir" value="1" x-model="addForm.aktif_grosir" class="sr-only peer">
+                                        <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:bg-emerald-500 transition-colors"></div>
+                                        <div class="absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full shadow transition-transform peer-checked:translate-x-4"></div>
+                                    </div>
+                                </label>
+                            </div>
+                            <template x-if="addForm.aktif_grosir">
+                                <div class="space-y-3">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Min. Qty Grosir <span class="text-red-500">*</span></label>
+                                            <div class="relative">
+                                                <input type="number" name="min_qty_grosir" x-model="addForm.min_qty_grosir" min="2" @focus="$event.target.select()"
+                                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 pr-14 focus:ring-emerald-500 focus:border-emerald-500 bg-white font-bold">
+                                                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold" x-text="addForm.unit || 'unit'"></span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga Grosir / Satuan <span class="text-red-500">*</span></label>
+                                            <div class="relative">
+                                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald-500">Rp</span>
+                                                <input type="text" :value="formatNumber(addForm.harga_grosir)"
+                                                    @input="addForm.harga_grosir = unformatNumber($event.target.value)" @focus="$event.target.select()"
+                                                    class="w-full pl-9 pr-3 py-2.5 border border-emerald-300 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white font-mono font-bold text-emerald-700">
+                                                <input type="hidden" name="harga_grosir" :value="addForm.harga_grosir">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="px-3 py-2 bg-emerald-100 rounded-lg border border-emerald-200">
+                                        <p class="text-[10px] text-emerald-700 font-semibold italic" x-text="`Artinya: Jika pembeli membeli ≥ ${addForm.min_qty_grosir || '?'} ${addForm.unit || 'unit'}, harga otomatis menjadi Rp ${formatNumber(addForm.harga_grosir)}/satuan (hemat Rp ${formatNumber(Math.max(0, addForm.harga_jual - addForm.harga_grosir))}/satuan)`"></p>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="!addForm.aktif_grosir">
+                                <p class="text-[10px] text-slate-400 italic">Aktifkan untuk memberikan harga khusus saat pembelian dalam jumlah banyak.</p>
+                            </template>
+                        </div>
                     </div>
                     <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
                         <button type="button" @click="addModalOpen = false"
@@ -1206,6 +1260,54 @@
                         <!-- Hidden but synced fields -->
                         <input type="hidden" name="unit" :value="editForm.unit">
                         <input type="hidden" name="harga_jual" :value="editForm.harga_jual">
+
+                        <!-- HARGA GROSIR SECTION (EDIT) -->
+                        <div class="border border-emerald-200 bg-emerald-50/40 rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                    <h4 class="text-[11px] font-black text-emerald-700 uppercase tracking-widest">Harga Grosir</h4>
+                                </div>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <span class="text-[10px] font-bold text-slate-500">Aktifkan</span>
+                                    <div class="relative">
+                                        <input type="checkbox" name="aktif_grosir" value="1" x-model="editForm.aktif_grosir" class="sr-only peer">
+                                        <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:bg-emerald-500 transition-colors"></div>
+                                        <div class="absolute top-0.5 left-0.5 bg-white w-4 h-4 rounded-full shadow transition-transform peer-checked:translate-x-4"></div>
+                                    </div>
+                                </label>
+                            </div>
+                            <template x-if="editForm.aktif_grosir">
+                                <div class="space-y-3">
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Min. Qty Grosir <span class="text-red-500">*</span></label>
+                                            <div class="relative">
+                                                <input type="number" name="min_qty_grosir" x-model="editForm.min_qty_grosir" min="2" @focus="$event.target.select()"
+                                                    class="w-full border border-slate-300 rounded-lg text-sm p-2.5 pr-14 focus:ring-emerald-500 focus:border-emerald-500 bg-white font-bold">
+                                                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold" x-text="editForm.unit || 'unit'"></span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga Grosir / Satuan <span class="text-red-500">*</span></label>
+                                            <div class="relative">
+                                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-emerald-500">Rp</span>
+                                                <input type="text" :value="formatNumber(editForm.harga_grosir)"
+                                                    @input="editForm.harga_grosir = unformatNumber($event.target.value)" @focus="$event.target.select()"
+                                                    class="w-full pl-9 pr-3 py-2.5 border border-emerald-300 rounded-lg text-sm focus:ring-emerald-500 focus:border-emerald-500 bg-white font-mono font-bold text-emerald-700">
+                                                <input type="hidden" name="harga_grosir" :value="editForm.harga_grosir">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="px-3 py-2 bg-emerald-100 rounded-lg border border-emerald-200">
+                                        <p class="text-[10px] text-emerald-700 font-semibold italic" x-text="`Artinya: Jika pembeli membeli ≥ ${editForm.min_qty_grosir || '?'} ${editForm.unit || 'unit'}, harga otomatis menjadi Rp ${formatNumber(editForm.harga_grosir)}/satuan (hemat Rp ${formatNumber(Math.max(0, editForm.harga_jual - editForm.harga_grosir))}/satuan)`"></p>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="!editForm.aktif_grosir">
+                                <p class="text-[10px] text-slate-400 italic">Aktifkan untuk memberikan harga khusus saat pembelian dalam jumlah banyak.</p>
+                            </template>
+                        </div>
                     </div>
                     <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
                         <button type="button" @click="editModalOpen = false"

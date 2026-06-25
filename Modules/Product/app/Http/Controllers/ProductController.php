@@ -77,6 +77,9 @@ class ProductController extends Controller
             'harga_beli'      => 'required|numeric|min:0',
             'harga_jual'      => 'required|numeric|min:0',
             'min_stok'        => 'required|numeric|min:0',
+            'aktif_grosir'    => 'nullable|boolean',
+            'min_qty_grosir'  => 'nullable|integer|min:1',
+            'harga_grosir'    => 'nullable|numeric|min:0',
             'units'           => 'nullable|array',
             'units.*.nama'    => 'required|string',
             'units.*.isi'     => 'required|numeric|min:0.01',
@@ -84,6 +87,13 @@ class ProductController extends Controller
             'units.*.is_base' => 'nullable',
             'image'           => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Handle checkbox (tidak terkirim jika unchecked)
+        $validated['aktif_grosir'] = $request->boolean('aktif_grosir');
+        if (!$validated['aktif_grosir']) {
+            $validated['min_qty_grosir'] = null;
+            $validated['harga_grosir'] = null;
+        }
 
         if ($request->hasFile('image')) {
             $path = $request->file('image')->store('products', 'public');
@@ -163,6 +173,9 @@ class ProductController extends Controller
             'harga_beli'      => 'required|numeric|min:0',
             'harga_jual'      => 'required|numeric|min:0',
             'min_stok'        => 'required|numeric|min:0',
+            'aktif_grosir'    => 'nullable|boolean',
+            'min_qty_grosir'  => 'nullable|integer|min:1',
+            'harga_grosir'    => 'nullable|numeric|min:0',
             'units'           => 'nullable|array',
             'units.*.nama'    => 'required|string',
             'units.*.isi'     => 'required|numeric|min:0.01',
@@ -170,6 +183,13 @@ class ProductController extends Controller
             'units.*.is_base' => 'nullable',
             'image'           => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Handle checkbox (tidak terkirim jika unchecked)
+        $validated['aktif_grosir'] = $request->boolean('aktif_grosir');
+        if (!$validated['aktif_grosir']) {
+            $validated['min_qty_grosir'] = null;
+            $validated['harga_grosir'] = null;
+        }
 
         if ($request->hasFile('image')) {
             if ($product->image && \Storage::disk('public')->exists($product->image)) {
