@@ -39,8 +39,8 @@
                     <option value="User" {{ request('modul') == 'User' ? 'selected' : '' }}>User (Akun)</option>
                     <option value="Karyawan" {{ request('modul') == 'Karyawan' ? 'selected' : '' }}>Karyawan</option>
                     <option value="Absensi" {{ request('modul') == 'Absensi' ? 'selected' : '' }}>Absensi</option>
-                    <option value="Product" {{ request('modul') == 'Product' ? 'selected' : '' }}>Produk</option>
-                    <option value="Stock" {{ request('modul') == 'Stock' ? 'selected' : '' }}>Stok/Opname</option>
+                    <option value="DataBarang" {{ request('modul') == 'DataBarang' ? 'selected' : '' }}>Data Barang</option>
+                    <option value="StockOpname" {{ request('modul') == 'StockOpname' ? 'selected' : '' }}>Stock Opname</option>
                 </select>
             </div>
             
@@ -51,7 +51,6 @@
                     <option value="created" {{ request('aksi') == 'created' ? 'selected' : '' }}>Created</option>
                     <option value="updated" {{ request('aksi') == 'updated' ? 'selected' : '' }}>Updated</option>
                     <option value="deleted" {{ request('aksi') == 'deleted' ? 'selected' : '' }}>Deleted</option>
-                    <option value="GENERATED" {{ request('aksi') == 'GENERATED' ? 'selected' : '' }}>Generated</option>
                 </select>
             </div>
  
@@ -127,8 +126,31 @@
                                 }
                             }
                         @endphp
+                        @php
+                            // Derive a human-readable module name from log_name or subject_type
+                            $rawModule = $log->log_name ?? '';
+                            if (empty($rawModule) && $log->subject_type) {
+                                $parts = explode('\\', $log->subject_type);
+                                $rawModule = end($parts);
+                            }
+                            $moduleLabels = [
+                                'Absensi'       => 'Absensi',
+                                'Employee'      => 'Data Karyawan',
+                                'Karyawan'      => 'Data Karyawan',
+                                'User'          => 'Manajemen Akun',
+                                'DataBarang'    => 'Data Barang',
+                                'Product'       => 'Data Barang',   // backward compat
+                                'StockOpname'   => 'Stock Opname',
+                                'Stock'         => 'Stock Opname',  // backward compat
+                                'POS'           => 'Transaksi POS',
+                                'Pembelian'     => 'Pembelian',
+                                'Supplier'      => 'Supplier',
+                                'Customer'      => 'Customer',
+                            ];
+                            $moduleName = $moduleLabels[$rawModule] ?? $rawModule;
+                        @endphp
                         <div class="flex items-center justify-end gap-2">
-                            <button type="button" onclick="openDetailModal({{ json_encode($log->properties) }}, {{ json_encode($log->event ?? $log->description) }}, {{ json_encode($subjectName) }}, {{ json_encode($log->description) }})" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip" title="Lihat Detail">
+                            <button type="button" onclick="openDetailModal({{ json_encode($log->properties) }}, {{ json_encode($log->event ?? $log->description) }}, {{ json_encode($subjectName) }}, {{ json_encode($log->description) }}, {{ json_encode($moduleName) }})" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors tooltip" title="Lihat Detail">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             </button>
                             @if(auth()->user()->role === 'owner')
@@ -180,6 +202,64 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Konfirmasi Hapus Log -->
+<div id="modalDeleteConfirm" class="fixed inset-0 z-[60] hidden" aria-modal="true" role="dialog">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 opacity-0" id="deleteBackdrop"></div>
+    <!-- Panel -->
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div id="deleteModalPanel" class="relative bg-white rounded-2xl shadow-2xl w-full max-w-md transform scale-90 opacity-0 transition-all duration-300">
+            <!-- Header -->
+            <div class="px-6 pt-6 pb-4">
+                <div class="flex items-start gap-4">
+                    <!-- Warning icon -->
+                    <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-lg font-bold text-slate-800">Hapus Log Ini?</h3>
+                        <p class="mt-1 text-sm text-slate-500">Tindakan ini akan menghapus entri audit log secara <span class="font-semibold text-red-600">permanen</span> dan tidak dapat dibatalkan.</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Divider -->
+            <div class="border-t border-slate-100"></div>
+            <!-- Warning detail -->
+            <div class="px-6 py-3 bg-red-50 border-b border-red-100">
+                <p class="text-xs text-red-700 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                    Log yang dihapus tidak akan muncul lagi di riwayat aktivitas sistem.
+                </p>
+            </div>
+            <!-- Footer -->
+            <div class="px-6 py-4 flex justify-end gap-3">
+                <button
+                    id="deleteCancelBtn"
+                    type="button"
+                    onclick="closeDeleteModal()"
+                    class="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                >
+                    Batal
+                </button>
+                <button
+                    id="deleteConfirmBtn"
+                    type="button"
+                    onclick="confirmDeleteLog()"
+                    class="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 active:bg-red-800 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-red-400 flex items-center gap-2"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                    Ya, Hapus Permanen
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -192,7 +272,7 @@
     // Employee ID to name mapping from backend
     const karyawanMap = @json($karyawanMap);
 
-    function openDetailModal(properties, eventName, subjectName, description = '') {
+    function openDetailModal(properties, eventName, subjectName, description = '', moduleName = '') {
         let html = '';
         
         // Identity Header
@@ -200,21 +280,43 @@
         let headerTextClass = 'text-blue-600';
         let headerIconBg = 'bg-blue-200 text-blue-700';
         
-        if (eventName === 'GENERATED') {
-            headerBg = 'bg-purple-50 border-purple-100';
-            headerTextClass = 'text-purple-600';
-            headerIconBg = 'bg-purple-200 text-purple-700';
+        if (eventName === 'GENERATED' || eventName === 'updated') {
+            headerBg = 'bg-blue-50 border-blue-100';
+            headerTextClass = 'text-blue-600';
+            headerIconBg = 'bg-blue-200 text-blue-700';
         }
+        if (eventName === 'created') {
+            headerBg = 'bg-green-50 border-green-100';
+            headerTextClass = 'text-green-600';
+            headerIconBg = 'bg-green-200 text-green-700';
+        }
+        if (eventName === 'deleted') {
+            headerBg = 'bg-red-50 border-red-100';
+            headerTextClass = 'text-red-600';
+            headerIconBg = 'bg-red-200 text-red-700';
+        }
+
+        // Module badge (if available)
+        const moduleBadge = moduleName
+            ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+                ${moduleName}
+              </span>`
+            : '';
 
         html += `
         <div class="col-span-1 md:col-span-2 mb-4">
-            <div class="${headerBg} rounded-lg p-3 border flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full ${headerIconBg} flex items-center justify-center font-bold">
+            <div class="${headerBg} rounded-lg p-3 border flex items-start gap-3">
+                <div class="w-10 h-10 rounded-full ${headerIconBg} flex-shrink-0 flex items-center justify-center font-bold">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                 </div>
-                <div>
+                <div class="flex-1 min-w-0">
                     <p class="text-xs ${headerTextClass} font-semibold uppercase tracking-wider">Target Data (Subject)</p>
                     <p class="text-sm font-bold text-slate-800">${subjectName}</p>
+                    ${moduleName ? `<div class="mt-1.5 flex items-center gap-1.5">
+                        <span class="text-xs text-slate-500">Modul:</span>
+                        ${moduleBadge}
+                    </div>` : ''}
                 </div>
             </div>
         </div>
@@ -393,33 +495,118 @@
     }
 
     @if(auth()->user()->role === 'owner')
-    function deleteLog(id) {
-        if (!confirm('Apakah Anda yakin ingin menghapus log ini secara permanen?')) return;
+    let _pendingDeleteId = null;
 
-        fetch(`/audit-logs/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if(data.success) {
-                // Remove row from table
-                const row = document.getElementById(`log-row-${id}`);
+    function deleteLog(id) {
+        _pendingDeleteId = id;
+        openDeleteModal();
+    }
+
+    function openDeleteModal() {
+        const modal = document.getElementById('modalDeleteConfirm');
+        const backdrop = document.getElementById('deleteBackdrop');
+        const panel = document.getElementById('deleteModalPanel');
+        modal.classList.remove('hidden');
+        // Trigger reflow then animate in
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                backdrop.classList.remove('opacity-0');
+                panel.classList.remove('scale-90', 'opacity-0');
+                panel.classList.add('scale-100', 'opacity-100');
+            });
+        });
+        // Trap focus on confirm button
+        setTimeout(() => document.getElementById('deleteConfirmBtn').focus(), 200);
+    }
+
+    function closeDeleteModal() {
+        const modal = document.getElementById('modalDeleteConfirm');
+        const backdrop = document.getElementById('deleteBackdrop');
+        const panel = document.getElementById('deleteModalPanel');
+        backdrop.classList.add('opacity-0');
+        panel.classList.remove('scale-100', 'opacity-100');
+        panel.classList.add('scale-90', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            _pendingDeleteId = null;
+        }, 250);
+    }
+
+    async function confirmDeleteLog() {
+        if (!_pendingDeleteId) return;
+
+        const confirmBtn = document.getElementById('deleteConfirmBtn');
+        const cancelBtn  = document.getElementById('deleteCancelBtn');
+
+        // Show loading state
+        confirmBtn.disabled = true;
+        cancelBtn.disabled  = true;
+        confirmBtn.innerHTML = `
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+            Menghapus...
+        `;
+
+        try {
+            const response = await fetch(`/audit-logs/${_pendingDeleteId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await response.json();
+
+            closeDeleteModal();
+
+            if (data.success) {
+                // Fade & remove table row
+                const row = document.getElementById(`log-row-${_pendingDeleteId}`);
                 if (row) {
-                    row.classList.add('bg-red-50', 'opacity-0');
-                    setTimeout(() => row.remove(), 300);
+                    row.style.transition = 'opacity 0.3s ease, background-color 0.3s ease';
+                    row.style.backgroundColor = '#fef2f2';
+                    row.style.opacity = '0';
+                    setTimeout(() => row.remove(), 350);
                 }
             } else {
-                alert('Gagal menghapus log.');
+                // Show inline error toast
+                showToast('error', data.message || 'Gagal menghapus log.');
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Terjadi kesalahan.');
-        });
+        } catch (err) {
+            closeDeleteModal();
+            showToast('error', 'Terjadi kesalahan jaringan.');
+        } finally {
+            confirmBtn.disabled = false;
+            cancelBtn.disabled  = false;
+            confirmBtn.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Ya, Hapus Permanen
+            `;
+        }
+    }
+
+    // Close on backdrop click
+    document.getElementById('modalDeleteConfirm').addEventListener('click', function(e) {
+        if (e.target === this || e.target.id === 'deleteBackdrop') closeDeleteModal();
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !document.getElementById('modalDeleteConfirm').classList.contains('hidden')) {
+            closeDeleteModal();
+        }
+    });
+
+    // Simple toast notification
+    function showToast(type, message) {
+        const bg = type === 'error' ? 'bg-red-600' : 'bg-green-600';
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-6 right-6 z-[70] ${bg} text-white text-sm font-semibold px-5 py-3 rounded-xl shadow-lg flex items-center gap-2 transition-all duration-300`;
+        toast.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>${message}`;
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
     }
     @endif
 </script>

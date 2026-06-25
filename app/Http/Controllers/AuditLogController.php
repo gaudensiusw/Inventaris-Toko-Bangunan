@@ -29,7 +29,11 @@ class AuditLogController extends Controller
         }
 
         if ($request->filled('modul')) {
-            $query->where('subject_type', 'like', '%' . $request->modul . '%');
+            $modul = $request->modul;
+            $query->where(function($q) use ($modul) {
+                $q->where('log_name', $modul)
+                  ->orWhere('subject_type', 'like', '%' . $modul . '%');
+            });
         }
 
         if ($request->filled('aksi')) {

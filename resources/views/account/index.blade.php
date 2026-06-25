@@ -232,12 +232,8 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
                     <select id="role" name="role" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500">
-                        @if(auth()->user()->role === 'owner')
-                            <option value="owner">Owner</option>
-                        @endif
                         <option value="supervisor">Supervisor</option>
                         <option value="operator">Operator</option>
-                        <option value="gudang">Gudang</option>
                     </select>
                 </div>
                 <div>
@@ -273,7 +269,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
 
 <script>
-    const roles = ['owner', 'supervisor', 'operator', 'gudang'];
+    const roles = ['supervisor', 'operator'];
 
     // Setup CSRF Token for Fetch API
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || document.querySelector('input[name="_token"]')?.value;

@@ -348,7 +348,7 @@ class EmployeeController extends Controller
         activity('Employee')
             ->performedOn($employee)
             ->causedBy(auth()->user())
-            ->event('GENERATED')
+            ->event('updated')
             ->log("Mencetak Slip Gaji {$employee->nama} Periode {$monthName} {$currentYear}");
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('employee::slip_gaji', compact('employee', 'rekap', 'gaji_harian', 'total_gaji_pokok', 'bonus', 'potongan', 'potongan_details', 'total_gaji', 'currentMonth', 'currentYear', 'tanggalPembayaran'));
@@ -402,6 +402,21 @@ class EmployeeController extends Controller
                 'catatan' => $request->catatan,
                 'status_bayar' => 0
             ]);
+        }
+
+        // Log aktivitas absensi – dicatat sebagai UPDATED (membuat atau memperbarui data kehadiran)
+        if (function_exists('activity')) {
+            $absensiLog = \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
+                ->where('tanggal', $request->tanggal)
+                ->first();
+            if ($absensiLog) {
+                activity('Absensi')
+                    ->performedOn($absensiLog)
+                    ->causedBy(auth()->user())
+                    ->event('updated')
+                    ->withProperties(['attributes' => $absensiLog->only(['karyawan_id', 'tanggal', 'status', 'jam_masuk', 'jam_keluar', 'catatan'])])
+                    ->log("Admin memperbarui data absensi {$employee->nama} tanggal {$request->tanggal}");
+            }
         }
 
         return response()->json(['success' => true, 'message' => 'Absensi berhasil disimpan']);
@@ -477,7 +492,7 @@ class EmployeeController extends Controller
         activity('Employee')
             ->performedOn($employee)
             ->causedBy(auth()->user())
-            ->event('GENERATED')
+            ->event('updated')
             ->log("Melakukan Pembayaran Gaji {$employee->nama} Periode {$monthName} {$year}");
 
         return response()->json([
@@ -501,14 +516,28 @@ class EmployeeController extends Controller
             'tanggal' => 'required|date'
         ]);
 
-        $deleted = \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
+        // Ambil data sebelum dihapus untuk keperluan log
+        $absensiToDelete = \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
             ->whereDate('tanggal', $request->tanggal)
-            ->delete();
+            ->first();
 
-        if ($deleted) {
-            return response()->json(['success' => true, 'message' => 'Data absensi berhasil dihapus']);
+        if (!$absensiToDelete) {
+            return response()->json(['success' => false, 'message' => 'Data absensi tidak ditemukan'], 404);
         }
 
-        return response()->json(['success' => false, 'message' => 'Data absensi tidak ditemukan'], 404);
+        // Log aksi DELETED sebelum data dihapus dari database
+        if (function_exists('activity')) {
+            $employee = \Modules\Employee\Models\Karyawan::find($id);
+            activity('Absensi')
+                ->performedOn($absensiToDelete)
+                ->causedBy(auth()->user())
+                ->event('deleted')
+                ->withProperties(['old' => $absensiToDelete->only(['karyawan_id', 'tanggal', 'status', 'jam_masuk', 'jam_keluar', 'catatan'])])
+                ->log("Admin menghapus data absensi " . ($employee->nama ?? "ID: {$id}") . " tanggal {$request->tanggal}");
+        }
+
+        $absensiToDelete->delete();
+
+        return response()->json(['success' => true, 'message' => 'Data absensi berhasil dihapus']);
     }
 }

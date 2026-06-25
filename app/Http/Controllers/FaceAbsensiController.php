@@ -96,7 +96,7 @@ class FaceAbsensiController extends Controller
             ]);
         } else {
             // Buat record absensi baru
-            \Modules\Employee\Models\Absensi::create([
+            $absensi = \Modules\Employee\Models\Absensi::create([
                 'karyawan_id' => $employee->id,
                 'tanggal' => $today,
                 'status' => 'hadir',
@@ -107,12 +107,13 @@ class FaceAbsensiController extends Controller
             ]);
         }
 
-        // Log aktivitas absensi
+        // Log aktivitas absensi – dicatat sebagai UPDATED (memperbarui kehadiran karyawan hari ini)
         if (function_exists('activity')) {
-            activity('Employee')
-                ->performedOn($employee)
+            activity('Absensi')
+                ->performedOn($absensi)
                 ->causedBy(auth()->user())
-                ->event('ABSENSI_FACE')
+                ->event('updated')
+                ->withProperties(['attributes' => $absensi->only(['karyawan_id', 'tanggal', 'status', 'jam_masuk', 'catatan'])])
                 ->log("Absensi Hadir via Face Recognition berhasil untuk {$employee->nama} pukul " . Carbon::now('Asia/Jakarta')->format('H:i'));
         }
 

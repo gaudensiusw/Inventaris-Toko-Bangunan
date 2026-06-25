@@ -147,6 +147,16 @@ class ProductController extends Controller
             }
         }
 
+        // Log aktivitas CREATED
+        if (function_exists('activity')) {
+            activity('DataBarang')
+                ->performedOn($product)
+                ->causedBy(auth()->user())
+                ->event('created')
+                ->withProperties(['attributes' => $product->only(['nama', 'merk', 'sku', 'stok', 'unit', 'harga_beli', 'harga_jual', 'min_stok'])])
+                ->log("Produk baru '{$product->nama}' (SKU: {$product->sku}) berhasil ditambahkan.");
+        }
+
         return redirect()->back()->with('success', 'Produk berhasil ditambahkan.');
     }
 
@@ -223,6 +233,9 @@ class ProductController extends Controller
             $validated['sku'] = $potentialSku;
         }
 
+        // Snapshot data SEBELUM update untuk log 'old'
+        $beforeSnapshot = $product->only(['nama', 'merk', 'sku', 'stok', 'unit', 'harga_beli', 'harga_jual', 'min_stok']);
+
         $product->update($validated);
 
         // Sync Units
@@ -248,16 +261,41 @@ class ProductController extends Controller
             }
         }
 
+        // Log aktivitas UPDATED
+        if (function_exists('activity')) {
+            $afterSnapshot = $product->fresh()->only(['nama', 'merk', 'sku', 'stok', 'unit', 'harga_beli', 'harga_jual', 'min_stok']);
+            activity('DataBarang')
+                ->performedOn($product)
+                ->causedBy(auth()->user())
+                ->event('updated')
+                ->withProperties(['old' => $beforeSnapshot, 'attributes' => $afterSnapshot])
+                ->log("Produk '{$product->nama}' (SKU: {$product->sku}) berhasil diperbarui.");
+        }
+
         return redirect()->back()->with('success', 'Produk berhasil diperbarui.');
     }
 
     public function destroy($id)
     {
         $product = Product::findOrFail($id);
+
+        // Snapshot data SEBELUM dihapus untuk log 'old'
+        $beforeSnapshot = $product->only(['nama', 'merk', 'sku', 'stok', 'unit', 'harga_beli', 'harga_jual', 'min_stok']);
+
         if ($product->image && \Storage::disk('public')->exists($product->image)) {
             \Storage::disk('public')->delete($product->image);
         }
         $product->delete();
+
+        // Log aktivitas DELETED
+        if (function_exists('activity')) {
+            activity('DataBarang')
+                ->causedBy(auth()->user())
+                ->event('deleted')
+                ->withProperties(['old' => $beforeSnapshot])
+                ->log("Produk '{$beforeSnapshot['nama']}' (SKU: {$beforeSnapshot['sku']}) berhasil dihapus.");
+        }
+
         return redirect()->back()->with('success', 'Produk berhasil dihapus.');
     }
 

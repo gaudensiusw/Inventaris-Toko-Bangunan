@@ -53,14 +53,15 @@ class AccountController extends Controller
 
     public function store(Request $request)
     {
-        if (auth()->user()->role !== 'owner' && $request->role === 'owner') {
-            return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk membuat akun Owner.'], 403);
+        // Hanya izinkan role supervisor dan operator yang dibuat melalui form ini
+        if (in_array($request->role, ['owner', 'gudang'])) {
+            return response()->json(['success' => false, 'message' => 'Role yang dipilih tidak diizinkan. Hanya Supervisor atau Operator yang dapat dibuat.'], 403);
         }
 
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'role' => ['required', 'in:owner,supervisor,operator,gudang'],
+            'role' => ['required', 'in:supervisor,operator'],
             'password' => ['required', 'string', 'min:6'],
         ]);
 
@@ -89,19 +90,20 @@ class AccountController extends Controller
     {
         $user = User::findOrFail($id);
 
-        if (auth()->user()->role !== 'owner') {
-            if ($user->role === 'owner') {
-                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk mengubah akun Owner.'], 403);
-            }
-            if ($request->role === 'owner') {
-                return response()->json(['success' => false, 'message' => 'Anda tidak memiliki akses untuk mengubah role menjadi Owner.'], 403);
-            }
+        // Hanya izinkan pengubahan ke role supervisor atau operator
+        if (in_array($request->role, ['owner', 'gudang'])) {
+            return response()->json(['success' => false, 'message' => 'Role yang dipilih tidak diizinkan. Hanya Supervisor atau Operator yang dapat diatur.'], 403);
+        }
+
+        // Tidak boleh mengedit akun Owner
+        if ($user->role === 'owner') {
+            return response()->json(['success' => false, 'message' => 'Akun Owner tidak dapat diubah melalui halaman ini.'], 403);
         }
 
         $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'role' => ['required', 'in:owner,supervisor,operator,gudang'],
+            'role' => ['required', 'in:supervisor,operator'],
         ];
 
         if ($request->filled('password')) {

@@ -56,7 +56,7 @@ class StockOpnameController extends Controller
                 $selisih = $stokFisik - $product->stok;
 
                 // Create Opname Record
-                StockOpname::create([
+                $opnameRecord = StockOpname::create([
                     'produk_id'   => $product->id,
                     'user_id'     => $user->id,
                     'stok_sistem' => $product->stok,
@@ -69,6 +69,25 @@ class StockOpnameController extends Controller
                 // Sync System Stock ONLY IF Approved (Owner/Supervisor)
                 if ($status === 'approved') {
                     $product->update(['stok' => $stokFisik]);
+                }
+
+                // Log aktivitas CREATED per produk
+                if (function_exists('activity')) {
+                    activity('StockOpname')
+                        ->performedOn($opnameRecord)
+                        ->causedBy($user)
+                        ->event('created')
+                        ->withProperties([
+                            'attributes' => [
+                                'produk'      => $product->nama,
+                                'stok_sistem' => $opnameRecord->stok_sistem,
+                                'stok_fisik'  => $stokFisik,
+                                'selisih'     => $selisih,
+                                'status'      => $status,
+                                'keterangan'  => $opnameRecord->keterangan,
+                            ]
+                        ])
+                        ->log("Stock Opname '{$product->nama}': sistem={$opnameRecord->stok_sistem}, fisik={$stokFisik}, selisih={$selisih} [{$status}]");
                 }
                 
                 $processedCount++;
@@ -136,9 +155,23 @@ class StockOpnameController extends Controller
 
             // Sync stock
             $product = $opname->product;
+            $stokLama = $product->stok;
             $product->update(['stok' => $opname->stok_fisik]);
             
             $opname->update(['status' => 'approved']);
+
+            // Log aktivitas APPROVE
+            if (function_exists('activity')) {
+                activity('StockOpname')
+                    ->performedOn($opname)
+                    ->causedBy(auth()->user())
+                    ->event('updated')
+                    ->withProperties([
+                        'old'        => ['status' => 'pending', 'stok_produk' => $stokLama],
+                        'attributes' => ['status' => 'approved', 'stok_produk' => $opname->stok_fisik],
+                    ])
+                    ->log("Pengajuan Stock Opname untuk '{$product->nama}' disetujui. Stok diperbarui: {$stokLama} → {$opname->stok_fisik}.");
+            }
             
             DB::commit();
             return redirect()->back()->with('success', 'Pengajuan audit berhasil disetujui.');
@@ -152,7 +185,22 @@ class StockOpnameController extends Controller
     {
         try {
             $opname = StockOpname::findOrFail($id);
+            $productName = $opname->product->nama ?? 'Produk #' . $opname->produk_id;
             $opname->update(['status' => 'rejected']);
+
+            // Log aktivitas REJECT
+            if (function_exists('activity')) {
+                activity('StockOpname')
+                    ->performedOn($opname)
+                    ->causedBy(auth()->user())
+                    ->event('updated')
+                    ->withProperties([
+                        'old'        => ['status' => 'pending'],
+                        'attributes' => ['status' => 'rejected'],
+                    ])
+                    ->log("Pengajuan Stock Opname untuk '{$productName}' ditolak.");
+            }
+
             return redirect()->back()->with('success', 'Pengajuan audit telah ditolak.');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal menolak.');
