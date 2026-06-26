@@ -13,7 +13,7 @@ class StockManagementController extends Controller
 {
     public function index()
     {
-        $products = Product::select('id', 'nama', 'stok', 'satuan_dasar')->orderBy('nama')->get();
+        $products = Product::select('id', 'nama', 'stok', 'unit')->orderBy('nama')->get();
         $transactions = StockManagement::with('product')->latest()->paginate(50);
 
         return view('stockmanagement::index', compact('products', 'transactions'));
