@@ -43,7 +43,7 @@ class ProductController extends Controller
         $suppliers = Cache::remember('suppliers_all', 30, fn() => Supplier::select('id', 'company_name')->get());
         $categories = Cache::remember('categories_all', 30, fn() => Category::select('id', 'nama')->get());
         $subCategories = Cache::remember('sub_categories_all', 30, fn() => SubCategory::select('id', 'nama', 'kategori_id')->get());
-        $availableUnits = Cache::remember('satuan_all', 30, fn() => Satuan::select('id', 'nama_satuan')->get());
+        $availableUnits = Cache::remember('satuan_all', 30, fn() => Satuan::select('id', 'nama')->get());
 
         return view('product::index', compact(
             'products',
