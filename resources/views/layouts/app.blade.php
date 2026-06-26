@@ -506,6 +506,9 @@
                         submitBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
                     }
                 }, 8000);
+            }
+        });
+
         // Persist sidebar scroll position across page reloads
         document.addEventListener('DOMContentLoaded', function() {
             const sidebarNav = document.getElementById('sidebar-nav');

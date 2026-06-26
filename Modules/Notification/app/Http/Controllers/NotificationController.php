@@ -17,19 +17,25 @@ class NotificationController extends Controller
     {
         $lastRead = auth()->user()->last_read_notifications_at;
 
+        // Fetch collections once, reuse for counts (hindari duplicate query)
+        $pendingAudits    = \Modules\StockOpname\Models\StockOpname::where('status', 'pending')->with('product')->get();
+        $lowStockProducts = Product::whereRaw('stok <= min_stok')->where('stok', '>', 0)->get();
+        $pendingBills     = TagihanSupplier::where('status', '!=', 'lunas')->orderBy('jatuh_tempo', 'asc')->with('supplier')->get();
+        // Batasi POS ke 20 terbaru — PENTING: tanpa limit ini akan mengambil SEMUA transaksi
+        $recentSales      = POS::latest()->limit(20)->get();
+
         $counts = [
-            'stok_rendah' => Product::whereRaw('stok <= min_stok')->where('stok', '>', 0)->count(),
-            'tagihan'     => TagihanSupplier::where('status', '!=', 'lunas')->count(),
+            'stok_rendah' => $lowStockProducts->count(),
+            'tagihan'     => $pendingBills->count(),
             'penjualan'   => POS::whereDate('created_at', Carbon::today())->count(),
-            'audit'       => \Modules\StockOpname\Models\StockOpname::where('status', 'pending')->count(),
+            'audit'       => $pendingAudits->count(),
             'sistem'      => 0,
         ];
 
         // 2. Generate Notification Items (Semi-Dynamic)
         $notifications = [];
 
-        // Add Pending Audit Notifications
-        $pendingAudits = \Modules\StockOpname\Models\StockOpname::where('status', 'pending')->with('product')->get();
+        // Add Pending Audit Notifications (gunakan koleksi yang sudah diambil di atas)
         foreach ($pendingAudits as $a) {
             $notifications[] = [
                 'type' => 'Persetujuan Audit',
@@ -41,8 +47,7 @@ class NotificationController extends Controller
             ];
         }
 
-        // Add Low Stock Notifications
-        $lowStockProducts = Product::whereRaw('stok <= min_stok')->where('stok', '>', 0)->get();
+        // Add Low Stock Notifications (gunakan koleksi yang sudah diambil di atas)
         foreach ($lowStockProducts as $p) {
             $notifications[] = [
                 'type' => 'Stok Rendah',
@@ -53,8 +58,7 @@ class NotificationController extends Controller
             ];
         }
 
-        // Add Bill Notifications
-        $pendingBills = TagihanSupplier::where('status', '!=', 'lunas')->orderBy('jatuh_tempo', 'asc')->get();
+        // Add Bill Notifications (gunakan koleksi yang sudah diambil di atas, dengan eager load supplier)
         foreach ($pendingBills as $b) {
             $isOverdue = Carbon::parse($b->jatuh_tempo)->isPast();
             $notifications[] = [
@@ -66,8 +70,7 @@ class NotificationController extends Controller
             ];
         }
 
-        // Add Sales Notifications
-        $recentSales = POS::latest()->get();
+        // Add Sales Notifications — DIBATASI 20 terbaru (gunakan koleksi yang sudah diambil di atas)
         foreach ($recentSales as $s) {
             $notifications[] = [
                 'type' => 'Penjualan',

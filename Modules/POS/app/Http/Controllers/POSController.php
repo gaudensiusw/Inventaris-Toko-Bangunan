@@ -15,9 +15,16 @@ class POSController extends Controller
 {
     public function index()
     {
-        $products = Product::with(['category', 'units'])->where('stok', '>', 0)->get();
-        $categories = Category::all();
-        $customers = Customer::select('id', 'nama', 'kode', 'telp')->get();
+        $products = Product::with([
+            'category:id,nama',
+            'units:id,produk_id,nama,isi,harga_jual,is_base'
+        ])
+        ->select('id', 'nama', 'sku', 'merk', 'kategori_id', 'unit', 'harga_jual', 'stok', 'min_stok', 'aktif_grosir', 'min_qty_grosir', 'harga_grosir', 'image')
+        ->where('stok', '>', 0)
+        ->get();
+
+        $categories = Category::select('id', 'nama')->get();
+        $customers = Customer::select('id', 'nama', 'kode', 'telp', 'tenor_bayar')->get();
 
         return view('pos::index', compact('products', 'categories', 'customers'));
     }

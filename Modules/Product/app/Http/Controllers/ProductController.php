@@ -4,6 +4,7 @@ namespace Modules\Product\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Modules\Product\Models\Product;
 use Modules\Product\Models\Category;
 use Modules\Product\Models\SubCategory;
@@ -32,16 +33,17 @@ class ProductController extends Controller
             $query->where('supplier_id', $request->get('supplier'));
         }
 
-        $totalProducts  = Product::count();
-        $lowStockCount  = Product::whereRaw('stok <= min_stok')->where('stok', '>', 0)->count();
-        $outOfStockCount = Product::where('stok', '<=', 0)->count();
+        $totalProducts  = Cache::remember('products_total_count', 30, fn() => Product::count());
+        $lowStockCount  = Cache::remember('products_low_stock_count', 30, fn() => Product::whereRaw('stok <= min_stok')->where('stok', '>', 0)->count());
+        $outOfStockCount = Cache::remember('products_out_of_stock_count', 30, fn() => Product::where('stok', '<=', 0)->count());
 
         $perPage  = $request->get('per_page', 15);
         $products = $query->latest()->paginate($perPage)->withQueryString();
-        $suppliers = Supplier::all();
-        $categories = Category::all();
-        $subCategories = SubCategory::all();
-        $availableUnits = Satuan::all();
+        
+        $suppliers = Cache::remember('suppliers_all', 30, fn() => Supplier::all());
+        $categories = Cache::remember('categories_all', 30, fn() => Category::all());
+        $subCategories = Cache::remember('sub_categories_all', 30, fn() => SubCategory::all());
+        $availableUnits = Cache::remember('satuan_all', 30, fn() => Satuan::all());
 
         return view('product::index', compact(
             'products',

@@ -57,6 +57,7 @@ class AuthController extends Controller
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+        $request->session()->save(); // Force session save to release any locks immediately
 
         return redirect('/login');
     }

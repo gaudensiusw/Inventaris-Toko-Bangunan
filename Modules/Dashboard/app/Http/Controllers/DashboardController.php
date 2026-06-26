@@ -85,44 +85,59 @@ class DashboardController extends Controller
             'credit_revenue' => $creditRevenue,
         ];
 
-        // --- CHART DATA ---
+        // --- CHART DATA (optimized: 1-2 queries via GROUP BY, bukan N*2 queries) ---
         $chartData = [];
-        $fetchStats = function($start, $end, $label) {
-            $rev = POS::whereBetween('created_at', [$start, $end])->sum('total_tagihan');
-            // Rough profit for chart
-            $details = \Modules\POS\Models\POSDetail::whereHas('pos', function($q) use ($start, $end) {
-                $q->whereBetween('created_at', [$start, $end]);
-            })->with('product')->get();
-            $cogs = $details->sum(function($d) { return $d->qty * ($d->product->harga_beli ?? 0); });
-            
-            return [
-                'label' => $label,
-                'revenue' => $rev,
-                'profit' => $rev - $cogs
-            ];
-        };
 
         if ($filter == 'hari') {
-            for ($i = 0; $i <= 6; $i++) {
-                $dStart = $now->copy()->subDays(6 - $i)->startOfDay();
-                $dEnd = $dStart->copy()->endOfDay();
-                $chartData[] = $fetchStats($dStart, $dEnd, $dStart->translatedFormat('d M'));
-            }
+            $rangeStart = $now->copy()->subDays(6)->startOfDay();
+            $rangeEnd   = $now->copy()->endOfDay();
+            $dateFormat = 'DATE(pos.created_at)';
         } elseif ($filter == 'minggu') {
-            $wStart = $now->copy()->startOfWeek();
-            for ($i = 0; $i < 7; $i++) {
-                $dStart = $wStart->copy()->addDays($i)->startOfDay();
-                $dEnd = $dStart->copy()->endOfDay();
-                $chartData[] = $fetchStats($dStart, $dEnd, $dStart->translatedFormat('D'));
+            $rangeStart = $now->copy()->startOfWeek();
+            $rangeEnd   = $now->copy()->endOfWeek()->endOfDay();
+            $dateFormat = 'DATE(pos.created_at)';
+        } else {
+            $rangeStart = $now->copy()->startOfMonth();
+            $rangeEnd   = $now->copy()->endOfMonth()->endOfDay();
+            $dateFormat = 'DATE(pos.created_at)';
+        }
+
+        // 1 query untuk revenue per hari
+        $revenueRows = DB::table('pos')
+            ->selectRaw("DATE(created_at) as tgl, SUM(total_tagihan) as revenue")
+            ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+            ->groupByRaw('DATE(created_at)')
+            ->pluck('revenue', 'tgl');
+
+        // 1 query untuk COGS per hari (JOIN ke produk untuk harga_beli)
+        $cogsRows = DB::table('pos_detail as pd')
+            ->join('pos', 'pos.id', '=', 'pd.pos_id')
+            ->join('produk as p', 'p.id', '=', 'pd.produk_id')
+            ->selectRaw("DATE(pos.created_at) as tgl, SUM(pd.qty * COALESCE(p.harga_beli, 0)) as cogs")
+            ->whereBetween('pos.created_at', [$rangeStart, $rangeEnd])
+            ->groupByRaw('DATE(pos.created_at)')
+            ->pluck('cogs', 'tgl');
+
+        // Bangun array chart dari tanggal-ke-tanggal
+        $period = new \DatePeriod($rangeStart->toDateTime(), new \DateInterval('P1D'), $rangeEnd->toDateTime());
+        foreach ($period as $day) {
+            $dayKey = $day->format('Y-m-d');
+            $rev    = (float) ($revenueRows[$dayKey] ?? 0);
+            $cogs   = (float) ($cogsRows[$dayKey] ?? 0);
+
+            if ($filter == 'hari') {
+                $label = \Carbon\Carbon::parse($dayKey)->translatedFormat('d M');
+            } elseif ($filter == 'minggu') {
+                $label = \Carbon\Carbon::parse($dayKey)->translatedFormat('D');
+            } else {
+                $label = \Carbon\Carbon::parse($dayKey)->format('d');
             }
-        } else { // bulan
-            $daysInMonth = $now->daysInMonth;
-            $mStart = $now->copy()->startOfMonth();
-            for ($i = 0; $i < $daysInMonth; $i++) {
-                $dStart = $mStart->copy()->addDays($i)->startOfDay();
-                $dEnd = $dStart->copy()->endOfDay();
-                $chartData[] = $fetchStats($dStart, $dEnd, $dStart->format('d'));
-            }
+
+            $chartData[] = [
+                'label'   => $label,
+                'revenue' => $rev,
+                'profit'  => $rev - $cogs,
+            ];
         }
 
         return view('dashboard::index', compact('overdueInvoices', 'dueSoonInvoices', 'stats', 'filter', 'chartData'));

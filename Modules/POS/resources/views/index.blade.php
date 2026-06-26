@@ -160,7 +160,7 @@
                             <td class="py-2.5 text-center">
                                 <div class="flex items-center justify-center gap-1">
                                     <button @click="updateQty(index, -1)" class="w-5 h-5 flex items-center justify-center rounded-md bg-slate-100 text-slate-600 hover:bg-red-100 hover:text-red-600 text-xs font-bold transition-colors">−</button>
-                                    <span class="w-7 text-center font-bold text-sm" x-text="item.qty"></span>
+                                    <input type="text" :value="item.qty" @input="handleQtyInput(index, $event.target.value)" @blur="handleQtyBlur(index)" class="w-10 text-center font-bold text-xs border border-slate-200 rounded p-0.5 focus:ring-blue-500 focus:border-blue-500 bg-white">
                                     <button @click="updateQty(index, 1)" class="w-5 h-5 flex items-center justify-center rounded-md bg-slate-100 text-slate-600 hover:bg-green-100 hover:text-green-600 text-xs font-bold transition-colors">+</button>
                                 </div>
                             </td>
@@ -674,7 +674,8 @@ function posSystem() {
 
         updateQty(idx, delta) {
             const item = this.cart[idx];
-            const newQty = item.qty + delta;
+            const currentQty = parseInt(item.qty, 10) || 1;
+            const newQty = currentQty + delta;
             const product = this.products.find(p => p.id === item.produk_id);
             
             // Calculate available qty in this unit
@@ -686,6 +687,40 @@ function posSystem() {
                 alert(`Stok tidak mencukupi untuk unit ${item.satuan_nama}. Maks: ${availableQty}`);
             } else {
                 this.cart[idx].qty = newQty;
+            }
+        },
+
+        handleQtyInput(idx, val) {
+            const item = this.cart[idx];
+            
+            // Clean value: only allow digits
+            let cleanVal = val.toString().replace(/\D/g, '');
+            
+            if (cleanVal === '') {
+                item.qty = '';
+                return;
+            }
+            
+            let newQty = parseInt(cleanVal, 10);
+            if (newQty <= 0) {
+                newQty = 1;
+            }
+            
+            const product = this.products.find(p => p.id === item.produk_id);
+            const availableQty = Math.floor(product.stok / item.isi);
+            
+            if (newQty > availableQty) {
+                alert(`Stok tidak mencukupi untuk unit ${item.satuan_nama}. Maks: ${availableQty}`);
+                newQty = availableQty;
+            }
+            
+            item.qty = newQty;
+        },
+
+        handleQtyBlur(idx) {
+            const item = this.cart[idx];
+            if (item.qty === '' || item.qty <= 0 || isNaN(item.qty)) {
+                item.qty = 1;
             }
         },
 
@@ -705,6 +740,14 @@ function posSystem() {
 
         openCheckoutModal() {
             if (this.cart.length === 0) return;
+            
+            // Clean up any empty or invalid quantities in cart
+            for (let i = 0; i < this.cart.length; i++) {
+                if (this.cart[i].qty === '' || this.cart[i].qty <= 0 || isNaN(this.cart[i].qty)) {
+                    this.cart[i].qty = 1;
+                }
+            }
+
             if (this.requiresApproval && !['owner', 'supervisor'].includes(this.userRole)) {
                 this.pinModalOpen = true;
             } else {
