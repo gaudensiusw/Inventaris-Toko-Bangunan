@@ -14,7 +14,13 @@ class StockOpnameController extends Controller
     public function index(Request $request)
     {
         $categories = \Modules\Product\Models\Category::orderBy('nama')->get();
-        $allProducts = Product::orderBy('nama')->get();
+        
+        $stats = [
+            'total' => Product::count(),
+            'tersedia' => Product::where('stok', '>', 0)->count(),
+            'kosong' => Product::where('stok', '<=', 0)->count(),
+            'menipis' => Product::where('stok', '<=', 5)->where('stok', '>', 0)->count(),
+        ];
         
         $query = Product::with(['category', 'latestOpname.causer']);
 
@@ -28,7 +34,7 @@ class StockOpnameController extends Controller
 
         $products = $query->orderBy('nama')->paginate(15)->withQueryString();
         
-        return view('stockopname::index', compact('products', 'allProducts', 'categories'));
+        return view('stockopname::index', compact('products', 'stats', 'categories'));
     }
 
 

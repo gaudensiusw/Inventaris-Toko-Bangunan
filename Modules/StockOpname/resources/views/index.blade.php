@@ -22,19 +22,19 @@
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center">
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Total Produk</p>
-        <h3 class="text-xl font-bold text-[#2563eb]">{{ $allProducts->count() }}</h3>
+        <h3 class="text-xl font-bold text-[#2563eb]">{{ $stats['total'] }}</h3>
     </div>
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center text-green-600">
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Tersedia</p>
-        <h3 class="text-xl font-bold">{{ $allProducts->where('stok', '>', 0)->count() }}</h3>
+        <h3 class="text-xl font-bold">{{ $stats['tersedia'] }}</h3>
     </div>
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center text-red-500">
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Stok Habis</p>
-        <h3 class="text-xl font-bold">{{ $allProducts->where('stok', '<=', 0)->count() }}</h3>
+        <h3 class="text-xl font-bold">{{ $stats['kosong'] }}</h3>
     </div>
     <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-center text-orange-500">
         <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Menipis</p>
-        <h3 class="text-xl font-bold">{{ $allProducts->where('stok', '<=', 5)->where('stok', '>', 0)->count() }}</h3>
+        <h3 class="text-xl font-bold">{{ $stats['menipis'] }}</h3>
     </div>
 </div>
 

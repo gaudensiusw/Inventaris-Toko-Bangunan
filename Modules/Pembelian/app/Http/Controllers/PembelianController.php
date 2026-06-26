@@ -15,9 +15,9 @@ class PembelianController extends Controller
 {
     public function index()
     {
-        $suppliers = Supplier::orderBy('company_name')->get();
+        $suppliers = Supplier::select('id', 'company_name')->orderBy('company_name')->get();
         // Load products with their units
-        $products = Product::with('units')->orderBy('nama')->get();
+        $products = Product::select('id', 'nama', 'sku')->with('units:id,produk_id,satuan,isi')->orderBy('nama')->get();
         $pembelians = Pembelian::with(['supplier', 'details.product'])->latest()->paginate(15);
 
         return view('pembelian::index', compact('suppliers', 'products', 'pembelians'));

@@ -54,24 +54,22 @@ class DashboardController extends Controller
             ->get();
 
         // 1. Revenue & Profit Stats based on filter
-        $posInRange = POS::whereBetween('created_at', [$startDate, $endDate])->get();
-        $revenue = $posInRange->sum('total_tagihan');
-        $cashRevenue = $posInRange->where('status_pembayaran', 'lunas')->sum('total_tagihan');
-        $creditRevenue = $posInRange->where('status_pembayaran', '!=', 'lunas')->sum('total_tagihan');
+        $revenue = POS::whereBetween('created_at', [$startDate, $endDate])->sum('total_tagihan');
+        $cashRevenue = POS::whereBetween('created_at', [$startDate, $endDate])->where('status_pembayaran', 'lunas')->sum('total_tagihan');
+        $creditRevenue = POS::whereBetween('created_at', [$startDate, $endDate])->where('status_pembayaran', '!=', 'lunas')->sum('total_tagihan');
 
         // Estimate Net Profit (Revenue - COGS - Ops)
-        // For simplicity in dashboard, we use a simplified calculation or just 0 for now if too complex, 
-        // but let's try to get a rough estimate if possible.
         $netProfit = 0;
-        if (count($posInRange) > 0) {
-            $posIds = $posInRange->pluck('id');
-            $cogs = \Modules\POS\Models\POSDetail::whereIn('pos_id', $posIds)
-                ->with('product')
-                ->get()
-                ->sum(function($d) { return $d->qty * ($d->product->harga_beli ?? 0); });
+        if ($revenue > 0) {
+            $cogs = \Illuminate\Support\Facades\DB::table('pos_detail')
+                ->join('pos', 'pos.id', '=', 'pos_detail.pos_id')
+                ->join('produk', 'produk.id', '=', 'pos_detail.produk_id')
+                ->whereBetween('pos.created_at', [$startDate, $endDate])
+                ->sum(\Illuminate\Support\Facades\DB::raw('pos_detail.qty * COALESCE(produk.harga_beli, 0)'));
+
             $ops = \Modules\OperationalItem\Models\ItemOperasional::whereBetween('created_at', [$startDate, $endDate])
-                ->get()
-                ->sum(function($i) { return $i->jumlah * $i->harga; });
+                ->sum(\Illuminate\Support\Facades\DB::raw('jumlah * harga'));
+                
             $netProfit = $revenue - $cogs - $ops;
         }
 

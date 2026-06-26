@@ -40,10 +40,10 @@ class ProductController extends Controller
         $perPage  = $request->get('per_page', 15);
         $products = $query->latest()->paginate($perPage)->withQueryString();
         
-        $suppliers = Cache::remember('suppliers_all', 30, fn() => Supplier::all());
-        $categories = Cache::remember('categories_all', 30, fn() => Category::all());
-        $subCategories = Cache::remember('sub_categories_all', 30, fn() => SubCategory::all());
-        $availableUnits = Cache::remember('satuan_all', 30, fn() => Satuan::all());
+        $suppliers = Cache::remember('suppliers_all', 30, fn() => Supplier::select('id', 'company_name')->get());
+        $categories = Cache::remember('categories_all', 30, fn() => Category::select('id', 'nama')->get());
+        $subCategories = Cache::remember('sub_categories_all', 30, fn() => SubCategory::select('id', 'nama', 'category_id')->get());
+        $availableUnits = Cache::remember('satuan_all', 30, fn() => Satuan::select('id', 'nama_satuan')->get());
 
         return view('product::index', compact(
             'products',

@@ -40,25 +40,23 @@ class ReportController extends Controller
         }
 
         // 1. Total Revenue
-        $pos = [];
+        $totalRevenue = 0;
+        $transactionCount = 0;
         if(class_exists(\Modules\POS\Models\POS::class)) {
-            $pos = \Modules\POS\Models\POS::whereBetween('created_at', [$startDate, $endDate])->get();
+            $posQuery = \Modules\POS\Models\POS::whereBetween('created_at', [$startDate, $endDate]);
+            $totalRevenue = $posQuery->sum('total_tagihan');
+            $transactionCount = $posQuery->count();
         }
-        $totalRevenue = count($pos) > 0 ? $pos->sum('total_tagihan') : 0;
-        $transactionCount = count($pos);
 
         // 2. COGS (HPP)
-        $posDetails = [];
+        $cogs = 0;
         if(class_exists(\Modules\POS\Models\POSDetail::class)) {
-            $posDetails = \Modules\POS\Models\POSDetail::with('product')
-                ->whereHas('pos', function($q) use ($startDate, $endDate) {
-                    $q->whereBetween('created_at', [$startDate, $endDate]);
-                })->get();
+            $cogs = \Illuminate\Support\Facades\DB::table('pos_detail')
+                ->join('pos', 'pos.id', '=', 'pos_detail.pos_id')
+                ->join('produk', 'produk.id', '=', 'pos_detail.produk_id')
+                ->whereBetween('pos.created_at', [$startDate, $endDate])
+                ->sum(\Illuminate\Support\Facades\DB::raw('pos_detail.qty * COALESCE(produk.harga_beli, 0)'));
         }
-            
-        $cogs = count($posDetails) > 0 ? $posDetails->sum(function($detail) {
-            return $detail->qty * ($detail->product->harga_beli ?? 0);
-        }) : 0;
 
         // 3. Gross Profit
         $grossProfit = $totalRevenue - $cogs;
@@ -67,19 +65,15 @@ class ReportController extends Controller
         // 4. Inventory Value
         $inventoryValue = 0;
         if(class_exists(\Modules\Product\Models\Product::class)) {
-            $inventoryValue = \Modules\Product\Models\Product::all()->sum(function($prod) {
-                return $prod->stok * $prod->harga_beli;
-            });
+            $inventoryValue = \Modules\Product\Models\Product::sum(\Illuminate\Support\Facades\DB::raw('stok * COALESCE(harga_beli, 0)'));
         }
 
         // 5. Operational Expenses
-        $opsItems = [];
+        $opsExpenses = 0;
         if(class_exists(\Modules\OperationalItem\Models\ItemOperasional::class)) {
-            $opsItems = \Modules\OperationalItem\Models\ItemOperasional::whereBetween('created_at', [$startDate, $endDate])->get();
+            $opsExpenses = \Modules\OperationalItem\Models\ItemOperasional::whereBetween('created_at', [$startDate, $endDate])
+                ->sum(\Illuminate\Support\Facades\DB::raw('jumlah * harga'));
         }
-        $opsExpenses = count($opsItems) > 0 ? $opsItems->sum(function($item) {
-            return $item->jumlah * $item->harga;
-        }) : 0;
 
         // 6. Net Profit
         $netProfit = $grossProfit - $opsExpenses;
@@ -89,18 +83,17 @@ class ReportController extends Controller
         $chartData = [];
         $fetchStats = function($start, $end, $label) {
             $mRev = class_exists(\Modules\POS\Models\POS::class) ? \Modules\POS\Models\POS::whereBetween('created_at', [$start, $end])->sum('total_tagihan') : 0;
-            $mDetails = class_exists(\Modules\POS\Models\POSDetail::class) ? \Modules\POS\Models\POSDetail::with('product')->whereHas('pos', function($q) use ($start, $end) {
-                $q->whereBetween('created_at', [$start, $end]);
-            })->get() : [];
-            $mCogs = count($mDetails) > 0 ? $mDetails->sum(function($detail) {
-                return $detail->qty * ($detail->product->harga_beli ?? 0);
-            }) : 0;
+            $mCogs = \Illuminate\Support\Facades\DB::table('pos_detail')
+                ->join('pos', 'pos.id', '=', 'pos_detail.pos_id')
+                ->join('produk', 'produk.id', '=', 'pos_detail.produk_id')
+                ->whereBetween('pos.created_at', [$start, $end])
+                ->sum(\Illuminate\Support\Facades\DB::raw('pos_detail.qty * COALESCE(produk.harga_beli, 0)'));
             
             return [
                 'label' => $label,
-                'revenue' => $mRev,
-                'cogs' => $mCogs,
-                'profit' => $mRev - $mCogs
+                'revenue' => (float)$mRev,
+                'cogs' => (float)$mCogs,
+                'profit' => (float)($mRev - $mCogs)
             ];
         };
 
@@ -139,33 +132,42 @@ class ReportController extends Controller
 
         // --- PRODUCT PROFITABILITY ---
         $productStats = [];
-        if(count($posDetails) > 0) {
-            foreach ($posDetails as $detail) {
-                $pid = $detail->produk_id;
-                if(!isset($productStats[$pid])) {
-                    $productStats[$pid] = [
-                        'name' => $detail->product->nama ?? 'Unknown',
-                        'sku' => $detail->product->sku ?? '-',
-                        'qty_sold' => 0,
-                        'hpp' => $detail->product->harga_beli ?? 0,
-                        'selling_price' => $detail->product->harga_jual ?? 0,
-                        'revenue' => 0,
-                        'cogs' => 0
-                    ];
-                }
-                $productStats[$pid]['qty_sold'] += $detail->qty;
-                $productStats[$pid]['revenue'] += $detail->subtotal;
-                $productStats[$pid]['cogs'] += $detail->qty * ($detail->product->harga_beli ?? 0);
+        if(class_exists(\Modules\POS\Models\POSDetail::class)) {
+            $bestSelling = \Illuminate\Support\Facades\DB::table('pos_detail')
+                ->join('pos', 'pos.id', '=', 'pos_detail.pos_id')
+                ->join('produk', 'produk.id', '=', 'pos_detail.produk_id')
+                ->whereBetween('pos.created_at', [$startDate, $endDate])
+                ->select(
+                    'produk.id',
+                    'produk.nama',
+                    'produk.sku',
+                    'produk.harga_beli',
+                    'produk.harga_jual',
+                    \Illuminate\Support\Facades\DB::raw('SUM(pos_detail.qty) as qty_sold'),
+                    \Illuminate\Support\Facades\DB::raw('SUM(pos_detail.subtotal) as revenue'),
+                    \Illuminate\Support\Facades\DB::raw('SUM(pos_detail.qty * COALESCE(produk.harga_beli, 0)) as cogs')
+                )
+                ->groupBy('produk.id', 'produk.nama', 'produk.sku', 'produk.harga_beli', 'produk.harga_jual')
+                ->orderByDesc('revenue')
+                ->limit(10)
+                ->get();
+
+            foreach ($bestSelling as $item) {
+                $revenue = (float) $item->revenue;
+                $cogs = (float) $item->cogs;
+                $gross_profit = $revenue - $cogs;
+                $productStats[] = [
+                    'name' => $item->nama,
+                    'sku' => $item->sku ?? '-',
+                    'qty_sold' => (int) $item->qty_sold,
+                    'hpp' => (float) $item->harga_beli,
+                    'selling_price' => (float) $item->harga_jual,
+                    'revenue' => $revenue,
+                    'cogs' => $cogs,
+                    'gross_profit' => $gross_profit,
+                    'margin' => $revenue > 0 ? ($gross_profit / $revenue) * 100 : 0,
+                ];
             }
-            
-            foreach ($productStats as &$stat) {
-                $stat['gross_profit'] = $stat['revenue'] - $stat['cogs'];
-                $stat['margin'] = $stat['revenue'] > 0 ? ($stat['gross_profit'] / $stat['revenue']) * 100 : 0;
-            }
-            usort($productStats, function($a, $b) {
-                return $b['revenue'] <=> $a['revenue'];
-            });
-            $productStats = array_slice($productStats, 0, 10);
         }
 
         // --- INVOICES SUMMARY ---
@@ -175,18 +177,26 @@ class ReportController extends Controller
             'partial_amount' => 0, 'partial_count' => 0
         ];
         if(class_exists(\Modules\TagihanSupplier\Models\TagihanSupplier::class)) {
-            $paidInvoices = \Modules\TagihanSupplier\Models\TagihanSupplier::where('status', 'lunas')->whereBetween('updated_at', [$startDate, $endDate])->get();
-            $pendingInvoices = \Modules\TagihanSupplier\Models\TagihanSupplier::where('status', 'belum_lunas')->whereBetween('created_at', [$startDate, $endDate])->get();
-            $partialInvoices = \Modules\TagihanSupplier\Models\TagihanSupplier::where('status', 'sebagian')->whereBetween('created_at', [$startDate, $endDate])->get();
+            $paidQuery = \Modules\TagihanSupplier\Models\TagihanSupplier::where('status', 'lunas')->whereBetween('updated_at', [$startDate, $endDate]);
+            $pendingQuery = \Modules\TagihanSupplier\Models\TagihanSupplier::where('status', 'belum_lunas')->whereBetween('created_at', [$startDate, $endDate]);
+            $partialQuery = \Modules\TagihanSupplier\Models\TagihanSupplier::where('status', 'sebagian')->whereBetween('created_at', [$startDate, $endDate]);
             
             $invoiceStats = [
-                'paid_amount' => $paidInvoices->sum('total'),
-                'paid_count' => $paidInvoices->count(),
-                'pending_amount' => $pendingInvoices->sum('total'), // Simplified due to no jumlah_dibayar
-                'pending_count' => $pendingInvoices->count(),
-                'partial_amount' => $partialInvoices->sum('total') / 2, // Dummy calculation for partial
-                'partial_count' => $partialInvoices->count()
+                'paid_amount' => (float)$paidQuery->sum('total'),
+                'paid_count' => $paidQuery->count(),
+                'pending_amount' => (float)$pendingQuery->sum('total'), // Simplified due to no jumlah_dibayar
+                'pending_count' => $pendingQuery->count(),
+                'partial_amount' => (float)$partialQuery->sum('total') / 2, // Dummy calculation for partial
+                'partial_count' => $partialQuery->count()
             ];
+        }
+
+        // opsItems is passed to the view, we need to fetch only what's necessary or limit it to avoid memory issues on huge ops records.
+        // If the view displays it, let's just fetch it but limit to a reasonable number to avoid crashing.
+        $opsItems = [];
+        if(class_exists(\Modules\OperationalItem\Models\ItemOperasional::class)) {
+            $opsItems = \Modules\OperationalItem\Models\ItemOperasional::whereBetween('created_at', [$startDate, $endDate])
+                ->latest()->limit(50)->get();
         }
 
         return view('report::index', compact(
