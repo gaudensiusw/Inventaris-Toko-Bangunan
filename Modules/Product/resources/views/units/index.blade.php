@@ -5,6 +5,7 @@
 
 @section('content')
 <div x-data="{ 
+    isSubmitting: false,
     addModal: false, 
     editModal: false, 
     deleteModalOpen: false,
@@ -136,7 +137,7 @@
                 <h3 class="font-bold text-slate-800">Tambah Satuan Baru</h3>
                 <button @click="addModal = false" class="text-slate-400 hover:text-slate-600 text-2xl font-light">&times;</button>
             </div>
-            <form action="{{ route('unit.store') }}" method="POST" class="p-6 space-y-4">
+            <form action="{{ route('unit.store') }}" method="POST" class="p-6 space-y-4" @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;">
                 @csrf
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Kategori Satuan</label>
@@ -176,8 +177,11 @@
                             <p class="text-slate-500 leading-relaxed">Anda akan menambahkan satuan baru ke database master data.</p>
                         </div>
                         <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
-                            <button type="button" @click="confirmAdd = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
-                            <button type="submit" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20">Ya, Simpan</button>
+                            <button type="button" @click="confirmAdd = false" :disabled="isSubmitting" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
+                            <button type="submit" :disabled="isSubmitting" :class="{'opacity-70 cursor-wait': isSubmitting}" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20">
+                                <span x-show="!isSubmitting">Ya, Simpan</span>
+                                <span x-show="isSubmitting" style="display: none;">Menyimpan...</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -193,7 +197,7 @@
                 <h3 class="font-bold text-slate-800">Edit Satuan</h3>
                 <button @click="editModal = false" class="text-slate-400 hover:text-slate-600 text-2xl font-light">&times;</button>
             </div>
-            <form :action="`{{ url('/units') }}/${selectedUnit.id}`" method="POST" class="p-6 space-y-4">
+            <form :action="`{{ url('/units') }}/${selectedUnit.id}`" method="POST" class="p-6 space-y-4" @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;">
                 @csrf @method('PUT')
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Kategori Satuan</label>
@@ -233,8 +237,11 @@
                             <p class="text-slate-500 leading-relaxed">Perubahan pada satuan dapat mempengaruhi tampilan data pada seluruh produk terkait.</p>
                         </div>
                         <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
-                            <button type="button" @click="confirmEdit = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
-                            <button type="submit" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20">Ya, Perbarui</button>
+                            <button type="button" @click="confirmEdit = false" :disabled="isSubmitting" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
+                            <button type="submit" :disabled="isSubmitting" :class="{'opacity-70 cursor-wait': isSubmitting}" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20">
+                                <span x-show="!isSubmitting">Ya, Perbarui</span>
+                                <span x-show="isSubmitting" style="display: none;">Memperbarui...</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -252,11 +259,14 @@
                 </div>
                 <h3 class="text-lg font-bold text-slate-800 mb-2" x-text="deleteForm.title">Konfirmasi Hapus</h3>
                 <p class="text-sm text-slate-500 mb-6" x-text="deleteForm.message">Apakah Anda yakin ingin menghapus data ini?</p>
-                <form :action="deleteForm.url" method="POST">
+                <form :action="deleteForm.url" method="POST" @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;">
                     @csrf @method('DELETE')
                     <div class="flex gap-3 mt-6">
-                        <button type="button" @click="deleteModalOpen = false" class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">Batal</button>
-                        <button type="submit" class="flex-1 px-4 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-200">Hapus Sekarang</button>
+                        <button type="button" @click="deleteModalOpen = false" :disabled="isSubmitting" class="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">Batal</button>
+                        <button type="submit" :disabled="isSubmitting" :class="{'opacity-70 cursor-wait': isSubmitting}" class="flex-1 px-4 py-2.5 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-200">
+                            <span x-show="!isSubmitting">Hapus Sekarang</span>
+                            <span x-show="isSubmitting" style="display: none;">Menghapus...</span>
+                        </button>
                     </div>
                 </form>
             </div>

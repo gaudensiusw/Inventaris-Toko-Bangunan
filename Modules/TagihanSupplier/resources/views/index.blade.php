@@ -5,6 +5,7 @@
 
 @section('content')
 <div x-data='{ 
+    isSubmitting: false,
     addModalOpen: false, 
     editModalOpen: false, 
     deleteModalOpen: false,
@@ -294,7 +295,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-            <form action="{{ route('tagihansupplier.store') }}" method="POST">
+            <form action="{{ route('tagihansupplier.store') }}" method="POST" @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;">
                 @csrf
                 <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
                     <div>
@@ -352,8 +353,11 @@
                             <p class="text-slate-500 leading-relaxed">Apakah Anda yakin data tagihan ini sudah benar? Hutang akan otomatis tercatat ke sistem.</p>
                         </div>
                         <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
-                            <button type="button" @click="showConfirmSave = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Periksa Lagi</button>
-                            <button type="submit" class="flex-1 py-3 bg-[#0f172a] hover:bg-slate-800 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-slate-900/20">Ya, Simpan</button>
+                            <button type="button" @click="showConfirmSave = false" :disabled="isSubmitting" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Periksa Lagi</button>
+                            <button type="submit" :disabled="isSubmitting" :class="{'opacity-70 cursor-wait': isSubmitting}" class="flex-1 py-3 bg-[#0f172a] hover:bg-slate-800 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-slate-900/20">
+                                <span x-show="!isSubmitting">Ya, Simpan</span>
+                                <span x-show="isSubmitting" style="display: none;">Menyimpan...</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -374,7 +378,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-            <form :action="`/tagihan-supplier/${editForm.id}`" method="POST">
+            <form :action="`/tagihan-supplier/${editForm.id}`" method="POST" @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;">
                 @csrf
                 @method('PUT')
                 <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[70vh] overflow-y-auto">
@@ -432,8 +436,11 @@
                             <p class="text-slate-500 leading-relaxed">Apakah Anda yakin ingin memperbarui data tagihan ini? Perubahan akan langsung berdampak pada laporan keuangan.</p>
                         </div>
                         <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
-                            <button type="button" @click="showConfirmEdit = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
-                            <button type="submit" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20">Ya, Perbarui</button>
+                            <button type="button" @click="showConfirmEdit = false" :disabled="isSubmitting" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
+                            <button type="submit" :disabled="isSubmitting" :class="{'opacity-70 cursor-wait': isSubmitting}" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-blue-600/20">
+                                <span x-show="!isSubmitting">Ya, Perbarui</span>
+                                <span x-show="isSubmitting" style="display: none;">Memperbarui...</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -453,11 +460,14 @@
                 <p class="text-sm text-slate-500">Anda yakin ingin menghapus tagihan <span class="font-bold text-slate-700" x-text="deleteForm.no_invoice"></span>?</p>
             </div>
             <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
-                <button type="button" @click="deleteModalOpen = false" class="flex-1 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Batal</button>
-                <form :action="`/tagihan-supplier/${deleteForm.id}`" method="POST" class="flex-1">
+                <button type="button" @click="deleteModalOpen = false" :disabled="isSubmitting" class="flex-1 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Batal</button>
+                <form :action="`/tagihan-supplier/${deleteForm.id}`" method="POST" class="flex-1" @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="w-full py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold text-white shadow transition-colors">Ya, Hapus</button>
+                    <button type="submit" :disabled="isSubmitting" :class="{'opacity-70 cursor-wait': isSubmitting}" class="w-full py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold text-white shadow transition-colors">
+                        <span x-show="!isSubmitting">Ya, Hapus</span>
+                        <span x-show="isSubmitting" style="display: none;">Menghapus...</span>
+                    </button>
                 </form>
             </div>
         </div>
