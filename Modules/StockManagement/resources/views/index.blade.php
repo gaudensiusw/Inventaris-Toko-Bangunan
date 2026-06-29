@@ -5,6 +5,7 @@
 
 @section('content')
 <div x-data="{ 
+    isSubmitting: false,
     modalOpen: false, 
     showConfirm: false,
     editModalOpen: false,
@@ -126,7 +127,7 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-            <form action="{{ route('stockmanagement.store') }}" method="POST">
+            <form action="{{ route('stockmanagement.store') }}" method="POST" @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;">
                 @csrf
                 <input type="hidden" name="tipe" :value="modalType">
                 <div class="p-6 space-y-4">
@@ -174,10 +175,11 @@
                             <p class="text-slate-500 leading-relaxed">Pastikan jumlah barang yang dimasukkan sudah sesuai dengan fisik di gudang.</p>
                         </div>
                         <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
-                            <button type="button" @click="showConfirm = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
-                            <button type="submit" class="flex-1 py-3 text-white rounded-xl text-sm font-bold transition-all shadow-lg"
-                                :class="modalType == 'in' ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : 'bg-red-600 hover:bg-red-700 shadow-red-200'">
-                                Ya, Simpan
+                            <button type="button" @click="showConfirm = false" :disabled="isSubmitting" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
+                            <button type="submit" :disabled="isSubmitting" class="flex-1 py-3 text-white rounded-xl text-sm font-bold transition-all shadow-lg"
+                                :class="(modalType == 'in' ? 'bg-green-600 hover:bg-green-700 shadow-green-200 ' : 'bg-red-600 hover:bg-red-700 shadow-red-200 ') + (isSubmitting ? 'opacity-70 cursor-wait' : '')">
+                                <span x-show="!isSubmitting">Ya, Simpan</span>
+                                <span x-show="isSubmitting" style="display: none;">Menyimpan...</span>
                             </button>
                         </div>
                     </div>
@@ -196,7 +198,7 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-            <form :action="'{{ url('stock-management/update-note') }}/' + editId" method="POST">
+            <form :action="'{{ url('stock-management/update-note') }}/' + editId" method="POST" @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;">
                 @csrf
                 @method('PUT')
                 <div class="p-5">
@@ -204,8 +206,11 @@
                     <textarea name="keterangan" x-model="editKeterangan" placeholder="Masukkan keterangan..." class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500 resize-none h-24"></textarea>
                 </div>
                 <div class="px-5 py-3 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
-                    <button type="button" @click="editModalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow">Simpan Catatan</button>
+                    <button type="button" @click="editModalOpen = false" :disabled="isSubmitting" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 transition-colors shadow-sm">Batal</button>
+                    <button type="submit" :disabled="isSubmitting" :class="{'opacity-70 cursor-wait': isSubmitting}" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition-colors shadow">
+                        <span x-show="!isSubmitting">Simpan Catatan</span>
+                        <span x-show="isSubmitting" style="display: none;">Menyimpan...</span>
+                    </button>
                 </div>
             </form>
         </div>

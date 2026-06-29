@@ -117,7 +117,7 @@
                 </button>
             </div>
 
-            <form id="purchaseForm" action="{{ route('pembelian.store') }}" method="POST" class="flex flex-col overflow-hidden h-full">
+            <form id="purchaseForm" action="{{ route('pembelian.store') }}" method="POST" class="flex flex-col overflow-hidden h-full" @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;">
                 @csrf
                 <div class="p-6 overflow-y-auto flex-1 custom-scrollbar" style="min-height: 400px;">
 
@@ -279,8 +279,9 @@
                         <span class="font-bold text-slate-700" x-text="form.status === 'selesai' ? 'Stok dan Harga Modal akan langsung diperbarui.' : 'Transaksi akan dicatat sebagai Pending (Stok tidak berubah).'"></span>
                     </p>
                     <div class="flex flex-col gap-2">
-                        <button type="button" @click="submitPurchaseForm()" class="w-full py-3 bg-[#0f172a] hover:bg-slate-800 rounded-xl text-sm font-black text-white shadow-lg transition-all transform active:scale-95">
-                            Ya, Simpan Sekarang
+                        <button type="button" @click="submitPurchaseForm()" :disabled="isSubmitting" :class="{'opacity-70 cursor-wait': isSubmitting}" class="w-full py-3 bg-[#0f172a] hover:bg-slate-800 rounded-xl text-sm font-black text-white shadow-lg transition-all transform active:scale-95">
+                            <span x-show="!isSubmitting">Ya, Simpan Sekarang</span>
+                            <span x-show="isSubmitting" style="display: none;">Menyimpan...</span>
                         </button>
                         <button type="button" @click="saveConfirmModal = false" class="w-full py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors">
                             Periksa Kembali
@@ -306,10 +307,11 @@
                         <span class="font-bold text-slate-700">Stok dan Harga Modal akan segera diperbarui.</span>
                     </p>
                     <div class="flex flex-col gap-2">
-                        <form :action="`/pembelian/${receiveData.id}/receive`" method="POST">
+                        <form :action="`/pembelian/${receiveData.id}/receive`" method="POST" @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;">
                             @csrf
-                            <button type="submit" class="w-full py-3 bg-green-600 hover:bg-green-700 rounded-xl text-sm font-black text-white shadow-lg transition-all transform active:scale-95">
-                                Ya, Terima Barang
+                            <button type="submit" :disabled="isSubmitting" :class="{'opacity-70 cursor-wait': isSubmitting}" class="w-full py-3 bg-green-600 hover:bg-green-700 rounded-xl text-sm font-black text-white shadow-lg transition-all transform active:scale-95">
+                                <span x-show="!isSubmitting">Ya, Terima Barang</span>
+                                <span x-show="isSubmitting" style="display: none;">Memproses...</span>
                             </button>
                         </form>
                         <button type="button" @click="receiveConfirmModal = false" class="w-full py-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50 transition-colors">
@@ -393,10 +395,13 @@
                     </p>
                     <div class="flex gap-3">
                         <button @click="deleteModalOpen = false" class="flex-1 px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50 transition-colors">Batal</button>
-                        <form :action="`/pembelian/${deleteData.id}`" method="POST" class="flex-1">
+                        <form :action="`/pembelian/${deleteData.id}`" method="POST" class="flex-1" @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold text-white shadow-sm transition-colors">Ya, Hapus</button>
+                            <button type="submit" :disabled="isSubmitting" :class="{'opacity-70 cursor-wait': isSubmitting}" class="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-bold text-white shadow-sm transition-colors">
+                                <span x-show="!isSubmitting">Ya, Hapus</span>
+                                <span x-show="isSubmitting" style="display: none;">Menghapus...</span>
+                            </button>
                         </form>
                     </div>
                 </div>
@@ -408,6 +413,7 @@
 <script>
 function pembelianManager() {
     return {
+        isSubmitting: false,
         addModalOpen: false, 
         viewModalOpen: false,
         deleteModalOpen: false,
@@ -498,6 +504,8 @@ function pembelianManager() {
             this.receiveConfirmModal = true;
         },
         submitPurchaseForm() {
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
             document.getElementById('purchaseForm').submit();
         },
         formatNumber(num) {

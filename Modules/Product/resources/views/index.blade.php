@@ -17,6 +17,9 @@
             'harga_beli' => old('harga_beli'),
             'harga_jual' => old('harga_jual'),
             'merk' => old('merk'),
+            'aktif_grosir' => old('aktif_grosir'),
+            'min_qty_grosir' => old('min_qty_grosir'),
+            'harga_grosir' => old('harga_grosir'),
             'units' => old('units', [])
         ] : (object)['units' => []];
 
@@ -697,6 +700,20 @@
                         </svg>
                     </button>
                 </div>
+                
+                @if(!old('edit_id') && $errors->any())
+                    <div class="px-6 pt-4">
+                        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                            <p class="text-sm font-bold mb-1">Terdapat kesalahan pada form:</p>
+                            <ul class="list-disc list-inside text-sm space-y-0.5">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                @endif
+
                 <form action="{{ route('product.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
@@ -1047,6 +1064,20 @@
                         </svg>
                     </button>
                 </div>
+
+                @if(old('edit_id') && $errors->any())
+                    <div class="px-6 pt-4">
+                        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                            <p class="text-sm font-bold mb-1">Terdapat kesalahan pada form:</p>
+                            <ul class="list-disc list-inside text-sm space-y-0.5">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                @endif
+
                 <form :action="`{{ url('/products') }}/${editForm.id}`" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')

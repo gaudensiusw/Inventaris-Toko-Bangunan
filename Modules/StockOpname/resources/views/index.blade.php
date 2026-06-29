@@ -204,8 +204,11 @@
                 <p class="text-slate-500 leading-relaxed">Sistem akan menyinkronkan seluruh barang dalam antrean sesuai angka fisik yang dimasukkan.</p>
             </div>
             <div class="px-6 py-5 bg-slate-50 border-t border-slate-100 flex gap-3">
-                <button type="button" @click="$store.opname.showConfirm = false" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
-                <button @click="$store.opname.submit()" class="flex-1 py-3 bg-[#0f172a] hover:bg-slate-800 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-slate-900/20">Ya, {{ in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Sinkronkan' : 'Kirim' }}</button>
+                <button type="button" @click="$store.opname.showConfirm = false" :disabled="$store.opname.isSubmitting" class="flex-1 py-3 bg-white border border-slate-300 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all shadow-sm">Batal</button>
+                <button @click="$store.opname.submit()" :disabled="$store.opname.isSubmitting" :class="{'opacity-70 cursor-wait': $store.opname.isSubmitting}" class="flex-1 py-3 bg-[#0f172a] hover:bg-slate-800 rounded-xl text-sm font-bold text-white transition-all shadow-lg shadow-slate-900/20">
+                    <span x-show="!$store.opname.isSubmitting">Ya, {{ in_array(auth()->user()->role, ['owner', 'supervisor']) ? 'Sinkronkan' : 'Kirim' }}</span>
+                    <span x-show="$store.opname.isSubmitting" style="display: none;">Memproses...</span>
+                </button>
             </div>
         </div>
     </div>
@@ -219,6 +222,7 @@
         Alpine.store('opname', {
             queue: JSON.parse(localStorage.getItem('opname_cache') || '{}'),
             showConfirm: false,
+            isSubmitting: false,
 
             save(id, nama, stokFisik, keterangan, sistem) {
                 if (stokFisik === '' || stokFisik === null) {
@@ -246,7 +250,9 @@
             },
 
             async submit() {
-                if (this.count === 0) return;
+                if (this.count === 0 || this.isSubmitting) return;
+                
+                this.isSubmitting = true;
 
                 const formData = new FormData();
                 formData.append('_token', '{{ csrf_token() }}');
@@ -272,6 +278,8 @@
                     }
                 } catch (e) {
                     alert('Terjadi kesalahan koneksi.');
+                } finally {
+                    this.isSubmitting = false;
                 }
             }
         });
