@@ -186,7 +186,7 @@
                         return;
                     }
                     try {
-                        const response = await fetch(`/api/sub-categories/${categoryId}`);
+                        const response = await fetch(`{{ url('/api/sub-categories') }}/${categoryId}`);
                         const data = await response.json();
                         if (type === 'add') this.addSubCategories = data;
                         else this.editSubCategories = data;

@@ -550,7 +550,7 @@
         `;
 
         try {
-            const response = await fetch(`/audit-logs/${_pendingDeleteId}`, {
+            const response = await fetch(`{{ url('/audit-logs') }}/${_pendingDeleteId}`, {
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': '{{ csrf_token() }}',

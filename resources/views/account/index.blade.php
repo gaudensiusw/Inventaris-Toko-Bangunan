@@ -397,7 +397,7 @@
 
     async function toggleStatus(id, checkbox) {
         try {
-            const response = await fetch(`/accounts/${id}/toggle-status`, {
+            const response = await fetch(`{{ url('/accounts') }}/${id}/toggle-status`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -441,7 +441,7 @@
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`/accounts/${id}`, {
+                    const response = await fetch(`{{ url('/accounts') }}/${id}`, {
                         method: 'DELETE',
                         headers: {
                             'Content-Type': 'application/json',
@@ -477,7 +477,7 @@
         }).then(async (result) => {
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`/accounts/${id}/reset-password`, {
+                    const response = await fetch(`{{ url('/accounts') }}/${id}/reset-password`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

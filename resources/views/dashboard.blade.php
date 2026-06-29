@@ -166,7 +166,7 @@
         updateActiveButton(filter);
         
         try {
-            const response = await fetch(`/dashboard/chart-data?filter=${filter}`, {
+            const response = await fetch(`{{ url('/dashboard/chart-data') }}?filter=${filter}`, {
                 headers: {
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
