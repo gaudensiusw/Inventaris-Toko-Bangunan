@@ -86,7 +86,7 @@
                                             {{ $d->satuan_nama ?: 'Pcs' }}
                                         </span>
                                     </div>
-                                    <div class="col-span-2 text-center font-semibold text-slate-600">{{ number_format($d->qty, 0) }}</div>
+                                    <div class="col-span-2 text-center font-semibold text-slate-600">{{ fmod($d->qty, 1) !== 0.0 ? number_format($d->qty, 2, ',', '.') : number_format($d->qty, 0, ',', '.') }}</div>
                                     <div class="col-span-2 text-right font-black text-slate-800 font-mono">Rp {{ number_format($d->subtotal, 0, ',', '.') }}</div>
                                 </div>
                                 @endforeach
