@@ -24,7 +24,7 @@ class StockManagementController extends Controller
         $validated = $request->validate([
             'produk_id'  => 'required|exists:produk,id',
             'tipe'       => 'required|in:in,out',
-            'qty'        => 'required|integer|min:1',
+            'qty'        => 'required|numeric|min:0.01',
             'keterangan' => 'nullable|string|max:255',
         ]);
 

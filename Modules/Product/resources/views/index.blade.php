@@ -44,11 +44,13 @@
                 'image'           => $p->image,
                 'units'           => $p->units->map(function($u) {
                     return [
-                        'id'         => $u->id,
-                        'nama'       => $u->nama,
-                        'isi'        => $u->isi,
-                        'harga_jual' => (int)$u->harga_jual,
-                        'is_base'    => (bool)$u->is_base,
+                        'id'            => $u->id,
+                        'nama'          => $u->nama,
+                        'isi'           => (float)$u->isi,
+                        'target_satuan' => $u->target_satuan,
+                        'target_isi'    => (float)$u->target_isi,
+                        'harga_jual'    => (int)$u->harga_jual,
+                        'is_base'       => (bool)$u->is_base,
                     ];
                 })->values()->all(),
             ];
@@ -263,8 +265,8 @@
                     this.editForm.harga_beli_kemasan = this.editForm.harga_beli;
                     this.editForm.isi_kemasan_beli = 1;
                     this.editForm.harga_jual = Math.floor(this.editForm.harga_jual);
-                    this.editForm.stok = Math.floor(this.editForm.stok);
-                    this.editForm.min_stok = Math.floor(this.editForm.min_stok);
+                    this.editForm.stok = parseFloat(this.editForm.stok) || 0;
+                    this.editForm.min_stok = parseFloat(this.editForm.min_stok) || 0;
 
                     if (this.editForm.harga_beli > 0) {
                         this.editForm.margin = parseFloat(((this.editForm.harga_jual / this.editForm.harga_beli - 1) * 100).toFixed(2));
@@ -279,8 +281,8 @@
                     }
 
                     this.editForm.units = (product.units || []).map(u => Object.assign({}, u, {
-                        target_satuan: u.target_satuan || (u.is_base ? u.nama : product.unit),
-                        target_isi: Number(u.target_isi) || (u.is_base ? 1 : Number(u.isi))
+                        target_satuan: u.is_base ? u.nama : (u.target_satuan || ''),
+                        target_isi: u.is_base ? 1 : (Number(u.target_isi) || Number(u.isi) || 1)
                     }));
                     if (this.editForm.units.length === 0 && this.editForm.unit) {
                         this.editForm.units.push({
@@ -866,7 +868,7 @@
                                                 <select :name="`units[${index}][target_satuan]`" x-model="unit.target_satuan"
                                                     :disabled="unit.is_base"
                                                     :class="unit.is_base ? 'w-full border-slate-200 rounded text-xs p-2 bg-slate-100 font-bold text-slate-500 opacity-70 cursor-not-allowed' : 'w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-50/50'"
-                                                    @change="if(!unit.is_base) { unit.isi = (Number(unit.target_isi) || 1) * ((addForm.units.find(u => u.nama === ($event.target.value || addForm.unit)) || {}).isi || 1); unit.harga_jual = Math.round((addForm.harga_beli * unit.isi) * (1 + addForm.margin / 100)) }">
+                                                    @change="if(!unit.is_base) { unit.isi = (Number(unit.target_isi) || 1) * ((addForm.units.find(u => u.nama === ($event.target.value || addForm.unit)) || {}).isi || 1); }">
                                                     <option value="" disabled>Pilih...</option>
                                                     <template x-for="u in addForm.units.filter(u => u.nama)" :key="u.nama">
                                                         <option :value="u.nama" x-text="u.nama"></option>
@@ -878,7 +880,7 @@
                                                 <input type="number" step="1" min="1" :name="`units[${index}][target_isi]`" x-model="unit.target_isi" 
                                                     :readonly="unit.is_base"
                                                     :class="unit.is_base ? 'w-full border-slate-200 rounded text-xs p-2 bg-slate-100 font-bold text-slate-500 opacity-70 cursor-not-allowed' : 'w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-50/50 font-bold'"
-                                                    @input="if(!unit.is_base) { unit.isi = (Number($event.target.value) || 1) * ((addForm.units.find(u => u.nama === (unit.target_satuan || addForm.unit)) || {}).isi || 1); unit.harga_jual = Math.round((addForm.harga_beli * unit.isi) * (1 + addForm.margin / 100)) }">
+                                                    @input="if(!unit.is_base) { unit.isi = (Number($event.target.value) || 1) * ((addForm.units.find(u => u.nama === (unit.target_satuan || addForm.unit)) || {}).isi || 1); }">
                                                 <input type="hidden" :name="`units[${index}][isi]`" :value="unit.isi || 1">
                                             </div>
                                             <div class="col-span-2 sm:col-span-2">
@@ -1237,7 +1239,7 @@
                                                 <select :name="`units[${index}][target_satuan]`" x-model="unit.target_satuan"
                                                     :disabled="unit.is_base"
                                                     :class="unit.is_base ? 'w-full border-slate-200 rounded text-xs p-2 bg-slate-100 font-bold text-slate-500 opacity-70 cursor-not-allowed' : 'w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-50/50'"
-                                                    @change="if(!unit.is_base) { unit.isi = (Number(unit.target_isi) || 1) * ((editForm.units.find(u => u.nama === ($event.target.value || editForm.unit)) || {}).isi || 1); unit.harga_jual = Math.round((editForm.harga_beli * unit.isi) * (1 + editForm.margin / 100)) }">
+                                                    @change="if(!unit.is_base) { unit.isi = (Number(unit.target_isi) || 1) * ((editForm.units.find(u => u.nama === ($event.target.value || editForm.unit)) || {}).isi || 1); }">
                                                     <option value="" disabled>Pilih...</option>
                                                     <template x-for="u in editForm.units.filter(u => u.nama)" :key="u.nama">
                                                         <option :value="u.nama" x-text="u.nama"></option>
@@ -1249,7 +1251,7 @@
                                                 <input type="number" step="1" min="1" :name="`units[${index}][target_isi]`" x-model="unit.target_isi" 
                                                     :readonly="unit.is_base"
                                                     :class="unit.is_base ? 'w-full border-slate-200 rounded text-xs p-2 bg-slate-100 font-bold text-slate-500 opacity-70 cursor-not-allowed' : 'w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-50/50 font-bold'"
-                                                    @input="if(!unit.is_base) { unit.isi = (Number($event.target.value) || 1) * ((editForm.units.find(u => u.nama === (unit.target_satuan || editForm.unit)) || {}).isi || 1); unit.harga_jual = Math.round((editForm.harga_beli * unit.isi) * (1 + editForm.margin / 100)) }">
+                                                    @input="if(!unit.is_base) { unit.isi = (Number($event.target.value) || 1) * ((editForm.units.find(u => u.nama === (unit.target_satuan || editForm.unit)) || {}).isi || 1); }">
                                                 <input type="hidden" :name="`units[${index}][isi]`" :value="unit.isi || 1">
                                             </div>
                                             <div class="col-span-2 sm:col-span-2">

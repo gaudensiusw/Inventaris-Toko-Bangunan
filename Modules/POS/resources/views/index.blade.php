@@ -283,7 +283,7 @@
 
     <!-- ── UNIT SELECTION MODAL ────────────────────────────── -->
     <div x-show="unitModalOpen" class="fixed inset-0 z-[110] flex items-center justify-center" style="display: none;">
-        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="unitModalOpen = false" x-transition.opacity></div>
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="unitModalOpen = false; customQtyOpen = false; customQtyValue = ''" x-transition.opacity></div>
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md relative z-10 m-4 overflow-hidden transform transition-all" x-transition>
             <div class="p-5 border-b border-slate-100 flex items-center gap-4 bg-slate-50/50">
                 <div class="w-12 h-12 rounded-xl bg-white border border-slate-200 overflow-hidden flex-shrink-0">
@@ -328,7 +328,7 @@
                         </div>
                         <div class="text-right">
                             <div class="font-black text-blue-600" x-text="formatCurrency(unit.harga_jual)"></div>
-                            <div class="text-[10px] text-slate-400" x-text="'Stok: ' + Math.floor(selectedProduct?.stok / unit.isi)"></div>
+                            <div class="text-[10px] text-slate-400" x-text="'Stok: ' + parseFloat((selectedProduct?.stok / unit.isi).toFixed(2))"></div>
                         </div>
                     </button>
                 </template>
@@ -353,6 +353,48 @@
                         </div>
                     </button>
                 </template>
+
+                <!-- Opsi Kustom (Pecahan/Desimal) -->
+                <div class="border-2 border-dashed border-slate-300 hover:border-purple-400 rounded-xl transition-all overflow-hidden">
+                    <button @click="customQtyOpen = !customQtyOpen; customQtyUnit = { nama: selectedProduct?.unit, isi: 1, harga_jual: selectedProduct?.harga_jual }; customQtyValue = ''"
+                        class="w-full p-4 flex items-center justify-between group">
+                        <div class="text-left">
+                            <div class="font-bold text-slate-700 group-hover:text-purple-700 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                Beli Ukuran Kustom (Pecahan)
+                            </div>
+                            <div class="text-[10px] text-slate-500 mt-0.5">Masukkan jumlah spesifik, contoh: 0.5, 1.5, 2.75</div>
+                        </div>
+                        <svg class="w-4 h-4 text-slate-400 transition-transform" :class="customQtyOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+
+                    <!-- Panel Kustom (Expand) -->
+                    <div x-show="customQtyOpen" x-transition class="px-4 pb-4 bg-purple-50/60 border-t border-purple-100">
+                        <div class="pt-3 space-y-3">
+                            <div>
+                                <label class="block text-[10px] font-bold text-purple-700 uppercase mb-1.5">Kuantitas Pembelian</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" step="0.01" min="0.01" x-model="customQtyValue" placeholder="Contoh: 1.5"
+                                        @keydown.enter.prevent="addUnitToCart(selectedProduct, customQtyUnit, customQtyValue)"
+                                        class="flex-1 border-2 border-purple-200 focus:border-purple-500 rounded-lg text-sm p-2.5 focus:ring-purple-200 bg-white font-bold text-slate-800 outline-none transition">
+                                    <span class="text-sm font-bold text-purple-700" x-text="selectedProduct?.unit"></span>
+                                </div>
+                            </div>
+                            <!-- Preview Harga -->
+                            <div x-show="customQtyValue > 0" class="bg-white border border-purple-200 rounded-lg p-3 flex items-center justify-between">
+                                <span class="text-xs text-slate-500">Total Harga:</span>
+                                <span class="font-black text-purple-700 text-sm" x-text="formatCurrency((parseFloat(customQtyValue) || 0) * (selectedProduct?.harga_jual || 0))"></span>
+                            </div>
+                            <!-- Tombol Tambah -->
+                            <button @click="addUnitToCart(selectedProduct, customQtyUnit, customQtyValue)"
+                                :disabled="!customQtyValue || parseFloat(customQtyValue) <= 0"
+                                class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                Tambahkan ke Keranjang
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="p-4 border-t border-slate-100 bg-white flex justify-center">
                 <button @click="unitModalOpen = false" class="text-xs font-bold text-slate-500 hover:text-slate-700">Kembali ke Daftar Barang</button>
@@ -478,6 +520,9 @@ function posSystem() {
         checkoutModalOpen: false,
         unitModalOpen: false,
         pinModalOpen: false,
+        customQtyOpen: false,
+        customQtyValue: '',
+        customQtyUnit: null,
         selectedProduct: null,
         loading: false,
         rekomendasiText: '',
@@ -558,16 +603,20 @@ function posSystem() {
             }
         },
 
-        addUnitToCart(product, unit) {
+        addUnitToCart(product, unit, customQty = null) {
+            const qty = customQty !== null ? parseFloat(customQty) : 1;
+            if (isNaN(qty) || qty <= 0) return;
+
             const cartId = product.id + '-' + unit.nama;
             const idx = this.cart.findIndex(i => i.cartId === cartId);
             
             // Calculate available qty in this unit
-            const availableQty = Math.floor(product.stok / unit.isi);
+            const availableQty = parseFloat((product.stok / unit.isi).toFixed(2));
             
             if (idx > -1) {
-                if (this.cart[idx].qty < availableQty) {
-                    this.cart[idx].qty++;
+                const newQty = parseFloat((this.cart[idx].qty + qty).toFixed(2));
+                if (newQty <= availableQty) {
+                    this.cart[idx].qty = newQty;
                 } else {
                     alert(`Stok tidak mencukupi untuk unit ${unit.nama}`);
                 }
@@ -576,17 +625,24 @@ function posSystem() {
                     alert(`Stok tidak mencukupi untuk unit ${unit.nama}`);
                     return;
                 }
+                if (qty > availableQty) {
+                    alert(`Jumlah melebihi stok yang tersedia (${availableQty} ${unit.nama})`);
+                    return;
+                }
                 this.cart.push({ 
                     cartId: cartId,
                     produk_id: product.id, 
                     nama: product.nama, 
                     satuan_nama: unit.nama,
                     isi: unit.isi,
-                    qty: 1, 
+                    qty: qty, 
                     harga: unit.harga_jual,
                     diskon_rp: 0
                 });
             }
+            this.customQtyOpen = false;
+            this.customQtyValue = '';
+            this.customQtyUnit = null;
             this.unitModalOpen = false;
         },
 
@@ -674,12 +730,12 @@ function posSystem() {
 
         updateQty(idx, delta) {
             const item = this.cart[idx];
-            const currentQty = parseInt(item.qty, 10) || 1;
-            const newQty = currentQty + delta;
+            const currentQty = parseFloat(item.qty) || 0;
+            const newQty = parseFloat((currentQty + delta).toFixed(2));
             const product = this.products.find(p => p.id === item.produk_id);
             
             // Calculate available qty in this unit
-            const availableQty = Math.floor(product.stok / item.isi);
+            const availableQty = parseFloat((product.stok / item.isi).toFixed(2));
 
             if (newQty <= 0) {
                 this.removeFromCart(idx);
@@ -693,21 +749,28 @@ function posSystem() {
         handleQtyInput(idx, val) {
             const item = this.cart[idx];
             
-            // Clean value: only allow digits
-            let cleanVal = val.toString().replace(/\D/g, '');
+            // Allow digits and a single decimal point
+            let cleanVal = val.toString().replace(/[^0-9.]/g, '');
+            // Prevent multiple dots
+            const parts = cleanVal.split('.');
+            if (parts.length > 2) cleanVal = parts[0] + '.' + parts.slice(1).join('');
+            // Max 2 decimal places
+            if (parts[1] !== undefined && parts[1].length > 2) {
+                cleanVal = parts[0] + '.' + parts[1].substring(0, 2);
+            }
             
-            if (cleanVal === '') {
+            if (cleanVal === '' || cleanVal === '.') {
                 item.qty = '';
                 return;
             }
             
-            let newQty = parseInt(cleanVal, 10);
-            if (newQty <= 0) {
-                newQty = 1;
+            let newQty = parseFloat(cleanVal);
+            if (isNaN(newQty) || newQty <= 0) {
+                newQty = 0.01;
             }
             
             const product = this.products.find(p => p.id === item.produk_id);
-            const availableQty = Math.floor(product.stok / item.isi);
+            const availableQty = parseFloat((product.stok / item.isi).toFixed(2));
             
             if (newQty > availableQty) {
                 alert(`Stok tidak mencukupi untuk unit ${item.satuan_nama}. Maks: ${availableQty}`);
@@ -719,8 +782,8 @@ function posSystem() {
 
         handleQtyBlur(idx) {
             const item = this.cart[idx];
-            if (item.qty === '' || item.qty <= 0 || isNaN(item.qty)) {
-                item.qty = 1;
+            if (item.qty === '' || isNaN(parseFloat(item.qty)) || parseFloat(item.qty) <= 0) {
+                item.qty = 0.01;
             }
         },
 

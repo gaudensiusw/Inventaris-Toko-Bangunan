@@ -95,7 +95,7 @@
                             <div class="text-[10px] text-slate-500">SKU: {{ $trx->product->sku ?? '-' }}</div>
                         </td>
                         <td class="p-4 font-black {{ $trx->tipe == 'in' ? 'text-green-600' : 'text-red-600' }}">
-                            {{ $trx->tipe == 'in' ? '+' : '-' }}{{ number_format($trx->qty, 0) }}
+                            {{ $trx->tipe == 'in' ? '+' : '-' }}{{ number_format($trx->qty, 2, ',', '.') }}
                         </td>
                         <td class="p-4 text-slate-500 text-xs italic">{{ $trx->keterangan ?: '-' }}</td>
                         <td class="p-4 text-center whitespace-nowrap">
@@ -142,7 +142,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Jumlah <span class="text-red-500">*</span></label>
-                        <input type="number" name="qty" required min="1" placeholder="0" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500">
+                        <input type="number" name="qty" required min="0.01" step="0.01" placeholder="0" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Keterangan</label>
