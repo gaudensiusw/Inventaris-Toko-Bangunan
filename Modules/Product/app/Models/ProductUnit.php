@@ -15,6 +15,8 @@ class ProductUnit extends Model
         'produk_id',
         'nama',
         'isi',
+        'target_satuan',
+        'target_isi',
         'harga_jual',
         'is_base'
     ];

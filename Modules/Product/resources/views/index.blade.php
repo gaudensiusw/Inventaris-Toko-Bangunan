@@ -119,7 +119,10 @@
                             ? parseFloat(((config.oldHargaJual / config.oldHargaBeli - 1) * 100).toFixed(2)) : 0;
                         this.addForm.kategori_id = config.oldKategoriId;
                         this.addForm.sub_kategori_id = config.oldSubKategoriId;
-                        this.addForm.units = (config.oldUnits && config.oldUnits.length > 0) ? config.oldUnits : [];
+                        this.addForm.units = (config.oldUnits && config.oldUnits.length > 0) ? config.oldUnits.map(u => Object.assign({}, u, {
+                            target_satuan: u.target_satuan || (u.is_base ? u.nama : this.addForm.unit),
+                            target_isi: Number(u.target_isi) || (u.is_base ? 1 : Number(u.isi))
+                        })) : [];
                         const oldSku = {!! json_encode(old('sku', '')) !!};
                         this.addForm.sku = oldSku;
                         this.addForm.skuAuto = oldSku === '' || oldSku === '[Otomatis]';
@@ -196,6 +199,8 @@
                     form.units.push({
                         nama: isBase ? (form.unit || '') : '',
                         isi: 1,
+                        target_satuan: isBase ? (form.unit || '') : (form.unit || ''),
+                        target_isi: 1,
                         harga_jual: isBase ? (form.harga_jual || 0) : 0,
                         is_base: isBase
                     });
@@ -270,11 +275,16 @@
                         this.editSubCategories = [];
                     }
 
-                    this.editForm.units = product.units || [];
+                    this.editForm.units = (product.units || []).map(u => Object.assign({}, u, {
+                        target_satuan: u.target_satuan || (u.is_base ? u.nama : product.unit),
+                        target_isi: Number(u.target_isi) || (u.is_base ? 1 : Number(u.isi))
+                    }));
                     if (this.editForm.units.length === 0 && this.editForm.unit) {
                         this.editForm.units.push({
                             nama: this.editForm.unit,
                             isi: 1,
+                            target_satuan: '',
+                            target_isi: 1,
                             harga_jual: this.editForm.harga_jual,
                             is_base: true
                         });
@@ -809,11 +819,11 @@
                                         <button type="button" @click="removeUnit('add', index)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-lg">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
                                         </button>
-                                        <div class="grid grid-cols-2 sm:grid-cols-12 gap-3">
-                                            <div class="col-span-2 sm:col-span-4">
+                                        <div class="grid grid-cols-2 sm:grid-cols-12 gap-3 items-end">
+                                            <div class="col-span-2 sm:col-span-3">
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Pilih Satuan</label>
                                                 <select :name="`units[${index}][nama]`" x-model="unit.nama"
-                                                    @change="if(unit.is_base) addForm.unit = $event.target.value"
+                                                    @change="if(unit.is_base) { addForm.unit = $event.target.value; unit.target_satuan = $event.target.value; unit.target_isi = 1; unit.isi = 1; }"
                                                     class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-50/50">
                                                     <option value="">Pilih Satuan...</option>
                                                     <template x-for="std in availableUnits" :key="std.id">
@@ -824,17 +834,38 @@
                                                     </template>
                                                 </select>
                                             </div>
-                                            <div class="col-span-2 sm:col-span-3">
-                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jumlah Isi</label>
+                                            <div class="col-span-2 sm:col-span-1">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jml</label>
                                                 <div class="relative">
-                                                    <input type="number" step="1" min="1" :name="`units[${index}][isi]`" x-model="unit.isi" 
-                                                        @input="unit.harga_jual = Math.round((addForm.harga_beli * unit.isi) * (1 + addForm.margin / 100))"
-                                                        class="w-full border-slate-200 rounded text-xs p-2 pr-12 focus:ring-blue-500 bg-slate-50/50 font-bold">
-                                                    <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold" x-text="addForm.unit || 'Unit'"></span>
+                                                    <input type="text" value="1" readonly
+                                                        class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-100 font-bold text-center text-slate-500">
                                                 </div>
                                             </div>
-                                            <div class="col-span-2 sm:col-span-4">
-                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga Jual (Rp)</label>
+                                            <div class="col-span-2 sm:col-span-1 hidden sm:flex items-center justify-center pb-2">
+                                                <span class="text-slate-400 font-black">=</span>
+                                            </div>
+                                            <div class="col-span-2 sm:col-span-2">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Konversi Ke</label>
+                                                <select :name="`units[${index}][target_satuan]`" x-model="unit.target_satuan"
+                                                    :disabled="unit.is_base"
+                                                    :class="unit.is_base ? 'w-full border-slate-200 rounded text-xs p-2 bg-slate-100 font-bold text-slate-500 opacity-70 cursor-not-allowed' : 'w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-50/50'"
+                                                    @change="if(!unit.is_base) { unit.isi = (Number(unit.target_isi) || 1) * ((addForm.units.find(u => u.nama === ($event.target.value || addForm.unit)) || {}).isi || 1); unit.harga_jual = Math.round((addForm.harga_beli * unit.isi) * (1 + addForm.margin / 100)) }">
+                                                    <option value="" disabled>Pilih...</option>
+                                                    <template x-for="u in addForm.units.filter(u => u.nama)" :key="u.nama">
+                                                        <option :value="u.nama" x-text="u.nama"></option>
+                                                    </template>
+                                                </select>
+                                            </div>
+                                            <div class="col-span-2 sm:col-span-2">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Isi</label>
+                                                <input type="number" step="1" min="1" :name="`units[${index}][target_isi]`" x-model="unit.target_isi" 
+                                                    :readonly="unit.is_base"
+                                                    :class="unit.is_base ? 'w-full border-slate-200 rounded text-xs p-2 bg-slate-100 font-bold text-slate-500 opacity-70 cursor-not-allowed' : 'w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-50/50 font-bold'"
+                                                    @input="if(!unit.is_base) { unit.isi = (Number($event.target.value) || 1) * ((addForm.units.find(u => u.nama === (unit.target_satuan || addForm.unit)) || {}).isi || 1); unit.harga_jual = Math.round((addForm.harga_beli * unit.isi) * (1 + addForm.margin / 100)) }">
+                                                <input type="hidden" :name="`units[${index}][isi]`" :value="unit.isi || 1">
+                                            </div>
+                                            <div class="col-span-2 sm:col-span-2">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga (Rp)</label>
                                                 <input type="text" :value="formatNumber(unit.harga_jual)" 
                                                     @input="unit.harga_jual = unformatNumber($event.target.value); if(unit.is_base) { addForm.harga_jual = unit.harga_jual; updatePrices('add', 'jual') }"
                                                     class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 font-mono bg-slate-50/50 font-bold text-blue-600">
@@ -844,7 +875,14 @@
                                                 <label class="text-[8px] font-black text-slate-400 uppercase mb-1 text-center leading-none">Utama?</label>
                                                 <input type="checkbox" :name="`units[${index}][is_base]`" value="1" x-model="unit.is_base" 
                                                     @change="if($event.target.checked) { 
-                                                        addForm.units.forEach((u, i) => { if(i !== index) u.is_base = false });
+                                                        addForm.units.forEach((u, i) => { 
+                                                            if(i !== index) u.is_base = false; 
+                                                            else {
+                                                                u.target_satuan = u.nama;
+                                                                u.target_isi = 1;
+                                                                u.isi = 1;
+                                                            }
+                                                        });
                                                         addForm.unit = unit.nama;
                                                         addForm.harga_jual = unit.harga_jual;
                                                     }"
@@ -855,7 +893,7 @@
                                         <div class="mt-2 flex items-center gap-2">
                                             <div class="h-px flex-1 bg-slate-100"></div>
                                             <div class="px-2 py-0.5 bg-blue-50 rounded text-[9px] font-bold text-blue-700 italic border border-blue-100">
-                                                Artinya: 1 <span x-text="unit.nama || '...'"></span> berisi <span x-text="Number(unit.isi) || '0'"></span> <span x-text="addForm.unit || 'Unit Dasar'"></span>
+                                                Artinya: 1 <span x-text="unit.nama || '...'"></span> berisi <span x-text="Number(unit.target_isi) || '0'"></span> <span x-text="unit.target_satuan || addForm.unit || 'Unit Dasar'"></span>
                                             </div>
                                             <div class="h-px flex-1 bg-slate-100"></div>
                                         </div>
@@ -1138,11 +1176,11 @@
                                         <button type="button" @click="removeUnit('edit', index)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10 shadow-lg">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
                                         </button>
-                                        <div class="grid grid-cols-2 sm:grid-cols-12 gap-3">
-                                            <div class="col-span-2 sm:col-span-4">
+                                        <div class="grid grid-cols-2 sm:grid-cols-12 gap-3 items-end">
+                                            <div class="col-span-2 sm:col-span-3">
                                                 <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Pilih Satuan</label>
                                                 <select :name="`units[${index}][nama]`" x-model="unit.nama"
-                                                    @change="if(unit.is_base) editForm.unit = $event.target.value"
+                                                    @change="if(unit.is_base) { editForm.unit = $event.target.value; unit.target_satuan = $event.target.value; unit.target_isi = 1; unit.isi = 1; }"
                                                     class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-50/50">
                                                     <option value="">Pilih Satuan...</option>
                                                     <template x-for="std in availableUnits" :key="std.id">
@@ -1153,17 +1191,38 @@
                                                     </template>
                                                 </select>
                                             </div>
-                                            <div class="col-span-2 sm:col-span-3">
-                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jumlah Isi</label>
+                                            <div class="col-span-2 sm:col-span-1">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jml</label>
                                                 <div class="relative">
-                                                    <input type="number" step="1" min="1" :name="`units[${index}][isi]`" x-model="unit.isi" 
-                                                        @input="unit.harga_jual = Math.round((editForm.harga_beli * unit.isi) * (1 + editForm.margin / 100))"
-                                                        class="w-full border-slate-200 rounded text-xs p-2 pr-12 focus:ring-blue-500 bg-slate-50/50 font-bold">
-                                                    <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-slate-400 font-bold" x-text="editForm.unit || 'Unit'"></span>
+                                                    <input type="text" value="1" readonly
+                                                        class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-100 font-bold text-center text-slate-500">
                                                 </div>
                                             </div>
-                                            <div class="col-span-2 sm:col-span-4">
-                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga Jual (Rp)</label>
+                                            <div class="col-span-2 sm:col-span-1 hidden sm:flex items-center justify-center pb-2">
+                                                <span class="text-slate-400 font-black">=</span>
+                                            </div>
+                                            <div class="col-span-2 sm:col-span-2">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Konversi Ke</label>
+                                                <select :name="`units[${index}][target_satuan]`" x-model="unit.target_satuan"
+                                                    :disabled="unit.is_base"
+                                                    :class="unit.is_base ? 'w-full border-slate-200 rounded text-xs p-2 bg-slate-100 font-bold text-slate-500 opacity-70 cursor-not-allowed' : 'w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-50/50'"
+                                                    @change="if(!unit.is_base) { unit.isi = (Number(unit.target_isi) || 1) * ((editForm.units.find(u => u.nama === ($event.target.value || editForm.unit)) || {}).isi || 1); unit.harga_jual = Math.round((editForm.harga_beli * unit.isi) * (1 + editForm.margin / 100)) }">
+                                                    <option value="" disabled>Pilih...</option>
+                                                    <template x-for="u in editForm.units.filter(u => u.nama)" :key="u.nama">
+                                                        <option :value="u.nama" x-text="u.nama"></option>
+                                                    </template>
+                                                </select>
+                                            </div>
+                                            <div class="col-span-2 sm:col-span-2">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Isi</label>
+                                                <input type="number" step="1" min="1" :name="`units[${index}][target_isi]`" x-model="unit.target_isi" 
+                                                    :readonly="unit.is_base"
+                                                    :class="unit.is_base ? 'w-full border-slate-200 rounded text-xs p-2 bg-slate-100 font-bold text-slate-500 opacity-70 cursor-not-allowed' : 'w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 bg-slate-50/50 font-bold'"
+                                                    @input="if(!unit.is_base) { unit.isi = (Number($event.target.value) || 1) * ((editForm.units.find(u => u.nama === (unit.target_satuan || editForm.unit)) || {}).isi || 1); unit.harga_jual = Math.round((editForm.harga_beli * unit.isi) * (1 + editForm.margin / 100)) }">
+                                                <input type="hidden" :name="`units[${index}][isi]`" :value="unit.isi || 1">
+                                            </div>
+                                            <div class="col-span-2 sm:col-span-2">
+                                                <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Harga (Rp)</label>
                                                 <input type="text" :value="formatNumber(unit.harga_jual)" 
                                                     @input="unit.harga_jual = unformatNumber($event.target.value); if(unit.is_base) { editForm.harga_jual = unit.harga_jual; updatePrices('edit', 'jual') }"
                                                     class="w-full border-slate-200 rounded text-xs p-2 focus:ring-blue-500 font-mono bg-slate-50/50 font-bold text-blue-600">
@@ -1173,7 +1232,14 @@
                                                 <label class="text-[8px] font-black text-slate-400 uppercase mb-1 text-center leading-none">Utama?</label>
                                                 <input type="checkbox" :name="`units[${index}][is_base]`" value="1" x-model="unit.is_base" 
                                                     @change="if($event.target.checked) { 
-                                                        editForm.units.forEach((u, i) => { if(i !== index) u.is_base = false });
+                                                        editForm.units.forEach((u, i) => { 
+                                                            if(i !== index) u.is_base = false; 
+                                                            else {
+                                                                u.target_satuan = u.nama;
+                                                                u.target_isi = 1;
+                                                                u.isi = 1;
+                                                            }
+                                                        });
                                                         editForm.unit = unit.nama;
                                                         editForm.harga_jual = unit.harga_jual;
                                                     }"
@@ -1184,7 +1250,7 @@
                                         <div class="mt-2 flex items-center gap-2">
                                             <div class="h-px flex-1 bg-slate-100"></div>
                                             <div class="px-2 py-0.5 bg-blue-50 rounded text-[9px] font-bold text-blue-700 italic border border-blue-100">
-                                                Artinya: 1 <span x-text="unit.nama || '...'"></span> berisi <span x-text="Number(unit.isi) || '0'"></span> <span x-text="editForm.unit || 'Unit Dasar'"></span>
+                                                Artinya: 1 <span x-text="unit.nama || '...'"></span> berisi <span x-text="Number(unit.target_isi) || '0'"></span> <span x-text="unit.target_satuan || editForm.unit || 'Unit Dasar'"></span>
                                             </div>
                                             <div class="h-px flex-1 bg-slate-100"></div>
                                         </div>

@@ -85,6 +85,8 @@ class ProductController extends Controller
             'units'           => 'nullable|array',
             'units.*.nama'    => 'required|string',
             'units.*.isi'     => 'required|numeric|min:0.01',
+            'units.*.target_satuan' => 'nullable|string',
+            'units.*.target_isi' => 'nullable|numeric|min:0.01',
             'units.*.harga_jual' => 'required|numeric|min:0',
             'units.*.is_base' => 'nullable',
             'image'           => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -135,6 +137,8 @@ class ProductController extends Controller
                 $product->units()->create([
                     'nama' => $u['nama'],
                     'isi'  => $u['isi'],
+                    'target_satuan' => $u['target_satuan'] ?? null,
+                    'target_isi' => $u['target_isi'] ?? null,
                     'harga_jual' => $u['harga_jual'],
                     'is_base' => $isBase
                 ]);
@@ -191,6 +195,8 @@ class ProductController extends Controller
             'units'           => 'nullable|array',
             'units.*.nama'    => 'required|string',
             'units.*.isi'     => 'required|numeric|min:0.01',
+            'units.*.target_satuan' => 'nullable|string',
+            'units.*.target_isi' => 'nullable|numeric|min:0.01',
             'units.*.harga_jual' => 'required|numeric|min:0',
             'units.*.is_base' => 'nullable',
             'image'           => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -249,6 +255,8 @@ class ProductController extends Controller
                 $product->units()->create([
                     'nama' => $u['nama'],
                     'isi'  => $u['isi'],
+                    'target_satuan' => $u['target_satuan'] ?? null,
+                    'target_isi' => $u['target_isi'] ?? null,
                     'harga_jual' => $u['harga_jual'],
                     'is_base' => $isBase
                 ]);
