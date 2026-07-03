@@ -1,0 +1,67 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Dependencies
+node_modules
+vendor
+composer.lock
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Laravel
+bootstrap/cache/*
+!bootstrap/cache/.gitkeep
+storage/*
+!storage/.gitkeep
+storage/logs/*
+!storage/logs/.gitkeep
+.phpunit.cache
+
+# Testing
+tests
+phpunit.xml
+
+# Build artifacts
+dist
+build
+public/build
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Archives
+*.tar.gz
+*.zip
+*.rar
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.circleci
+
+# Scratch/Development
+scratch
+ml_scripts.rar
+
+# Docker
+docker
+Dockerfile
+docker-compose*.yml
