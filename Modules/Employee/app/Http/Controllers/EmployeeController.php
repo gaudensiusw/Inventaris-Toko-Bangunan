@@ -540,4 +540,80 @@ class EmployeeController extends Controller
 
         return response()->json(['success' => true, 'message' => 'Data absensi berhasil dihapus']);
     }
+
+    public function rekapPeriodeList(Request $request)
+    {
+        $monthNamesIndo = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+
+        $periods = \Modules\Employee\Models\Absensi::selectRaw(
+                'MONTH(tanggal) as month, YEAR(tanggal) as year'
+            )
+            ->groupBy('month', 'year')
+            ->orderByRaw('year DESC, month DESC')
+            ->get()
+            ->map(function ($item) use ($monthNamesIndo) {
+                $monthName = $monthNamesIndo[$item->month] ?? 'Bulan';
+                return [
+                    'month'        => $item->month,
+                    'year'         => $item->year,
+                    'label'        => "Periode — {$monthName} {$item->year}",
+                    'month_name'   => $monthName,
+                    'download_url' => route('employee.rekapAbsensi', [
+                        'month' => $item->month,
+                        'year'  => $item->year,
+                    ]),
+                ];
+            });
+
+        return response()->json(['periods' => $periods]);
+    }
+
+    public function exportRekapAbsensi(Request $request)
+
+    {
+        $month = intval($request->query('month', \Carbon\Carbon::now()->month));
+        $year = intval($request->query('year', \Carbon\Carbon::now()->year));
+
+        $employees = \Modules\Employee\Models\Karyawan::with(['jabatan', 'absensis' => function($query) use ($month, $year) {
+            $query->whereMonth('tanggal', $month)
+                  ->whereYear('tanggal', $year);
+        }])
+        ->where('aktif', 1)
+        ->get();
+
+        $employees = $employees->map(function($employee) {
+            $employee->total_hadir = $employee->absensis->where('status', 'hadir')->count();
+            $employee->total_sakit = $employee->absensis->where('status', 'sakit')->count();
+            $employee->total_izin = $employee->absensis->where('status', 'izin')->count();
+            $employee->total_alpha = $employee->absensis->where('status', 'alpha')->count();
+            return $employee;
+        });
+
+        $employees = $employees->sortByDesc('total_hadir')->values();
+
+        $monthNamesIndo = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        
+        $currentDate = \Carbon\Carbon::createFromDate($year, $month, 1);
+        $monthName = $monthNamesIndo[$month] ?? $currentDate->translatedFormat('F');
+
+        if (function_exists('activity')) {
+            activity('Employee')
+                ->causedBy(auth()->user())
+                ->event('download')
+                ->log("Mencetak Rekapitulasi Absensi Periode {$monthName} {$year}");
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('employee::rekap_absensi_pdf', compact('employees', 'month', 'year', 'monthName'));
+        
+        return $pdf->download("Rekap_Kehadiran_Karyawan_{$monthName}_{$year}.pdf");
+    }
 }
+

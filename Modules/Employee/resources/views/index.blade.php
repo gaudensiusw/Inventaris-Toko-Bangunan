@@ -38,10 +38,16 @@
             <h1 class="text-2xl font-bold text-slate-900">Manajemen Karyawan</h1>
             <p class="text-slate-600 mt-1">Kelola data karyawan, absensi, dan penggajian</p>
         </div>
-        <button onclick="document.getElementById('modalTambah').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-            Tambah Karyawan
-        </button>
+        <div class="flex items-center gap-3">
+            <button id="btnRekapPeriode" onclick="openRekapPeriodeModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                Rekap Periode
+            </button>
+            <button onclick="document.getElementById('modalTambah').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Tambah Karyawan
+            </button>
+        </div>
     </div>
 
     <!-- Master-Detail Layout -->
@@ -570,6 +576,77 @@
     </div>
 </div>
 
+<!-- Modal Rekap Periode -->
+<div id="modalRekapPeriode" class="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 hidden backdrop-blur-sm p-4" onclick="closeRekapPeriodeModalOutside(event)">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col overflow-hidden max-h-[85vh]" onclick="event.stopPropagation()">
+
+        <!-- Header -->
+        <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                </div>
+                <div>
+                    <h2 class="text-base font-bold text-slate-900">Riwayat Rekapitulasi Kehadiran Karyawan</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Unduh laporan PDF per periode bulan</p>
+                </div>
+            </div>
+            <button onclick="closeRekapPeriodeModal()" class="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full p-1.5 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <!-- Filter & Search Bar -->
+        <div class="px-6 py-4 border-b border-slate-100 space-y-3 flex-shrink-0 bg-slate-50/50">
+            <!-- Search -->
+            <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <input type="text" id="rekapSearchInput" oninput="filterPeriodeList()" placeholder="Cari periode... (contoh: Juli 2026)" class="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white outline-none transition">
+            </div>
+            <!-- Month-Year Picker + Unduh Langsung -->
+            <div class="flex items-center gap-2">
+                <div class="flex-1 relative">
+                    <input type="month" id="rekapMonthYearPicker" class="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white outline-none transition" title="Pilih bulan dan tahun untuk mengunduh">
+                </div>
+                <button onclick="downloadLangsung()" class="flex-shrink-0 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors shadow-sm whitespace-nowrap">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Unduh Langsung
+                </button>
+            </div>
+        </div>
+
+        <!-- List Periode -->
+        <div class="flex-1 overflow-y-auto" id="rekapPeriodeScrollArea">
+            <!-- Loading State -->
+            <div id="rekapLoadingState" class="flex flex-col items-center justify-center py-12 text-slate-400">
+                <svg class="w-8 h-8 animate-spin mb-3 text-emerald-500" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                </svg>
+                <p class="text-sm">Memuat data periode...</p>
+            </div>
+
+            <!-- Period List -->
+            <ul id="rekapPeriodeList" class="hidden divide-y divide-slate-100"></ul>
+
+            <!-- Empty State -->
+            <div id="rekapEmptyState" class="hidden flex-col items-center justify-center py-12 text-slate-400">
+                <svg class="w-12 h-12 mb-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                <p class="text-sm font-medium text-slate-500">Belum ada data periode absensi</p>
+                <p class="text-xs text-slate-400 mt-1" id="rekapEmptyHint">Tidak ada data yang cocok dengan pencarian.</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-slate-100 flex justify-between items-center flex-shrink-0 bg-white">
+            <p class="text-xs text-slate-400">Rekap PDF mencakup seluruh karyawan aktif pada periode tersebut.</p>
+            <button onclick="closeRekapPeriodeModal()" class="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors">Tutup</button>
+        </div>
+    </div>
+</div>
+
 <script>
     // Dynamic active state variables for AJAX tracking
     let currentEmployeeId = {{ $activeEmployeeId ?? 'null' }};
@@ -617,6 +694,11 @@
                 prevYear = data.prevYear;
                 nextMonth = data.nextMonth;
                 nextYear = data.nextYear;
+                
+                const btnDownloadRekap = document.getElementById('btnDownloadRekap');
+                if (btnDownloadRekap) {
+                    btnDownloadRekap.href = `/employees/rekap-absensi?month=${currentViewedMonth}&year=${currentViewedYear}`;
+                }
                 
                 // Populate Info
                 document.getElementById('detailInisial').textContent = emp.nama.charAt(0).toUpperCase();
@@ -987,5 +1069,128 @@
             loadEmployeeDetail(empId);
         }
     });
+
+    // ============================================================
+    //  REKAP PERIODE MODAL
+    // ============================================================
+    let _rekapAllPeriods = []; // cache data dari server
+
+    function openRekapPeriodeModal() {
+        const modal = document.getElementById('modalRekapPeriode');
+        const loadingState = document.getElementById('rekapLoadingState');
+        const periodeList  = document.getElementById('rekapPeriodeList');
+        const emptyState   = document.getElementById('rekapEmptyState');
+        const searchInput  = document.getElementById('rekapSearchInput');
+
+        // Reset state sebelum membuka
+        searchInput.value = '';
+        loadingState.classList.remove('hidden');
+        periodeList.classList.add('hidden');
+        emptyState.classList.add('hidden');
+
+        // Set default picker ke bulan saat ini
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm   = String(now.getMonth() + 1).padStart(2, '0');
+        document.getElementById('rekapMonthYearPicker').value = `${yyyy}-${mm}`;
+
+        modal.classList.remove('hidden');
+
+        // Fetch data dari server
+        fetch('{{ route("employee.rekapPeriodeList") }}', {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => {
+            _rekapAllPeriods = data.periods || [];
+            loadingState.classList.add('hidden');
+            renderPeriodeList(_rekapAllPeriods);
+        })
+        .catch(err => {
+            console.error('Gagal memuat periode rekap:', err);
+            loadingState.classList.add('hidden');
+            document.getElementById('rekapEmptyHint').textContent = 'Gagal memuat data. Coba lagi.';
+            emptyState.classList.remove('hidden');
+            emptyState.classList.add('flex');
+        });
+    }
+
+    function renderPeriodeList(periods) {
+        const periodeList = document.getElementById('rekapPeriodeList');
+        const emptyState  = document.getElementById('rekapEmptyState');
+
+        periodeList.innerHTML = '';
+
+        if (!periods || periods.length === 0) {
+            periodeList.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            emptyState.classList.add('flex');
+            return;
+        }
+
+        emptyState.classList.add('hidden');
+        emptyState.classList.remove('flex');
+        periodeList.classList.remove('hidden');
+
+        periods.forEach(period => {
+            const li = document.createElement('li');
+            li.className = 'flex items-center justify-between px-6 py-4 hover:bg-emerald-50/40 transition-colors group';
+            li.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-slate-100 group-hover:bg-emerald-100 rounded-lg flex items-center justify-center text-slate-400 group-hover:text-emerald-600 transition-colors flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-slate-800">${period.label}</p>
+                        <p class="text-xs text-slate-400 mt-0.5">Rekap_Kehadiran_Karyawan_${period.month_name}_${period.year}.pdf</p>
+                    </div>
+                </div>
+                <a href="${period.download_url}" target="_blank" rel="noopener noreferrer"
+                   class="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 hover:border-emerald-600 px-3 py-2 rounded-lg transition-all flex-shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Unduh PDF
+                </a>
+            `;
+            periodeList.appendChild(li);
+        });
+    }
+
+    function filterPeriodeList() {
+        const query = document.getElementById('rekapSearchInput').value.toLowerCase().trim();
+        if (!query) {
+            renderPeriodeList(_rekapAllPeriods);
+            return;
+        }
+        const filtered = _rekapAllPeriods.filter(p =>
+            p.label.toLowerCase().includes(query) ||
+            p.month_name.toLowerCase().includes(query) ||
+            String(p.year).includes(query)
+        );
+        document.getElementById('rekapEmptyHint').textContent = `Tidak ada periode yang cocok dengan "${query}".`;
+        renderPeriodeList(filtered);
+    }
+
+    function downloadLangsung() {
+        const picker = document.getElementById('rekapMonthYearPicker');
+        if (!picker.value) {
+            alert('Pilih bulan dan tahun terlebih dahulu.');
+            picker.focus();
+            return;
+        }
+        const [year, month] = picker.value.split('-');
+        const url = `{{ url('/employees/rekap-absensi') }}?month=${parseInt(month)}&year=${parseInt(year)}`;
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
+    function closeRekapPeriodeModal() {
+        document.getElementById('modalRekapPeriode').classList.add('hidden');
+    }
+
+    function closeRekapPeriodeModalOutside(event) {
+        if (event.target === document.getElementById('modalRekapPeriode')) {
+            closeRekapPeriodeModal();
+        }
+    }
+
 </script>
 @endsection

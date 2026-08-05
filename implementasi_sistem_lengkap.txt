@@ -1,0 +1,762 @@
+Deskripsi: Menangani alur proses autentikasi pengguna (login) ke dalam sistem. Method ini memvalidasi input email dan password, memverifikasi kredensial menggunakan Auth::attempt(), memastikan akun pengguna bersatus aktif, meregenerasi sesi untuk alasan keamanan, dan mengarahkan (redirect) pengguna ke halaman POS jika rolenya adalah 'operator' atau ke dashboard utama untuk role lainnya.
+File: app/Http/Controllers/AuthController.php
+Method: login
+    public function login(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
+
+        // Demo logic as requested: "demo123 (any password works)"
+        // But let's stick to standard Auth for security, 
+        // the seeder already set the password to demo123.
+        
+        if (Auth::attempt($credentials, $request->remember)) {
+            $user = Auth::user();
+            if (!$user->aktif) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+                return back()->withErrors([
+                    'email' => 'Akun Anda telah dinonaktifkan. Hubungi Owner.',
+                ])->onlyInput('email');
+            }
+
+            $request->session()->regenerate();
+            
+            if ($user->role === 'operator') {
+                return redirect()->intended('/pos');
+            }
+
+            return redirect('/dashboard');
+        }
+
+        return back()->withErrors([
+            'email' => 'The provided credentials do not match our records.',
+        ])->onlyInput('email');
+    }
+
+Deskripsi: Menghapus data autentikasi pengguna dari sesi (logout), menonaktifkan sesi saat ini, meregenerasi token CSRF baru untuk keamanan sesi selanjutnya, lalu mengalihkan pengguna kembali ke halaman login.
+File: app/Http/Controllers/AuthController.php
+Method: logout
+    public function logout(Request $request)
+    {
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect('/login');
+    }
+
+Deskripsi: Endpoint pada microservice Python Flask yang menerima payload gambar dalam format Base64 dari server Laravel, mendekodekannya menjadi gambar PIL, mendeteksi dan memotong area wajah menggunakan MediaPipe Face Detector, mengekstrak representasi embedding wajah 128-dimensi menggunakan model FaceNet TFLite, serta membandingkannya dengan representasi wajah karyawan yang tersimpan di embeddings.pkl menggunakan perhitungan kemiripan kosinus (cosine similarity) untuk menentukan identitas karyawan.
+File: absensi-service/app.py
+Method: absensi
+@app.route('/absensi', methods=['POST'])
+def absensi():
+    """
+    ── ENDPOINT UTAMA ──
+    Terima gambar dari Laravel, kenali wajah, kembalikan hasilnya.
+    Python TIDAK menyimpan apapun — semua pencatatan dilakukan oleh Laravel.
+
+    Request JSON:
+        { "image": "<base64 string>" }
+
+    Response sukses:
+        { "status": "success", "nama": "budi_santoso", "skor": 0.87 }
+
+    Response wajah tidak dikenali:
+        { "status": "unknown", "message": "Wajah tidak dikenali", "skor": 0.42 }
+
+    Response wajah tidak terdeteksi:
+        { "status": "error", "message": "Wajah tidak terdeteksi di gambar" }
+    """
+    data = request.json
+
+    if not data or 'image' not in data:
+        return jsonify({"status": "error", "message": "Field 'image' tidak ditemukan"}), 400
+
+    try:
+        image = decode_image(data['image'])
+    except Exception as e:
+        return jsonify({"status": "error", "message": f"Gagal decode gambar: {str(e)}"}), 400
+
+    # Deteksi & crop wajah
+    face = crop_face(image)
+    if face is None:
+        return jsonify({"status": "error", "message": "Wajah tidak terdeteksi di gambar"})
+
+    # Generate embedding & cocokkan
+    emb        = get_embedding(face)
+    nama, skor = identify_face(emb)
+
+    if nama == 'Tidak Dikenal':
+        return jsonify({
+            "status":  "unknown",
+            "message": "Wajah tidak dikenali",
+            "skor":    round(skor, 4)
+        })
+
+    # Kembalikan identitas — Laravel yang memutuskan apakah perlu disimpan
+    return jsonify({
+        "status": "success",
+        "nama":   nama,
+        "skor":   round(skor, 4)
+    })
+
+Deskripsi: Endpoint pada microservice Python Flask yang memproses pendaftaran wajah karyawan baru. Endpoint ini menerima nama karyawan dan daftar foto Base64, mendeteksi area wajah di setiap foto, menyimpan file fotonya secara fisik ke dalam folder dataset backup, mengekstrak representasi embedding 128-dimensi menggunakan model FaceNet, menambahkannya ke known_embeddings, dan memperbarui file data/embeddings.pkl secara persisten agar langsung dapat digunakan untuk pencocokan wajah.
+File: absensi-service/app.py
+Method: registrasi
+@app.route('/registrasi', methods=['POST'])
+def registrasi():
+    """
+    Daftarkan karyawan baru dengan memproses beberapa foto menjadi embedding.
+    Foto fisik disimpan di data/dataset/<nama>/ sebagai backup.
+    Embedding disimpan ke data/embeddings.pkl dan langsung aktif.
+
+    Request JSON:
+        {
+            "nama": "budi santoso",
+            "foto_list": ["<base64_1>", "<base64_2>", ...]
+        }
+
+    Response:
+        { "status": "success", "nama": "budi_santoso", "jumlah_embedding": 3 }
+    """
+    global known_embeddings
+
+    data = request.json
+    if not data or 'nama' not in data or 'foto_list' not in data:
+        return jsonify({"status": "error", "message": "Field 'nama' dan 'foto_list' wajib diisi"}), 400
+
+    nama      = data['nama'].strip().lower().replace(' ', '_')
+    foto_list = data['foto_list']
+
+    if not foto_list:
+        return jsonify({"status": "error", "message": "foto_list kosong"}), 400
+
+    # Buat folder backup foto
+    folder = os.path.join(DATASET_DIR, nama)
+    os.makedirs(folder, exist_ok=True)
+
+    new_embeddings = []
+    gagal          = 0
+
+    for foto_b64 in foto_list:
+        try:
+            img  = decode_image(foto_b64)
+            face = crop_face(img)
+            if face is None:
+                gagal += 1
+                continue
+            # Simpan foto fisik sebagai backup dataset
+            img.save(os.path.join(folder, f'{uuid.uuid4().hex}.jpg'))
+            # Generate embedding
+            new_embeddings.append(get_embedding(face))
+        except Exception:
+            gagal += 1
+            continue
+
+    if not new_embeddings:
+        return jsonify({
+            "status":  "error",
+            "message": f"Tidak ada wajah terdeteksi dari {len(foto_list)} foto yang dikirim"
+        })
+
+    # Update embeddings in-memory dan simpan ke file
+    known_embeddings[nama] = new_embeddings
+    save_embeddings()
+
+    return jsonify({
+        "status":           "success",
+        "nama":             nama,
+        "jumlah_embedding": len(new_embeddings),
+        "foto_gagal":       gagal
+    })
+
+Deskripsi: Menerima request gambar Base64 dari frontend Laravel, memanggil FaceAbsensiService untuk melakukan pengenalan wajah oleh microservice Python, memetakan hasil pengenalan wajah ke database karyawan aktif, memvalidasi status kehadiran karyawan pada hari tersebut, dan mencatat/memperbarui record absensi dengan status 'hadir' serta mencatat jam masuk real-time dengan zona waktu Asia/Jakarta.
+File: app/Http/Controllers/FaceAbsensiController.php
+Method: store
+    public function store(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|string',
+        ]);
+
+        // Kirim gambar ke service pengenal wajah
+        $result = $this->faceAbsensiService->recognizeFace($request->image);
+
+        // Jika service mengembalikan status error atau tidak dikenal
+        if (isset($result['status']) && $result['status'] !== 'success') {
+            $msg = $result['message'] ?? 'Gagal memproses verifikasi wajah.';
+            $skor = $result['skor'] ?? null;
+            
+            return response()->json([
+                'success' => false,
+                'message' => $msg . ($skor ? " (Skor kecocokan: " . ($skor * 100) . "%)" : "")
+            ], 400);
+        }
+
+        $detectedName = $result['nama'] ?? null;
+        if (!$detectedName) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mendeteksi nama dari respon face recognition.'
+            ], 400);
+        }
+
+        // Cari karyawan aktif berdasarkan nama yang dikembalikan (diubah ke lowercase snake_case)
+        $employee = \Modules\Employee\Models\Karyawan::where('aktif', 1)
+            ->whereRaw("LOWER(REPLACE(nama, ' ', '_')) = ?", [$detectedName])
+            ->first();
+
+        if (!$employee) {
+            return response()->json([
+                'success' => false,
+                'message' => "Wajah teridentifikasi sebagai '" . ucwords(str_replace('_', ' ', $detectedName)) . "', namun karyawan tersebut tidak ditemukan atau berstatus nonaktif di database."
+            ], 404);
+        }
+
+        $today = Carbon::now('Asia/Jakarta')->toDateString();
+        
+        // Cek absensi hari ini
+        $absensi = \Modules\Employee\Models\Absensi::where('karyawan_id', $employee->id)
+            ->whereDate('tanggal', $today)
+            ->first();
+
+        if ($absensi && $absensi->status === 'hadir') {
+            return response()->json([
+                'success' => false,
+                'message' => "{$employee->nama} sudah melakukan absensi Hadir hari ini pada pukul " . Carbon::parse($absensi->jam_masuk)->format('H:i') . "."
+            ], 422);
+        }
+
+        $timeNow = Carbon::now('Asia/Jakarta')->format('H:i:s');
+
+        if ($absensi) {
+            // Update status yang ada ke 'hadir'
+            $absensi->update([
+                'status' => 'hadir',
+                'jam_masuk' => $timeNow,
+                'catatan' => ($absensi->catatan ? $absensi->catatan . "\n" : "") . "Hadir via Kiosk Face Recognition [" . Carbon::now('Asia/Jakarta')->format('H:i') . "]",
+            ]);
+        } else {
+            // Buat record absensi baru
+            \Modules\Employee\Models\Absensi::create([
+                'karyawan_id' => $employee->id,
+                'tanggal' => $today,
+                'status' => 'hadir',
+                'jam_masuk' => $timeNow,
+                'jam_keluar' => null,
+                'catatan' => 'Hadir via Kiosk Face Recognition',
+                'status_bayar' => 0
+            ]);
+        }
+
+        // Log aktivitas absensi
+        if (function_exists('activity')) {
+            activity('Employee')
+                ->performedOn($employee)
+                ->causedBy(auth()->user())
+                ->event('ABSENSI_FACE')
+                ->log("Absensi Hadir via Face Recognition berhasil untuk {$employee->nama} pukul " . Carbon::now('Asia/Jakarta')->format('H:i'));
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Absensi berhasil dicatat! Selamat bekerja, {$employee->nama}.",
+            'employee' => [
+                'nama' => $employee->nama,
+                'kode_karyawan' => $employee->kode_karyawan,
+                'jam_masuk' => Carbon::now('Asia/Jakarta')->format('H:i')
+            ],
+            'confidence' => $result['skor'] ?? null
+        ]);
+    }
+
+Deskripsi: Bertugas mengirimkan data gambar wajah dalam bentuk Base64 yang telah diproses ke microservice Python Flask melalui HTTP POST request ke endpoint /absensi, lengkap dengan penanganan batas waktu (timeout) 10 detik dan logging pesan kesalahan jika server Python mengalami kendala.
+File: app/Services/FaceAbsensiService.php
+Method: recognizeFace
+    public function recognizeFace(string $base64Image): array
+    {
+        try {
+            // Hilangkan header data URL jika ada (misal: "data:image/jpeg;base64,")
+            if (str_contains($base64Image, ',')) {
+                $base64Image = explode(',', $base64Image)[1];
+            }
+
+            // Request POST ke Flask service dengan timeout 10 detik
+            $response = Http::timeout(10)->post("{$this->baseUrl}/absensi", [
+                'image' => $base64Image
+            ]);
+
+            if ($response->successful()) {
+                return $response->json();
+            }
+
+            Log::error('Face recognition service error response', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
+
+            return [
+                'status' => 'error',
+                'message' => 'Layanan Face Recognition mengembalikan respon kegagalan (' . $response->status() . ').'
+            ];
+
+        } catch (Exception $e) {
+            Log::error('Gagal menghubungi face recognition service', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return [
+                'status' => 'error',
+                'message' => 'Koneksi ke server Face Recognition gagal. Pastikan service Python di ' . $this->baseUrl . ' sudah berjalan.'
+            ];
+        }
+    }
+
+Deskripsi: Memperbarui data profil karyawan di database Laravel, menangkap unggahan beberapa foto wajah dari request (maksimal 3 foto), mengonversinya secara otomatis ke format Base64 (data URL), dan mengirimkan request pendaftaran wajah baru ke microservice Python Flask pada endpoint /registrasi agar data pengenalan wajah diperbarui.
+File: Modules/Employee/app/Http/Controllers/EmployeeController.php
+Method: update
+    public function update(Request $request, $id)
+    {
+        $employee = \Modules\Employee\Models\Karyawan::findOrFail($id);
+
+        $request->validate([
+            'nama' => 'required|string|max:100',
+            'jabatan_id' => 'required|exists:jabatan,id',
+            'tanggal_masuk' => 'required|date',
+            'email' => 'nullable|email',
+            'bonus_tetap' => 'nullable|numeric|min:0',
+            'potongan' => 'nullable|numeric|min:0',
+            'keterangan_potongan' => 'nullable|string|max:255',
+            'foto_wajah' => 'nullable|array|max:3',
+            'foto_wajah.*' => 'image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        $newPotongan = $employee->potongan + ($request->potongan ?? 0);
+        
+        $newKet = $employee->keterangan_potongan;
+        if ($request->filled('keterangan_potongan') || $request->potongan > 0) {
+            $existingArr = $employee->keterangan_potongan ? json_decode($employee->keterangan_potongan, true) : [];
+            if (!is_array($existingArr)) {
+                $existingArr = $employee->keterangan_potongan ? [['keterangan' => $employee->keterangan_potongan, 'nominal' => 0]] : [];
+            }
+            $existingArr[] = [
+                'keterangan' => $request->keterangan_potongan ?? 'Kasbon',
+                'nominal' => $request->potongan ?? 0
+            ];
+            $newKet = json_encode($existingArr);
+        }
+
+        $employee->update([
+            'nama' => $request->nama,
+            'jabatan_id' => $request->jabatan_id,
+            'tanggal_masuk' => $request->tanggal_masuk,
+            'no_hp' => $request->no_hp,
+            'email' => $request->email,
+            'alamat' => $request->alamat,
+            'bonus_tetap' => $request->bonus_tetap ?? 0,
+            'potongan' => $newPotongan,
+            'keterangan_potongan' => $newKet,
+            'aktif' => $request->has('aktif') ? 1 : 0,
+        ]);
+
+        // Proses unggah foto wajah untuk Face Recognition
+        $fotoListBase64 = [];
+        if ($request->hasFile('foto_wajah')) {
+            $files = $request->file('foto_wajah');
+            foreach ($files as $file) {
+                if ($file->isValid()) {
+                    $fileData = file_get_contents($file->getRealPath());
+                    $base64 = 'data:' . $file->getMimeType() . ';base64,' . base64_encode($fileData);
+                    $fotoListBase64[] = $base64;
+                }
+            }
+        }
+
+        if (!empty($fotoListBase64)) {
+            $faceSuccess = true;
+            $faceErrorMsg = '';
+
+            try {
+                $faceRecognitionUrl = env('FACE_RECOGNITION_URL', 'http://localhost:5000');
+                // Mengirim request POST ke server Python Flask endpoint /registrasi
+                $response = \Illuminate\Support\Facades\Http::timeout(15)->post("{$faceRecognitionUrl}/registrasi", [
+                    'nama' => $employee->nama,
+                    'foto_list' => $fotoListBase64
+                ]);
+
+                if ($response->successful()) {
+                    $resData = $response->json();
+                    if (isset($resData['status']) && $resData['status'] === 'success') {
+                        $faceSuccess = true;
+                    } else {
+                        $faceSuccess = false;
+                        $faceErrorMsg = $resData['message'] ?? 'Respon gagal dari server Face Recognition.';
+                    }
+                } else {
+                    $faceSuccess = false;
+                    $faceErrorMsg = 'Server Face Recognition mengembalikan respon error (' . $response->status() . ').';
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Gagal terhubung ke face recognition registrasi', [
+                    'message' => $e->getMessage()
+                ]);
+                $faceSuccess = false;
+                $faceErrorMsg = 'Tidak dapat terhubung ke server Face Recognition. Pastikan service Python aktif.';
+            }
+
+            if ($faceSuccess) {
+                return redirect()->back()->with('success', 'Data karyawan berhasil diperbarui dan registrasi wajah berhasil dilakukan.');
+            } else {
+                return redirect()->back()->with('warning', 'Data karyawan berhasil diperbarui, namun registrasi wajah GAGAL: ' . $faceErrorMsg);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Data karyawan berhasil diperbarui');
+    }
+
+Deskripsi: Menyimpan data transaksi kasir (Point of Sale) ke dalam database secara transaksional (menggunakan DB::transaction). Method ini melakukan pengecekan ketersediaan stok fisik barang belanjaan, mengurangi stok barang secara otomatis di database berdasarkan kuantitas dan rasio konversi satuan, menerapkan logika denda/piutang (Bon), mengelola limit kredit pelanggan, serta mewajibkan persetujuan kredensial supervisor apabila transaksi melebihi batas minimum stok produk (min_stok).
+File: Modules/POS/app/Http/Controllers/POSController.php
+Method: store
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nama_pelanggan'    => 'nullable|string|max:255',
+            'telp_pelanggan'    => 'nullable|string|max:20',
+            'jatuh_tempo'       => 'nullable|date',
+            'items'             => 'required|array|min:1',
+            'items.*.produk_id' => 'required|exists:produk,id',
+            'items.*.qty'       => 'required|numeric|min:0.01',
+            'items.*.satuan_nama' => 'required|string',
+            'items.*.isi'       => 'required|numeric|min:0.01',
+            'items.*.harga'     => 'required|numeric|min:0',
+            'items.*.diskon_rp' => 'nullable|numeric|min:0',
+            'subtotal'          => 'required|numeric',
+            'pajak'             => 'required|numeric',
+            'ongkos_kirim'      => 'nullable|numeric|min:0',
+            'total_tagihan'     => 'required|numeric',
+            'metode_pembayaran' => 'required|string',
+            'opsi_pengiriman'   => 'required|string',
+            'supervisor_email'  => 'nullable|string|email',
+            'supervisor_password' => 'nullable|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // Check if any item breaches min_stok
+            $requiresApproval = false;
+            foreach ($request->items as $item) {
+                $product = Product::findOrFail($item['produk_id']);
+                $stok_pengurang = $item['qty'] * $item['isi'];
+                if ($product->stok - $stok_pengurang < $product->min_stok) {
+                    $requiresApproval = true;
+                    break;
+                }
+            }
+
+            $user = auth()->user();
+            if ($requiresApproval && !in_array($user->role, ['owner', 'supervisor'])) {
+                if (!$request->filled('supervisor_email') || !$request->filled('supervisor_password')) {
+                    throw new \Exception("Persetujuan Supervisor diperlukan karena pembelian ini menembus batas minimum stok.");
+                }
+                $supervisor = \App\Models\User::where('email', $request->supervisor_email)->first();
+                if (!$supervisor || !in_array($supervisor->role, ['supervisor', 'owner'])) {
+                    throw new \Exception("Kredensial Supervisor tidak valid atau bukan supervisor.");
+                }
+                if (!\Illuminate\Support\Facades\Hash::check($request->supervisor_password, $supervisor->password)) {
+                    throw new \Exception("Password Supervisor salah.");
+                }
+            }
+
+            // If payment is Bon, handle debt logic
+            $status_pembayaran = 'lunas';
+            $jatuh_tempo = null;
+            $jumlah_bayar = $request->total_tagihan;
+            $pelanggan_id = null;
+            $nama_pelanggan = $request->nama_pelanggan ?: 'Umum';
+
+            if ($request->metode_pembayaran === 'Bon') {
+                if (!$request->nama_pelanggan || strtolower($request->nama_pelanggan) === 'umum') {
+                    throw new \Exception("Pembayaran BON wajib menyertakan Nama Pelanggan yang spesifik.");
+                }
+                $status_pembayaran = 'belum_bayar';
+                $jumlah_bayar = 0; 
+                $jatuh_tempo = $request->jatuh_tempo ?: now()->addDays(30);
+            }
+
+            // Find existing or create new customer for ANY payment method if customer name is provided
+            if ($request->filled('nama_pelanggan') && strtolower($request->nama_pelanggan) !== 'umum') {
+                $customer = Customer::firstOrCreate(
+                    ['nama' => $request->nama_pelanggan],
+                    [
+                        'nama' => $request->nama_pelanggan,
+                        'telp' => $request->telp_pelanggan,
+                        'kode' => 'CUST-' . strtoupper(bin2hex(random_bytes(2))),
+                        'tenor_bayar' => 30
+                    ]
+                );
+
+                // If customer exists but has no phone, update it
+                if ($request->telp_pelanggan && !$customer->telp) {
+                    $customer->update(['telp' => $request->telp_pelanggan]);
+                }
+
+                $pelanggan_id = $customer->id;
+                $nama_pelanggan = $customer->nama;
+
+                // Adjust jatuh_tempo for Bon based on customer preference
+                if ($request->metode_pembayaran === 'Bon') {
+                    $jatuh_tempo = $request->jatuh_tempo ?: now()->addDays($customer->tenor_bayar ?: 30);
+                }
+            } else {
+                // If customer name is empty or is 'umum', link to the default 'Umum' customer
+                $umumCustomer = Customer::firstOrCreate(
+                    ['kode' => 'CUST-UMUM'],
+                    [
+                        'nama' => 'Umum',
+                        'kategori' => 'Umum',
+                        'limit_kredit' => 0,
+                        'tenor_bayar' => 30,
+                        'status' => 'aktif'
+                    ]
+                );
+                $pelanggan_id = $umumCustomer->id;
+                $nama_pelanggan = 'Umum';
+            }
+
+            $no_transaksi = 'TRX-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
+
+            $pos = POS::create([
+                'user_id'          => auth()->id(),
+                'no_transaksi'     => $no_transaksi,
+                'tgl_transaksi'    => now(),
+                'pelanggan_id'     => $pelanggan_id,
+                'nama_pelanggan'   => $nama_pelanggan,
+                'subtotal'         => $request->subtotal,
+                'pajak'            => $request->pajak,
+                'ongkos_kirim'     => $request->ongkos_kirim ?? 0,
+                'total_tagihan'    => $request->total_tagihan,
+                'jumlah_bayar'    => $jumlah_bayar,
+                'jatuh_tempo'      => $jatuh_tempo,
+                'metode_pembayaran'=> $request->metode_pembayaran,
+                'opsi_pengiriman'  => $request->opsi_pengiriman,
+                'catatan'          => $request->catatan,
+                'status'           => 'checkout',
+                'status_pembayaran'=> $status_pembayaran,
+            ]);
+
+            foreach ($request->items as $item) {
+                $product = Product::findOrFail($item['produk_id']);
+                
+                // Calculate stock decrement in base unit
+                $stok_pengurang = $item['qty'] * $item['isi'];
+
+                if ($product->stok < $stok_pengurang) {
+                    throw new \Exception("Stok produk {$product->nama} tidak mencukupi. Sisa stok (dasar): {$product->stok}");
+                }
+
+                $diskon_rp = $item['diskon_rp'] ?? 0;
+                $harga_final = max(0, $item['harga'] - $diskon_rp);
+
+                POSDetail::create([
+                    'pos_id'       => $pos->id,
+                    'produk_id'    => $item['produk_id'],
+                    'satuan_nama'  => $item['satuan_nama'],
+                    'isi'          => $item['isi'],
+                    'harga_satuan' => $item['harga'],
+                    'diskon_rp'    => $diskon_rp,
+                    'qty'          => $item['qty'],
+                    'harga'        => $harga_final, // this is the final selling price per unit chosen
+                    'subtotal'     => $item['qty'] * $harga_final,
+                ]);
+
+                $product->decrement('stok', $stok_pengurang);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success'    => true,
+                'message'    => 'Transaksi berhasil disimpan.',
+                'pos_id'     => $pos->id,
+                'receipt_url'=> route('pos.receipt', $pos->id),
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+Deskripsi: Mengambil data absensi karyawan, menghitung rekapitulasi status kehadiran (Hadir, Sakit, Alpha, Izin), menghitung gaji pokok harian dari jabatan dikali jumlah hari Hadir, menjumlahkan bonus, mengurangi potongan kasbon karyawan, lalu membuat dokumen slip gaji berformat PDF untuk diunduh langsung. Tautan ini diamankan dengan signed route Laravel.
+File: Modules/Employee/app/Http/Controllers/EmployeeController.php
+Method: generateSlipGaji
+    public function generateSlipGaji(Request $request, $id)
+    {
+        if (! $request->hasValidSignature()) {
+            abort(403, 'Invalid or expired signature.');
+        }
+
+        $employee = \Modules\Employee\Models\Karyawan::with('jabatan')->findOrFail($id);
+
+        if (!$employee->aktif) {
+            abort(403, 'Aksi ditolak. Karyawan sudah nonaktif.');
+        }
+
+        $tanggalPembayaran = $request->query('tanggal_pembayaran');
+        $bonus = $request->query('bonus', 0);
+        $potongan = $request->query('potongan', 0);
+        $keterangan_potongan = $request->query('keterangan_potongan', null);
+
+        $query = \Modules\Employee\Models\Absensi::where('karyawan_id', $id);
+
+        $currentMonth = intval($request->query('month', \Carbon\Carbon::now()->month));
+        $currentYear = intval($request->query('year', \Carbon\Carbon::now()->year));
+
+        if ($tanggalPembayaran) {
+            $query->where('tanggal_pembayaran', $tanggalPembayaran);
+        } else {
+            $query->whereMonth('tanggal', $currentMonth)
+                  ->whereYear('tanggal', $currentYear);
+        }
+
+        $absensis = $query->get();
+
+        $rekap = [
+            'hadir' => $absensis->where('status', 'hadir')->count(),
+            'sakit' => $absensis->where('status', 'sakit')->count(),
+            'alpha' => $absensis->where('status', 'alpha')->count(),
+            'izin' => $absensis->where('status', 'izin')->count(),
+        ];
+
+        $gaji_harian = $employee->jabatan->gaji_harian ?? 0;
+        $total_gaji_pokok = $rekap['hadir'] * $gaji_harian;
+        $total_gaji = $total_gaji_pokok + $bonus - $potongan;
+
+        $potongan_details = [];
+        if ($keterangan_potongan) {
+            $decoded = json_decode($keterangan_potongan, true);
+            if (is_array($decoded)) {
+                $potongan_details = $decoded;
+            } else {
+                $potongan_details = [['keterangan' => $keterangan_potongan, 'nominal' => $potongan]];
+            }
+        }
+
+        $monthNamesIndo = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        $monthName = $monthNamesIndo[$currentMonth] ?? \Carbon\Carbon::createFromDate($currentYear, $currentMonth, 1)->translatedFormat('F');
+
+        activity('Employee')
+            ->performedOn($employee)
+            ->causedBy(auth()->user())
+            ->event('GENERATED')
+            ->log("Mencetak Slip Gaji {$employee->nama} Periode {$monthName} {$currentYear}");
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('employee::slip_gaji', compact('employee', 'rekap', 'gaji_harian', 'total_gaji_pokok', 'bonus', 'potongan', 'potongan_details', 'total_gaji', 'currentMonth', 'currentYear', 'tanggalPembayaran'));
+        
+        return $pdf->download('slip_gaji_' . str_replace(' ', '_', strtolower($employee->nama)) . '.pdf');
+    }
+
+Deskripsi: Memproses pembayaran gaji karyawan dengan mengalkulasi hari kerja yang belum dibayar (status_bayar = 0) pada bulan/tahun tertentu, menyisipkan data transaksi penggajian baru ke tabel penggajian database, mengubah status absensi terkait menjadi terbayar (status_bayar = 1), mereset limit potongan kasbon karyawan, serta menghasilkan URL signed route unduhan slip gaji format PDF.
+File: Modules/Employee/app/Http/Controllers/EmployeeController.php
+Method: bayarGaji
+    public function bayarGaji(Request $request, $id)
+    {
+        $now = \Carbon\Carbon::now();
+        
+        $employee = \Modules\Employee\Models\Karyawan::with('jabatan')->findOrFail($id);
+
+        if (!$employee->aktif) {
+            abort(403, 'Aksi ditolak. Karyawan sudah nonaktif.');
+        }
+
+        // Read active month and year from request, defaulting to current
+        $month = intval($request->query('month', \Carbon\Carbon::now()->month));
+        $year = intval($request->query('year', \Carbon\Carbon::now()->year));
+        
+        $potongan = $employee->potongan ?? 0;
+        $keterangan_potongan = $employee->keterangan_potongan;
+        $bonus = $employee->bonus_tetap ?? 0;
+
+        // 1. Dapatkan rekap absensi yang belum dibayar untuk menghitung gaji pokok secara historis pada bulan/tahun spesifik
+        $unpaidAbsensis = \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
+            ->where('status_bayar', 0)
+            ->whereMonth('tanggal', $month)
+            ->whereYear('tanggal', $year)
+            ->get();
+            
+        $jumlahHariKerja = $unpaidAbsensis->where('status', 'hadir')->count();
+        $gajiHarian = $employee->jabatan->gaji_harian ?? 0;
+        $totalGajiPokok = $jumlahHariKerja * $gajiHarian;
+
+        // 2. Simpan transaksi penggajian ke database (Tabel penggajian) agar tercatat historis
+        \Illuminate\Support\Facades\DB::table('penggajian')->insert([
+            'karyawan_id' => $id,
+            'periode_mulai' => \Carbon\Carbon::createFromDate($year, $month, 1)->startOfMonth()->toDateString(),
+            'periode_selesai' => \Carbon\Carbon::createFromDate($year, $month, 1)->endOfMonth()->toDateString(),
+            'tanggal_bayar' => $now->toDateString(),
+            'jumlah_hari_kerja' => $jumlahHariKerja,
+            'total_gaji_pokok' => $totalGajiPokok,
+            'bonus_mingguan' => $bonus, // bonus disimpan di kolom bonus_mingguan/bonus_tetap
+            'catatan' => $keterangan_potongan ?? 'Pembayaran gaji',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        // 3. Update status absensi menjadi dibayarkan secara spesifik bulan/tahun ini
+        \Modules\Employee\Models\Absensi::where('karyawan_id', $id)
+            ->where('status_bayar', 0)
+            ->whereMonth('tanggal', $month)
+            ->whereYear('tanggal', $year)
+            ->update([
+                'status_bayar' => 1,
+                'tanggal_pembayaran' => $now
+            ]);
+
+        // 4. Reset potongan & keterangan potongan, namun pertahankan bonus_tetap jika itu adalah nilai bawaan
+        $employee->update([
+            // 'bonus_tetap' => 0, // Dibiarkan tetap (tidak direset) karena merupakan Bonus Tetap bulanan
+            'potongan' => 0,
+            'keterangan_potongan' => null
+        ]);
+
+        $monthNamesIndo = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        $monthName = $monthNamesIndo[$month] ?? \Carbon\Carbon::createFromDate($year, $month, 1)->translatedFormat('F');
+
+        activity('Employee')
+            ->performedOn($employee)
+            ->causedBy(auth()->user())
+            ->event('GENERATED')
+            ->log("Melakukan Pembayaran Gaji {$employee->nama} Periode {$monthName} {$year}");
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Gaji berhasil dibayarkan',
+            'download_url' => \Illuminate\Support\Facades\URL::signedRoute('employee.slipGaji', [
+                'id' => $id, 
+                'tanggal_pembayaran' => $now->toDateTimeString(),
+                'bonus' => $bonus,
+                'potongan' => $potongan,
+                'keterangan_potongan' => $keterangan_potongan,
+                'month' => $month,
+                'year' => $year
+            ])
+        ]);
+    }

@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Modules\Employee\Http\Controllers\EmployeeController;
 
 Route::get('/employees', [EmployeeController::class, 'index'])->name('employee.index');
+Route::get('/employees/rekap-absensi', [EmployeeController::class, 'exportRekapAbsensi'])->name('employee.rekapAbsensi');
+Route::get('/employees/rekap-periode-list', [EmployeeController::class, 'rekapPeriodeList'])->name('employee.rekapPeriodeList');
 Route::post('/employees', [EmployeeController::class, 'store'])->name('employee.store');
 Route::get('/employees/{id}', [EmployeeController::class, 'show'])->name('employee.show');
 Route::get('/employees/{id}/slip-gaji', [EmployeeController::class, 'generateSlipGaji'])->name('employee.slipGaji')->middleware('signed');
