@@ -248,4 +248,148 @@ class POSController extends Controller
             ]);
         }
     }
+
+    public function returIndex(Request $request)
+    {
+        $selected_trx = null;
+        $search = $request->get('search') ?: $request->get('trx_id');
+
+        if ($search) {
+            $selected_trx = POS::with(['pelanggan', 'details.product', 'refunds'])
+                ->where('id', $search)
+                ->orWhere('no_transaksi', 'LIKE', "%{$search}%")
+                ->first();
+        }
+
+        $recent_transactions = POS::with('pelanggan')->latest()->limit(10)->get();
+        $recent_refunds = \Modules\POS\Models\POSRefund::with(['pos.pelanggan', 'user', 'product'])->latest()->paginate(15);
+
+        return view('pos::retur', compact('selected_trx', 'recent_transactions', 'recent_refunds', 'search'));
+    }
+
+    public function processRetur(Request $request)
+    {
+        $request->validate([
+            'pos_id'             => 'required|exists:pos,id',
+            'items'              => 'required|array',
+            'items.*.detail_id'  => 'required|exists:pos_detail,id',
+            'items.*.qty_refund' => 'nullable|numeric|min:0',
+            'items.*.kondisi'    => 'required|in:layak,rusak',
+            'alasan'             => 'required|string',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $pos = POS::with(['details.product', 'refunds'])->findOrFail($request->pos_id);
+            $total_nominal_refund = 0;
+            $hasRefund = false;
+            $created_refund_ids = [];
+
+            foreach ($request->items as $item) {
+                $qty_refund = floatval($item['qty_refund'] ?? 0);
+                if ($qty_refund > 0) {
+                    $detail = $pos->details()->where('id', $item['detail_id'])->first();
+                    if (!$detail) continue;
+
+                    if ($qty_refund > $detail->qty) {
+                        throw new \Exception("Qty refund untuk {$detail->product->nama} melebihi jumlah pembelian.");
+                    }
+
+                    $hasRefund = true;
+                    $isi = $detail->isi > 0 ? $detail->isi : 1;
+                    $harga = $detail->harga_satuan > 0 ? $detail->harga_satuan : $detail->harga;
+                    $nominal_refund = $qty_refund * $harga;
+                    $total_nominal_refund += $nominal_refund;
+
+                    $kondisiText = $item['kondisi'] === 'layak' ? 'Masuk Stok Jual' : 'Barang Rusak/Cacat';
+                    $alasanLengkap = $request->alasan . ' (' . $kondisiText . ')';
+
+                    // 1. Catat ke tabel pos_refunds
+                    $ref = \Modules\POS\Models\POSRefund::create([
+                        'pos_id'         => $pos->id,
+                        'no_transaksi'   => $pos->no_transaksi,
+                        'produk_id'      => $detail->produk_id,
+                        'nama_produk'    => $detail->product ? $detail->product->nama : 'Produk',
+                        'qty_refund'     => $qty_refund,
+                        'nominal_refund' => $nominal_refund,
+                        'alasan'         => $alasanLengkap,
+                        'tgl_refund'     => now(),
+                        'user_id'        => auth()->id(),
+                    ]);
+
+                    $created_refund_ids[] = $ref->id;
+
+                    // 2. Jika kondisi LAYAK JUAL -> Kembalikan Stok Produk
+                    if ($item['kondisi'] === 'layak' && $detail->product) {
+                        $detail->product->increment('stok', $qty_refund * $isi);
+                    }
+
+                    // 3. Kurangi Qty di detail POS
+                    $sisa_qty = $detail->qty - $qty_refund;
+                    if ($sisa_qty <= 0) {
+                        $detail->delete();
+                    } else {
+                        $detail->update([
+                            'qty'      => $sisa_qty,
+                            'subtotal' => $sisa_qty * $harga
+                        ]);
+                    }
+                }
+            }
+
+            if (!$hasRefund) {
+                throw new \Exception("Centang dan masukkan Qty retur pada minimal 1 barang.");
+            }
+
+            // 4. Update total transaksi POS
+            $new_subtotal = $pos->details()->sum('subtotal');
+            $new_total_tagihan = $new_subtotal + ($pos->pajak ?: 0) + ($pos->ongkos_kirim ?: 0);
+
+            $jumlah_bayar = $pos->jumlah_bayar;
+            $status_pembayaran = $pos->status_pembayaran;
+
+            if ($pos->metode_pembayaran === 'Bon') {
+                if ($jumlah_bayar >= $new_total_tagihan && $new_total_tagihan > 0) {
+                    $status_pembayaran = 'lunas';
+                    if ($jumlah_bayar > $new_total_tagihan) {
+                        $jumlah_bayar = $new_total_tagihan;
+                    }
+                } elseif ($jumlah_bayar > 0) {
+                    $status_pembayaran = 'sebagian';
+                } else {
+                    $status_pembayaran = 'belum_bayar';
+                }
+            } else {
+                $jumlah_bayar = $new_total_tagihan;
+                $status_pembayaran = 'lunas';
+            }
+
+            $pos->update([
+                'subtotal'          => $new_subtotal,
+                'total_tagihan'     => $new_total_tagihan,
+                'jumlah_bayar'      => $jumlah_bayar,
+                'status_pembayaran' => $status_pembayaran,
+            ]);
+
+            DB::commit();
+
+            return redirect()->route('pos.retur.receipt', $created_refund_ids[0])
+                ->with('success', 'Retur barang berhasil diproses! Total refund: Rp ' . number_format($total_nominal_refund, 0, ',', '.'));
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withErrors(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function returReceipt($id)
+    {
+        $refund = \Modules\POS\Models\POSRefund::with(['pos.pelanggan', 'user', 'product'])->findOrFail($id);
+        $batch_refunds = \Modules\POS\Models\POSRefund::with('product')
+            ->where('pos_id', $refund->pos_id)
+            ->where('tgl_refund', $refund->tgl_refund)
+            ->get();
+
+        return view('pos::retur_receipt', compact('refund', 'batch_refunds'));
+    }
 }

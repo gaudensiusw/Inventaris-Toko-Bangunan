@@ -44,6 +44,8 @@
             text-align: center;
             font-size: 10px;
             color: #666;
+            line-height: 1.4;
+            margin-top: 2px;
         }
 
         /* Divider */
@@ -190,8 +192,8 @@
         <!-- Store Header -->
         <div class="store-name">Toko Rajawali</div>
         <div class="store-tagline">Toko Bangunan & Material</div>
-        <div class="store-address">Jl. Raya Rajawali No. 1, Kota Anda</div>
-        <div class="store-address">Telp: (021) 000-0000</div>
+        <div class="store-address">Jl. Merdeka No.4, Kel. Kedondong Raye,<br>Kec. Banyuasin III, Kab. Banyuasin,<br>Sumatera Selatan</div>
+        <div class="store-address">Telp: 0852-66448857</div>
 
         <hr class="divider-double" style="margin-top: 12px">
 
@@ -243,10 +245,6 @@
         <div class="total-row">
             <span>Subtotal</span>
             <span>Rp {{ number_format($pos->subtotal, 0, ',', '.') }}</span>
-        </div>
-        <div class="total-row">
-            <span>Pajak</span>
-            <span>Rp {{ number_format($pos->pajak, 0, ',', '.') }}</span>
         </div>
 
         <hr class="divider-solid">

@@ -50,4 +50,9 @@ class POS extends Model
     {
         return $this->belongsTo(Customer::class, 'pelanggan_id');
     }
+
+    public function refunds()
+    {
+        return $this->hasMany(POSRefund::class, 'pos_id');
+    }
 }

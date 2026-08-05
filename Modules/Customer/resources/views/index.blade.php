@@ -4,36 +4,7 @@
 @section('header_title', 'Pelanggan')
 
 @section('content')
-<div x-data="{ 
-    addModalOpen: false, 
-    editModalOpen: false, 
-    deleteModalOpen: false,
-    payModalOpen: false,
-    editForm: {},
-    deleteForm: {},
-    payForm: { id: null, total_tagihan: 0, jumlah_bayar: 0, sisa: 0, bayar: 0 },
-    searchQuery: '',
-    activeFilter: 'semua',
-    
-    openEditModal(customer) {
-        this.editForm = JSON.parse(JSON.stringify(customer));
-        this.editModalOpen = true;
-    },
-    openDeleteModal(customer) {
-        this.deleteForm = customer;
-        this.deleteModalOpen = true;
-    },
-    openPayModal(trx) {
-        this.payForm = {
-            id: trx.id,
-            total_tagihan: trx.total_tagihan,
-            jumlah_bayar: trx.jumlah_bayar,
-            sisa: trx.total_tagihan - trx.jumlah_bayar,
-            bayar: trx.total_tagihan - trx.jumlah_bayar
-        };
-        this.payModalOpen = true;
-    }
-}">
+<div x-data="customerApp()">
     <!-- Alert Messages -->
     @if(session('success'))
         <div class="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-center gap-2">
@@ -42,16 +13,23 @@
         </div>
     @endif
 
+    @if($errors->any())
+        <div class="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+            <svg class="w-5 h-5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <span class="text-sm font-medium">{{ $errors->first() }}</span>
+        </div>
+    @endif
+
     <!-- Header & Stats Row -->
-    <div class="mb-6">
-        <h2 class="text-2xl font-bold text-slate-800">Manajemen Pelanggan</h2>
-        <p class="text-sm text-slate-500">
-            @if(request('filter') === 'hutang')
-                Kelola piutang dan transaksi kredit pelanggan
-            @else
-                Daftar dan kelola seluruh informasi profil pelanggan
-            @endif
-        </p>
+    <div class="mb-6 flex justify-between items-center">
+        <div>
+            <h2 class="text-2xl font-bold text-slate-800">Manajemen Pelanggan</h2>
+            <p class="text-sm text-slate-500">Daftar dan kelola seluruh informasi profil pelanggan</p>
+        </div>
+        <a href="{{ route('pos.index') }}" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-100 transition-all flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"></path></svg>
+            Kembali ke Kasir POS
+        </a>
     </div>
 
     @if(request('filter') === 'hutang')
@@ -251,14 +229,16 @@
                         <h3 class="font-bold text-slate-800">Riwayat Transaksi ({{ $selected_customer->transactions->count() }})</h3>
                         <div class="flex bg-slate-200 rounded-lg p-0.5 text-[10px] font-black uppercase">
                             <button @click="activeFilter = 'semua'" :class="activeFilter === 'semua' ? 'bg-white shadow text-slate-800' : 'text-slate-500'" class="px-3 py-1 rounded-md">Semua</button>
+                            <button @click="activeFilter = 'lunas'" :class="activeFilter === 'lunas' ? 'bg-white shadow text-slate-800' : 'text-slate-500'" class="px-3 py-1 rounded-md">Lunas</button>
                             <button @click="activeFilter = 'belum_bayar'" :class="activeFilter === 'belum_bayar' ? 'bg-white shadow text-slate-800' : 'text-slate-500'" class="px-3 py-1 rounded-md">Belum Lunas</button>
+                            <button @click="activeFilter = 'refund'" :class="activeFilter === 'refund' ? 'bg-white shadow text-slate-800' : 'text-slate-500'" class="px-3 py-1 rounded-md">Riwayat Refund</button>
                         </div>
                     </div>
                 </div>
 
                 <div class="divide-y divide-slate-100">
                     @forelse($selected_customer->transactions as $trx)
-                    <div x-show="activeFilter === 'semua' || (activeFilter === 'belum_bayar' && '{{ $trx->status_pembayaran }}' !== 'lunas')" 
+                    <div x-show="activeFilter === 'semua' || (activeFilter === 'lunas' && '{{ $trx->status_pembayaran }}' === 'lunas') || (activeFilter === 'belum_bayar' && '{{ $trx->status_pembayaran }}' !== 'lunas')" 
                          class="p-6 hover:bg-slate-50 transition-all group">
                         <div class="flex justify-between items-start mb-4">
                             <div>
@@ -299,14 +279,28 @@
                             <div class="pt-2 mt-2 border-t border-slate-200 flex justify-between items-center">
                                 <div class="flex items-center gap-2 text-[10px] font-bold {{ \Carbon\Carbon::parse($trx->jatuh_tempo)->isPast() && $trx->status_pembayaran !== 'lunas' ? 'text-red-500' : 'text-slate-400' }}">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                    Jatuh tempo: {{ \Carbon\Carbon::parse($trx->jatuh_tempo)->format('d M Y') }}
+                                    @if($trx->metode_pembayaran === 'Bon')
+                                        Jatuh tempo: {{ \Carbon\Carbon::parse($trx->jatuh_tempo)->format('d M Y') }}
+                                    @else
+                                        Metode: {{ $trx->metode_pembayaran }}
+                                    @endif
                                 </div>
-                                @if($trx->status_pembayaran !== 'lunas')
-                                    <button @click="openPayModal({{ $trx->toJson() }})" class="px-3 py-1.5 bg-blue-600 text-white text-[11px] font-black rounded-lg shadow-sm shadow-blue-100 hover:bg-blue-700 transition-all flex items-center gap-1.5">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
-                                        Tambah Pembayaran
+                                <div class="flex items-center gap-2">
+                                    <button type="button" @click="openEditTrxModal({{ $trx->id }})" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-black text-[11px] rounded-lg shadow-sm shadow-amber-100 transition-all flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                        Edit Barang
                                     </button>
-                                @endif
+                                    <a href="{{ route('pos.retur.index', ['search' => $trx->no_transaksi]) }}" class="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white font-black text-[11px] rounded-lg shadow-sm shadow-rose-100 transition-all flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"></path></svg>
+                                        Refund / Retur
+                                    </a>
+                                    @if($trx->status_pembayaran !== 'lunas')
+                                        <button type="button" @click="openPayModal({{ $trx->id }})" class="px-3 py-1.5 bg-blue-600 text-white text-[11px] font-black rounded-lg shadow-sm shadow-blue-100 hover:bg-blue-700 transition-all flex items-center gap-1.5">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                                            Tambah Pembayaran
+                                        </button>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -316,6 +310,39 @@
                         <p class="text-sm font-bold text-slate-400">Belum ada riwayat transaksi</p>
                     </div>
                     @endforelse
+
+                    <!-- RIWAYAT REFUND / RETUR -->
+                    <div x-show="activeFilter === 'refund'" class="p-6" style="display: none;">
+                        @php
+                            $allRefunds = $selected_customer->transactions->flatMap(fn($t) => $t->refunds ?: collect())->sortByDesc('tgl_refund');
+                        @endphp
+                        @if($allRefunds->count() > 0)
+                            <div class="space-y-4">
+                                @foreach($allRefunds as $ref)
+                                <div class="p-4 border border-rose-200 rounded-xl bg-rose-50/30 flex justify-between items-start">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1">
+                                            <span class="font-black text-[10px] text-rose-700 uppercase tracking-wider bg-rose-100 px-2 py-0.5 rounded">Retur / Refund</span>
+                                            <span class="font-black text-sm text-slate-800">{{ $ref->no_transaksi }}</span>
+                                        </div>
+                                        <p class="text-xs font-black text-slate-700 mt-1">{{ $ref->nama_produk }} x {{ floatval($ref->qty_refund) }}</p>
+                                        <p class="text-[11px] text-slate-500 italic mt-0.5">Alasan: {{ $ref->alasan ?: '-' }}</p>
+                                        <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">{{ \Carbon\Carbon::parse($ref->tgl_refund)->format('d M Y H:i') }} • Oleh: {{ $ref->user->name ?? 'Operator' }}</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-xs font-bold text-slate-400">Total Refund:</span>
+                                        <p class="text-base font-black text-rose-600">Rp {{ number_format($ref->nominal_refund, 0, ',', '.') }}</p>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="py-12 text-center flex flex-col items-center">
+                                <svg class="w-12 h-12 text-rose-200 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"></path></svg>
+                                <p class="text-sm font-bold text-slate-400">Belum ada riwayat refund / retur barang untuk pelanggan ini</p>
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
             @else
@@ -503,5 +530,273 @@
             </div>
         </div>
     </div>
+
+    <!-- EDIT TRANSACTION MODAL -->
+    <div x-show="editTrxModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center" style="display: none;">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="editTrxModalOpen = false" x-transition.opacity></div>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative z-10 m-4 overflow-hidden flex flex-col max-h-[90vh]" x-transition>
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Edit Transaksi <span class="text-blue-600" x-text="editTrxForm.no_transaksi"></span></h3>
+                    <p class="text-xs text-slate-500">Ubah barang atau jumlah. Stok dan tagihan otomatis menyesuaikan.</p>
+                </div>
+                <button @click="editTrxModalOpen = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form :action="`/customers/transaction/${editTrxForm.id}`" method="POST" class="flex flex-col flex-1 overflow-hidden">
+                @csrf
+                @method('PUT')
+                <div class="p-6 overflow-y-auto space-y-4 flex-1">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-500 uppercase">
+                                <th class="py-2 pr-2 font-bold w-1/2">Produk (Ganti Misal dari BH 8 ke BH 10)</th>
+                                <th class="py-2 px-2 font-bold w-20">Qty</th>
+                                <th class="py-2 px-2 font-bold w-32">Harga (Rp)</th>
+                                <th class="py-2 px-2 font-bold w-32">Subtotal</th>
+                                <th class="py-2 pl-2 font-bold text-center w-10">#</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <template x-for="(item, idx) in editTrxForm.items" :key="idx">
+                                <tr class="hover:bg-slate-50/50">
+                                    <td class="py-2.5 pr-2">
+                                        <select :name="`items[${idx}][produk_id]`" 
+                                                x-model="item.produk_id" 
+                                                @change="updateItemProduct(idx, $event.target.value)"
+                                                class="w-full border border-slate-300 rounded-lg text-xs p-2 bg-white font-semibold text-slate-800">
+                                            @foreach($products as $prod)
+                                                <option value="{{ $prod->id }}">{{ $prod->nama }} (Stok: {{ $prod->stok }})</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td class="py-2.5 px-2">
+                                        <input type="number" step="0.01" min="0.01" :name="`items[${idx}][qty]`" 
+                                               x-model.number="item.qty" @input="updateItemQtyOrPrice(idx)" 
+                                               class="w-full border border-slate-300 rounded-lg text-xs p-2 text-center font-bold text-slate-800">
+                                    </td>
+                                    <td class="py-2.5 px-2">
+                                        <input type="number" min="0" :name="`items[${idx}][harga]`" 
+                                               x-model.number="item.harga" @input="updateItemQtyOrPrice(idx)" 
+                                               class="w-full border border-slate-300 rounded-lg text-xs p-2 text-right font-bold text-slate-800">
+                                    </td>
+                                    <td class="py-2.5 px-2 font-black text-slate-800 text-right" x-text="'Rp ' + new Number(item.subtotal || (item.qty * item.harga)).toLocaleString('id-ID')"></td>
+                                    <td class="py-2.5 pl-2 text-center">
+                                        <button type="button" @click="removeTrxItem(idx)" 
+                                                x-show="editTrxForm.items.length > 1"
+                                                class="text-red-400 hover:text-red-600 p-1">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+
+                    <div class="flex justify-between items-center pt-4 border-t border-slate-200">
+                        <button type="button" @click="addTrxItem()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            Tambah Item
+                        </button>
+                        <div class="text-right">
+                            <span class="text-xs font-bold text-slate-400 uppercase mr-2">Total Baru:</span>
+                            <span class="text-lg font-black text-blue-600" x-text="'Rp ' + new Number(editTrxTotal).toLocaleString('id-ID')"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+                    <button type="button" @click="editTrxModalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-amber-500 hover:bg-amber-600 rounded-lg text-sm font-bold text-white shadow-lg shadow-amber-100 transition-all">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- REFUND TRANSACTION MODAL -->
+    <div x-show="refundTrxModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center" style="display: none;">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="refundTrxModalOpen = false" x-transition.opacity></div>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl relative z-10 m-4 overflow-hidden flex flex-col max-h-[90vh]" x-transition>
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-rose-50/50">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">Refund / Retur Barang <span class="text-rose-600" x-text="refundTrxForm.no_transaksi"></span></h3>
+                    <p class="text-xs text-slate-500">Pilih jumlah Qty barang yang ingin dikembalikan (salah beli / cacat). Stok otomatis dikembalikan.</p>
+                </div>
+                <button @click="refundTrxModalOpen = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form :action="`/customers/transaction/${refundTrxForm.id}/refund`" method="POST" class="flex flex-col flex-1 overflow-hidden">
+                @csrf
+                <div class="p-6 overflow-y-auto space-y-4 flex-1">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Alasan Retur / Refund <span class="text-red-500">*</span></label>
+                        <select name="alasan" x-model="refundTrxForm.alasan" class="w-full border border-slate-300 rounded-xl text-sm p-2.5 bg-white font-semibold text-slate-700">
+                            <option value="Salah Beli / Ganti Barang Lain">Salah Beli / Ganti Barang Lain</option>
+                            <option value="Barang Rusak / Cacat Pabrik">Barang Rusak / Cacat Pabrik</option>
+                            <option value="Kelebihan Beli / Sisa Proyek">Kelebihan Beli / Sisa Proyek</option>
+                            <option value="Retur Kesepakatan Khusus">Retur Kesepakatan Khusus</option>
+                        </select>
+                    </div>
+                    
+                    <table class="w-full text-left text-xs border-collapse mt-3">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-500 uppercase">
+                                <th class="py-2 pr-2 font-bold w-1/2">Produk Dibeli</th>
+                                <th class="py-2 px-2 font-bold text-center w-24">Maks Qty</th>
+                                <th class="py-2 px-2 font-bold w-28">Qty Refund</th>
+                                <th class="py-2 pl-2 font-bold text-right w-32">Nominal Refund</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <template x-for="(item, idx) in refundTrxForm.items" :key="idx">
+                                <tr class="hover:bg-rose-50/30 transition-all">
+                                    <td class="py-3 pr-2 font-bold text-slate-800" x-text="item.nama"></td>
+                                    <td class="py-3 px-2 text-center font-semibold text-slate-500" x-text="item.qty_max"></td>
+                                    <td class="py-3 px-2">
+                                        <input type="number" step="0.01" min="0" :max="item.qty_max" 
+                                               :name="`items[${item.id}][qty_refund]`" 
+                                               x-model="item.qty_refund" @input="updateRefundQty(idx)" 
+                                               class="w-full border border-rose-300 focus:ring-rose-500 focus:border-rose-500 rounded-lg text-xs p-2 text-center font-black text-rose-600 bg-white">
+                                    </td>
+                                    <td class="py-3 pl-2 font-black text-rose-600 text-right" x-text="'Rp ' + new Number(item.subtotal_refund).toLocaleString('id-ID')"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+
+                    <div class="flex justify-end items-center pt-4 border-t border-slate-200">
+                        <div class="text-right">
+                            <span class="text-xs font-bold text-slate-400 uppercase mr-2">Total Nilai Refund:</span>
+                            <span class="text-xl font-black text-rose-600" x-text="'Rp ' + new Number(refundTrxTotal).toLocaleString('id-ID')"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+                    <button type="button" @click="refundTrxModalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-rose-600 hover:bg-rose-700 rounded-lg text-sm font-bold text-white shadow-lg shadow-rose-100 transition-all">Proses & Catat Refund</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+@push('scripts')
+<script>
+function customerApp() {
+    return {
+        addModalOpen: false, 
+        editModalOpen: false, 
+        deleteModalOpen: false,
+        payModalOpen: false,
+        editTrxModalOpen: false,
+        refundTrxModalOpen: false,
+        editForm: {},
+        deleteForm: {},
+        payForm: { id: null, total_tagihan: 0, jumlah_bayar: 0, sisa: 0, bayar: 0 },
+        editTrxForm: { id: null, no_transaksi: '', items: [] },
+        refundTrxForm: { id: null, no_transaksi: '', items: [], alasan: 'Salah Beli / Ganti Barang Lain' },
+        availableProducts: @json($products ?? []),
+        customerTransactions: @json($selected_customer->transactions ?? []),
+        searchQuery: '',
+        activeFilter: 'semua',
+        
+        openEditModal(customer) {
+            this.editForm = JSON.parse(JSON.stringify(customer));
+            this.editModalOpen = true;
+        },
+        openDeleteModal(customer) {
+            this.deleteForm = customer;
+            this.deleteModalOpen = true;
+        },
+        openEditTrxModal(trxId) {
+            const trx = this.customerTransactions.find(t => t.id == trxId);
+            if (!trx) return;
+            this.editTrxForm = {
+                id: trx.id,
+                no_transaksi: trx.no_transaksi,
+                items: (trx.details || []).map(d => ({
+                    produk_id: d.produk_id,
+                    nama: d.product ? d.product.nama : 'Produk',
+                    qty: Number(d.qty),
+                    harga: Number(d.harga_satuan || d.harga),
+                    subtotal: Number(d.subtotal)
+                }))
+            };
+            this.editTrxModalOpen = true;
+        },
+        addTrxItem() {
+            if (this.availableProducts.length > 0) {
+                const p = this.availableProducts[0];
+                this.editTrxForm.items.push({
+                    produk_id: p.id,
+                    nama: p.nama,
+                    qty: 1,
+                    harga: p.harga_jual,
+                    subtotal: p.harga_jual
+                });
+            }
+        },
+        removeTrxItem(index) {
+            this.editTrxForm.items.splice(index, 1);
+        },
+        updateItemProduct(index, produk_id) {
+            const p = this.availableProducts.find(prod => prod.id == produk_id);
+            if (p) {
+                this.editTrxForm.items[index].produk_id = p.id;
+                this.editTrxForm.items[index].nama = p.nama;
+                this.editTrxForm.items[index].harga = p.harga_jual;
+                this.editTrxForm.items[index].subtotal = Number(p.harga_jual) * Number(this.editTrxForm.items[index].qty || 1);
+            }
+        },
+        updateItemQtyOrPrice(index) {
+            const item = this.editTrxForm.items[index];
+            item.subtotal = Number(item.qty || 0) * Number(item.harga || 0);
+        },
+        get editTrxTotal() {
+            return this.editTrxForm.items.reduce((sum, item) => sum + (Number(item.subtotal) || 0), 0);
+        },
+        openRefundTrxModal(trxId) {
+            const trx = this.customerTransactions.find(t => t.id == trxId);
+            if (!trx) return;
+            this.refundTrxForm = {
+                id: trx.id,
+                no_transaksi: trx.no_transaksi,
+                alasan: 'Salah Beli / Ganti Barang Lain',
+                items: (trx.details || []).map(d => ({
+                    id: d.id,
+                    nama: d.product ? d.product.nama : 'Produk',
+                    qty_max: Number(d.qty),
+                    harga: Number(d.harga_satuan || d.harga),
+                    qty_refund: 0,
+                    subtotal_refund: 0
+                }))
+            };
+            this.refundTrxModalOpen = true;
+        },
+        updateRefundQty(idx) {
+            const item = this.refundTrxForm.items[idx];
+            if (item.qty_refund > item.qty_max) item.qty_refund = item.qty_max;
+            if (item.qty_refund < 0) item.qty_refund = 0;
+            item.subtotal_refund = item.qty_refund * item.harga;
+        },
+        get refundTrxTotal() {
+            return this.refundTrxForm.items.reduce((sum, item) => sum + (Number(item.subtotal_refund) || 0), 0);
+        },
+        openPayModal(trxId) {
+            const trx = this.customerTransactions.find(t => t.id == trxId);
+            if (!trx) return;
+            this.payForm = {
+                id: trx.id,
+                total_tagihan: trx.total_tagihan,
+                jumlah_bayar: trx.jumlah_bayar,
+                sisa: trx.total_tagihan - trx.jumlah_bayar,
+                bayar: trx.total_tagihan - trx.jumlah_bayar
+            };
+            this.payModalOpen = true;
+        }
+    };
+}
+</script>
+@endpush
 @endsection
