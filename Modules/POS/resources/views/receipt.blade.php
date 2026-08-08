@@ -246,6 +246,18 @@
             <span>Subtotal</span>
             <span>Rp {{ number_format($pos->subtotal, 0, ',', '.') }}</span>
         </div>
+        @if($pos->biaya_addon > 0)
+        <div class="total-row">
+            <span>Add On ({{ $pos->keterangan_addon ?: 'Biaya Lain' }})</span>
+            <span>Rp {{ number_format($pos->biaya_addon, 0, ',', '.') }}</span>
+        </div>
+        @endif
+        @if($pos->ongkos_kirim > 0)
+        <div class="total-row">
+            <span>Ongkos Kirim</span>
+            <span>Rp {{ number_format($pos->ongkos_kirim, 0, ',', '.') }}</span>
+        </div>
+        @endif
 
         <hr class="divider-solid">
 

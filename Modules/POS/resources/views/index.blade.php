@@ -191,21 +191,35 @@
             <!-- Catatan -->
             <textarea x-model="catatan" placeholder="Catatan untuk pelanggan/pengiriman..." rows="1" class="w-full border border-slate-300 rounded-lg text-xs p-2 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white"></textarea>
 
+            <!-- Add On -->
+            <div class="flex flex-col gap-1">
+                <label class="text-xs font-bold text-slate-700">Add On</label>
+                <div class="grid grid-cols-12 gap-2 bg-white p-1 border border-slate-300 rounded-lg shadow-sm">
+                    <input type="text" x-model="keterangan_addon" placeholder="Keterangan (misal: Jasa Potong, Muat...)" 
+                           class="col-span-7 border-0 text-xs py-1 px-2.5 focus:ring-0 bg-transparent font-semibold text-slate-700 placeholder-slate-400">
+                    <div class="col-span-5 relative border-l border-slate-200 pl-2 flex items-center">
+                        <span class="text-xs font-bold text-slate-400 mr-1">Rp</span>
+                        <input type="text" :value="formatNumber(biaya_addon)" @input="biaya_addon = unformatNumber($event.target.value)" 
+                               class="w-full border-0 text-xs py-1 px-1 focus:ring-0 bg-transparent font-mono font-bold text-slate-800" placeholder="0">
+                    </div>
+                </div>
+            </div>
+
             <!-- Pengiriman -->
-            <div class="flex flex-col gap-2">
+            <div class="flex flex-col gap-1">
                 <div class="flex items-center justify-between">
-                    <label class="text-xs font-bold text-slate-500 uppercase">Pengiriman</label>
+                    <label class="text-xs font-bold text-slate-700">Pengiriman</label>
                     <div class="flex bg-slate-200 rounded-lg p-0.5 gap-0.5">
                         <button @click="opsi_pengiriman = 'Ambil Sendiri'; ongkos_kirim = 0;" :class="opsi_pengiriman === 'Ambil Sendiri' ? 'bg-white text-slate-800 shadow' : 'text-slate-500'" class="px-3 py-1 text-[11px] font-bold rounded-md transition-all">Ambil</button>
                         <button @click="opsi_pengiriman = 'Antar'" :class="opsi_pengiriman === 'Antar' ? 'bg-white text-slate-800 shadow' : 'text-slate-500'" class="px-3 py-1 text-[11px] font-bold rounded-md transition-all">Antar</button>
                     </div>
                 </div>
                 <template x-if="opsi_pengiriman === 'Antar'">
-                    <div class="flex items-center gap-3">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase w-24 flex-shrink-0">Ongkos Kirim</label>
-                        <div class="relative flex-1">
-                            <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">Rp</span>
-                            <input type="text" :value="formatNumber(ongkos_kirim)" @input="ongkos_kirim = unformatNumber($event.target.value)" class="w-full border border-slate-300 rounded-lg text-xs py-1.5 pl-7 pr-3 focus:ring-blue-500 focus:border-blue-500 bg-white font-mono font-bold text-slate-700" placeholder="0">
+                    <div class="flex items-center gap-3 bg-white p-1 border border-slate-300 rounded-lg shadow-sm">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase w-24 flex-shrink-0 pl-2">Ongkos Kirim</label>
+                        <div class="relative flex-1 flex items-center">
+                            <span class="text-xs font-bold text-slate-400 mr-1">Rp</span>
+                            <input type="text" :value="formatNumber(ongkos_kirim)" @input="ongkos_kirim = unformatNumber($event.target.value)" class="w-full border-0 text-xs py-1 px-1 focus:ring-0 bg-transparent font-mono font-bold text-slate-800" placeholder="0">
                         </div>
                     </div>
                 </template>
@@ -246,6 +260,12 @@
                     <span class="text-slate-500">Pajak (0%)</span>
                     <span class="font-bold text-slate-700">Rp 0</span>
                 </div>
+                <template x-if="biaya_addon > 0">
+                    <div class="flex justify-between text-sm text-slate-500">
+                        <span x-text="keterangan_addon ? 'Add On (' + keterangan_addon + ')' : 'Add On / Biaya Lain'"></span>
+                        <span class="font-bold text-slate-700" x-text="formatCurrency(biaya_addon)"></span>
+                    </div>
+                </template>
                 <template x-if="opsi_pengiriman === 'Antar'">
                     <div class="flex justify-between text-sm text-slate-500">
                         <span>Ongkos Kirim</span>
@@ -515,6 +535,8 @@ function posSystem() {
         metode_pembayaran: 'Cash',
         opsi_pengiriman: 'Ambil Sendiri',
         ongkos_kirim: 0,
+        biaya_addon: 0,
+        keterangan_addon: '',
         catatan: '',
         currentTime: '',
         checkoutModalOpen: false,
@@ -582,7 +604,7 @@ function posSystem() {
         },
 
         get total_tagihan() {
-            return this.subtotal + (Number(this.ongkos_kirim) || 0);
+            return this.subtotal + (Number(this.ongkos_kirim) || 0) + (Number(this.biaya_addon) || 0);
         },
 
         addToCart(product) {
@@ -725,6 +747,8 @@ function posSystem() {
                 this.cart = [];
                 this.nama_pelanggan = '';
                 this.catatan = '';
+                this.biaya_addon = 0;
+                this.keterangan_addon = '';
             }
         },
 
@@ -837,6 +861,8 @@ function posSystem() {
                         subtotal:         this.subtotal,
                         pajak:            0,
                         ongkos_kirim:     this.ongkos_kirim,
+                        biaya_addon:      this.biaya_addon,
+                        keterangan_addon: this.keterangan_addon,
                         total_tagihan:    this.total_tagihan,
                         metode_pembayaran:this.metode_pembayaran,
                         opsi_pengiriman:  this.opsi_pengiriman,

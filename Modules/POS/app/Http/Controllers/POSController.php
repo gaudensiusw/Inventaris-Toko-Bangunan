@@ -29,10 +29,22 @@ class POSController extends Controller
         return view('pos::index', compact('products', 'categories', 'customers'));
     }
 
-    public function history()
+    public function history(Request $request)
     {
         $user = auth()->user();
         $query = POS::with(['pelanggan', 'details.product'])->latest();
+
+        if ($request->filled('status')) {
+            $query->where('status_pembayaran', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('no_transaksi', 'LIKE', "%{$search}%")
+                  ->orWhere('nama_pelanggan', 'LIKE', "%{$search}%");
+            });
+        }
 
         // If operator, only show their own transactions
         if ($user->role === 'operator') {
@@ -59,6 +71,8 @@ class POSController extends Controller
             'subtotal'          => 'required|numeric',
             'pajak'             => 'required|numeric',
             'ongkos_kirim'      => 'nullable|numeric|min:0',
+            'biaya_addon'       => 'nullable|numeric|min:0',
+            'keterangan_addon'  => 'nullable|string|max:255',
             'total_tagihan'     => 'required|numeric',
             'metode_pembayaran' => 'required|string',
             'opsi_pengiriman'   => 'required|string',
@@ -161,6 +175,8 @@ class POSController extends Controller
                 'subtotal'         => $request->subtotal,
                 'pajak'            => $request->pajak,
                 'ongkos_kirim'     => $request->ongkos_kirim ?? 0,
+                'biaya_addon'      => $request->biaya_addon ?? 0,
+                'keterangan_addon' => $request->keterangan_addon ?? null,
                 'total_tagihan'    => $request->total_tagihan,
                 'jumlah_bayar'    => $jumlah_bayar,
                 'jatuh_tempo'      => $jatuh_tempo,
@@ -391,5 +407,49 @@ class POSController extends Controller
             ->get();
 
         return view('pos::retur_receipt', compact('refund', 'batch_refunds'));
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $pos = POS::findOrFail($id);
+
+        $request->validate([
+            'status_pembayaran' => 'required|in:lunas,sebagian,belum_bayar',
+            'jumlah_bayar'      => 'nullable|numeric|min:0'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $status = $request->status_pembayaran;
+            $jumlah_bayar = $pos->jumlah_bayar;
+
+            if ($status === 'lunas') {
+                $jumlah_bayar = $pos->total_tagihan;
+            } elseif ($status === 'belum_bayar') {
+                $jumlah_bayar = 0;
+            } elseif ($request->filled('jumlah_bayar')) {
+                $jumlah_bayar = floatval($request->jumlah_bayar);
+                if ($jumlah_bayar >= $pos->total_tagihan) {
+                    $status = 'lunas';
+                    $jumlah_bayar = $pos->total_tagihan;
+                } elseif ($jumlah_bayar > 0) {
+                    $status = 'sebagian';
+                } else {
+                    $status = 'belum_bayar';
+                }
+            }
+
+            $pos->update([
+                'status_pembayaran' => $status,
+                'jumlah_bayar'      => $jumlah_bayar
+            ]);
+
+            DB::commit();
+            return redirect()->back()->with('success', 'Status pembayaran transaksi #' . $pos->no_transaksi . ' berhasil diperbarui.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->withErrors(['error' => 'Gagal mengubah status: ' . $e->getMessage()]);
+        }
     }
 }
