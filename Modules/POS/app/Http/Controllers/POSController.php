@@ -32,7 +32,7 @@ class POSController extends Controller
     public function history(Request $request)
     {
         $user = auth()->user();
-        $query = POS::with(['pelanggan', 'details.product'])->latest();
+        $query = POS::with(['pelanggan', 'details.product', 'refunds'])->latest();
 
         if ($request->filled('status')) {
             $query->where('status_pembayaran', $request->status);
@@ -286,18 +286,60 @@ class POSController extends Controller
     public function processRetur(Request $request)
     {
         $request->validate([
-            'pos_id'             => 'required|exists:pos,id',
-            'items'              => 'required|array',
-            'items.*.detail_id'  => 'required|exists:pos_detail,id',
-            'items.*.qty_refund' => 'nullable|numeric|min:0',
-            'items.*.kondisi'    => 'required|in:layak,rusak',
-            'alasan'             => 'required|string',
+            'pos_id'              => 'required|exists:pos,id',
+            'items'               => 'required|array',
+            'items.*.detail_id'   => 'required|exists:pos_detail,id',
+            'items.*.qty_refund'  => 'nullable|numeric|min:0',
+            'items.*.kondisi'     => 'nullable|in:layak,rusak',
+            'alasan'              => 'required|string',
+            'supervisor_email'    => 'nullable|email',
+            'supervisor_password' => 'nullable|string',
         ]);
+
+        // Validasi manual: setiap item yang qty_refund > 0 harus punya kondisi
+        foreach ($request->items ?? [] as $idx => $item) {
+            $qty = floatval($item['qty_refund'] ?? 0);
+            if ($qty > 0 && empty($item['kondisi'])) {
+                return redirect()->back()->withErrors([
+                    'error' => 'Kondisi barang pada baris ke-' . ($idx + 1) . ' harus dipilih.'
+                ])->withInput();
+            }
+        }
 
         try {
             DB::beginTransaction();
 
             $pos = POS::with(['details.product', 'refunds'])->findOrFail($request->pos_id);
+
+            // ── Proteksi retur ganda ──
+            if ($pos->details()->count() === 0) {
+                throw new \Exception('Transaksi ini sudah pernah diretur secara penuh. Tidak dapat memproses retur ulang.');
+            }
+
+            // ── Validasi batas waktu retur: maks 30 hari ──
+            $hariSejaksTransaksi = now()->diffInDays($pos->tgl_transaksi, false);
+            if ($hariSejaksTransaksi < -30) {
+                throw new \Exception('Retur tidak dapat diproses. Transaksi ini sudah lebih dari 30 hari yang lalu (' . abs((int)$hariSejaksTransaksi) . ' hari).');
+            }
+
+            // ── Supervisor Approval untuk role Operator ──
+            $currentUser = auth()->user();
+            if ($currentUser->role === 'operator') {
+                if (!$request->filled('supervisor_email') || !$request->filled('supervisor_password')) {
+                    throw new \Exception('Proses retur oleh Operator memerlukan persetujuan Supervisor. Masukkan email & password supervisor.');
+                }
+                $supervisor = \App\Models\User::where('email', $request->supervisor_email)->first();
+                if (!$supervisor || !in_array($supervisor->role, ['supervisor', 'owner'])) {
+                    throw new \Exception('Email supervisor tidak valid atau bukan akun supervisor/owner.');
+                }
+                if (!\Illuminate\Support\Facades\Hash::check($request->supervisor_password, $supervisor->password)) {
+                    throw new \Exception('Password supervisor salah. Retur dibatalkan.');
+                }
+            }
+
+            // Generate nomor batch retur unik
+            $no_refund_batch = 'RTR-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
+
             $total_nominal_refund = 0;
             $hasRefund = false;
             $created_refund_ids = [];
@@ -309,27 +351,37 @@ class POSController extends Controller
                     if (!$detail) continue;
 
                     if ($qty_refund > $detail->qty) {
-                        throw new \Exception("Qty refund untuk {$detail->product->nama} melebihi jumlah pembelian.");
+                        $namaProduk = $detail->product?->nama ?? '(Produk tidak ditemukan)';
+                        throw new \Exception("Qty retur untuk \"{$namaProduk}\" ({$qty_refund}) melebihi sisa qty yang tersedia ({$detail->qty}).");
                     }
 
                     $hasRefund = true;
-                    $isi = $detail->isi > 0 ? $detail->isi : 1;
-                    $harga = $detail->harga_satuan > 0 ? $detail->harga_satuan : $detail->harga;
+                    $isi   = ($detail->isi ?? 0) > 0 ? $detail->isi : 1;
+                    $harga = ($detail->harga_satuan ?? 0) > 0 ? $detail->harga_satuan : ($detail->harga ?? 0);
+
+                    if ($harga <= 0) {
+                        throw new \Exception('Harga satuan produk tidak valid (0). Hubungi administrator.');
+                    }
+
                     $nominal_refund = $qty_refund * $harga;
                     $total_nominal_refund += $nominal_refund;
 
-                    $kondisiText = $item['kondisi'] === 'layak' ? 'Masuk Stok Jual' : 'Barang Rusak/Cacat';
+                    $kondisi     = $item['kondisi'] ?? 'layak';
+                    $kondisiText = $kondisi === 'layak' ? 'Masuk Stok Jual' : 'Barang Rusak/Cacat';
                     $alasanLengkap = $request->alasan . ' (' . $kondisiText . ')';
 
                     // 1. Catat ke tabel pos_refunds
                     $ref = \Modules\POS\Models\POSRefund::create([
                         'pos_id'         => $pos->id,
+                        'no_refund'      => $no_refund_batch,
                         'no_transaksi'   => $pos->no_transaksi,
                         'produk_id'      => $detail->produk_id,
                         'nama_produk'    => $detail->product ? $detail->product->nama : 'Produk',
+                        'satuan_nama'    => $detail->satuan_nama ?? 'Pcs',
                         'qty_refund'     => $qty_refund,
                         'nominal_refund' => $nominal_refund,
                         'alasan'         => $alasanLengkap,
+                        'kondisi'        => $kondisi,
                         'tgl_refund'     => now(),
                         'user_id'        => auth()->id(),
                     ]);
@@ -337,7 +389,7 @@ class POSController extends Controller
                     $created_refund_ids[] = $ref->id;
 
                     // 2. Jika kondisi LAYAK JUAL -> Kembalikan Stok Produk
-                    if ($item['kondisi'] === 'layak' && $detail->product) {
+                    if ($kondisi === 'layak' && $detail->product) {
                         $detail->product->increment('stok', $qty_refund * $isi);
                     }
 
@@ -388,10 +440,22 @@ class POSController extends Controller
                 'status_pembayaran' => $status_pembayaran,
             ]);
 
+            // 5. Activity log (sebelum commit agar konsisten)
+            activity()
+                ->causedBy(auth()->user())
+                ->withProperties([
+                    'no_transaksi' => $pos->no_transaksi,
+                    'no_refund'    => $no_refund_batch,
+                    'total_refund' => $total_nominal_refund,
+                    'alasan'       => $request->alasan,
+                    'jumlah_item'  => count($created_refund_ids),
+                ])
+                ->log("Retur {$no_refund_batch} untuk transaksi {$pos->no_transaksi}. Total Rp " . number_format($total_nominal_refund, 0, ',', '.'));
+
             DB::commit();
 
             return redirect()->route('pos.retur.receipt', $created_refund_ids[0])
-                ->with('success', 'Retur barang berhasil diproses! Total refund: Rp ' . number_format($total_nominal_refund, 0, ',', '.'));
+                ->with('success', "Retur {$no_refund_batch} berhasil! Total refund: Rp " . number_format($total_nominal_refund, 0, ',', '.'));
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->withErrors(['error' => $e->getMessage()]);
@@ -401,10 +465,20 @@ class POSController extends Controller
     public function returReceipt($id)
     {
         $refund = \Modules\POS\Models\POSRefund::with(['pos.pelanggan', 'user', 'product'])->findOrFail($id);
-        $batch_refunds = \Modules\POS\Models\POSRefund::with('product')
-            ->where('pos_id', $refund->pos_id)
-            ->where('tgl_refund', $refund->tgl_refund)
-            ->get();
+
+        // Filter batch berdasarkan no_refund jika ada, fallback ke tgl_refund
+        if ($refund->no_refund) {
+            $batch_refunds = \Modules\POS\Models\POSRefund::with('product')
+                ->where('pos_id', $refund->pos_id)
+                ->where('no_refund', $refund->no_refund)
+                ->get();
+        } else {
+            // Legacy: data lama tanpa no_refund, filter by timestamp
+            $batch_refunds = \Modules\POS\Models\POSRefund::with('product')
+                ->where('pos_id', $refund->pos_id)
+                ->where('tgl_refund', $refund->tgl_refund)
+                ->get();
+        }
 
         return view('pos::retur_receipt', compact('refund', 'batch_refunds'));
     }

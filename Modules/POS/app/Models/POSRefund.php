@@ -14,12 +14,15 @@ class POSRefund extends Model
 
     protected $fillable = [
         'pos_id',
+        'no_refund',
         'no_transaksi',
         'produk_id',
         'nama_produk',
+        'satuan_nama',
         'qty_refund',
         'nominal_refund',
         'alasan',
+        'kondisi',
         'tgl_refund',
         'user_id'
     ];

@@ -197,9 +197,15 @@
 
     <!-- Transaction Info -->
     <div class="info-row">
-        <span class="info-label">No. Struk</span>
+        <span class="info-label">No. Struk Asli</span>
         <span class="info-value">{{ $refund->no_transaksi }}</span>
     </div>
+    @if($refund->no_refund)
+    <div class="info-row">
+        <span class="info-label">No. Retur</span>
+        <span class="info-value" style="font-size:10px;">{{ $refund->no_refund }}</span>
+    </div>
+    @endif
     <div class="info-row">
         <span class="info-label">Tgl Retur</span>
         <span class="info-value">{{ \Carbon\Carbon::parse($refund->tgl_refund)->format('d M Y H:i') }}</span>
@@ -221,7 +227,11 @@
     <div class="item-row">
         <div class="item-name">{{ $b->nama_produk }}</div>
         <div class="item-detail">
-            <span>{{ floatval($b->qty_refund) }} Pcs × Rp {{ number_format($b->nominal_refund / floatval($b->qty_refund), 0, ',', '.') }}</span>
+            @php
+                $hargaSatuan = $b->qty_refund > 0 ? ($b->nominal_refund / $b->qty_refund) : 0;
+                $satuanLabel = $b->satuan_nama ?: 'Pcs';
+            @endphp
+            <span>{{ floatval($b->qty_refund) }} {{ $satuanLabel }} &times; Rp {{ number_format($hargaSatuan, 0, ',', '.') }}</span>
             <span>Rp {{ number_format($b->nominal_refund, 0, ',', '.') }}</span>
         </div>
         <div style="font-size: 9px; color: #666; font-style: italic;">Catatan: {{ $b->alasan }}</div>
@@ -266,12 +276,15 @@
 </div>
 
 <script>
-    // Auto popup print on open
+    // Auto-print hanya ketika dibuka pertama kali setelah proses retur
+    // (bukan ketika dibuka kembali dari riwayat)
+    @if(session('success'))
     window.onload = function() {
         setTimeout(function() {
             window.print();
-        }, 500);
+        }, 600);
     }
+    @endif
 </script>
 
 </body>
