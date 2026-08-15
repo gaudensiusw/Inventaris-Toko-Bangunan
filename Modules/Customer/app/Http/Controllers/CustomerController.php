@@ -118,6 +118,58 @@ class CustomerController extends Controller
         return redirect()->back()->with('success', 'Pembayaran berhasil dicatat.');
     }
 
+    public function topUpDeposit(Request $request, $id)
+    {
+        $customer = Customer::findOrFail($id);
+        $request->validate([
+            'nominal' => 'required|numeric|min:1',
+            'catatan' => 'nullable|string',
+        ]);
+
+        $customer->increment('deposit', $request->nominal);
+
+        return redirect()->back()->with('success', 'Deposit sebesar Rp ' . number_format($request->nominal, 0, ',', '.') . ' berhasil ditambahkan untuk ' . $customer->nama . '.');
+    }
+
+    public function payWithDeposit(Request $request, $id)
+    {
+        $pos = \Modules\POS\Models\POS::with('pelanggan')->findOrFail($id);
+        $customer = $pos->pelanggan;
+
+        if (!$customer) {
+            return redirect()->back()->withErrors(['error' => 'Pelanggan tidak ditemukan.']);
+        }
+
+        $sisaHutang = $pos->total_tagihan - $pos->jumlah_bayar;
+        if ($sisaHutang <= 0) {
+            return redirect()->back()->withErrors(['error' => 'Transaksi ini sudah lunas.']);
+        }
+
+        $jumlahBayar = min($customer->deposit, $sisaHutang);
+        if ($jumlahBayar <= 0) {
+            return redirect()->back()->withErrors(['error' => 'Saldo deposit pelanggan Rp 0 atau tidak mencukupi.']);
+        }
+
+        \DB::transaction(function() use ($customer, $pos, $jumlahBayar) {
+            $customer->decrement('deposit', $jumlahBayar);
+
+            $newTotalBayar = $pos->jumlah_bayar + $jumlahBayar;
+            if ($newTotalBayar >= $pos->total_tagihan) {
+                $pos->update([
+                    'jumlah_bayar' => $pos->total_tagihan,
+                    'status_pembayaran' => 'lunas'
+                ]);
+            } else {
+                $pos->update([
+                    'jumlah_bayar' => $newTotalBayar,
+                    'status_pembayaran' => 'sebagian'
+                ]);
+            }
+        });
+
+        return redirect()->back()->with('success', 'Pembayaran sebesar Rp ' . number_format($jumlahBayar, 0, ',', '.') . ' dari deposit berhasil dipotongkan ke Bon #' . $pos->no_transaksi . '.');
+    }
+
     public function updateTransaction(Request $request, $id)
     {
         $pos = \Modules\POS\Models\POS::with('details.product')->findOrFail($id);

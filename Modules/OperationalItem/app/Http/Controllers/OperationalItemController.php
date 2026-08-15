@@ -9,10 +9,39 @@ use Modules\OperationalItem\Models\ItemOperasional;
 
 class OperationalItemController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+        $bulan = sprintf('%02d', $request->get('bulan', date('m')));
+        $tahun = $request->get('tahun', date('Y'));
+
+        // Query item operasional per bulan & tahun (fallback ke created_at jika tanggal_pembelian null)
+        $itemsBulanIni = ItemOperasional::where(function($q) use ($bulan, $tahun) {
+                $q->whereMonth(\DB::raw('COALESCE(tanggal_pembelian, created_at)'), $bulan)
+                  ->whereYear(\DB::raw('COALESCE(tanggal_pembelian, created_at)'), $tahun);
+            })
+            ->latest('tanggal_pembelian')
+            ->get();
+
+        $totalBulanIni = $itemsBulanIni->sum(fn($i) => $i->jumlah * $i->harga);
+        $totalKeseluruhan = ItemOperasional::all()->sum(fn($i) => $i->jumlah * $i->harga);
+
         $items = ItemOperasional::latest()->get();
-        return view('operationalitem::index', compact('items'));
+
+        $listBulan = [
+            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
+            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
+            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+        ];
+
+        return view('operationalitem::index', compact(
+            'items',
+            'itemsBulanIni',
+            'totalBulanIni',
+            'totalKeseluruhan',
+            'bulan',
+            'tahun',
+            'listBulan'
+        ));
     }
 
     public function store(Request $request)

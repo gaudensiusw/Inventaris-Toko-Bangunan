@@ -199,7 +199,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 pt-6 border-t border-slate-100">
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 sm:gap-6 pt-6 border-t border-slate-100">
                     @if(request('filter') === 'hutang')
                         <div>
                             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Piutang Berjalan</p>
@@ -218,6 +218,15 @@
                     <div>
                         <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tenor Bayar</p>
                         <h4 class="text-xl font-black text-slate-800">{{ $selected_customer->tenor_bayar ?: 30 }} <span class="text-xs text-slate-400 font-bold uppercase">Hari</span></h4>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Saldo Deposit</p>
+                            <button type="button" @click="depositModalOpen = true" class="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 underline flex items-center gap-0.5">
+                                + Top Up
+                            </button>
+                        </div>
+                        <h4 class="text-xl font-black text-emerald-600">Rp {{ number_format($selected_customer->deposit ?? 0, 0, ',', '.') }}</h4>
                     </div>
                 </div>
             </div>
@@ -295,6 +304,15 @@
                                         Refund / Retur
                                     </a>
                                     @if($trx->status_pembayaran !== 'lunas')
+                                        @if(($selected_customer->deposit ?? 0) > 0)
+                                            <form action="{{ route('customer.pay.deposit', $trx->id) }}" method="POST" class="inline" onsubmit="return confirm('Gunakan deposit untuk membayar/memotong bon ini?')">
+                                                @csrf
+                                                <button type="submit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black rounded-lg shadow-sm shadow-emerald-100 transition-all flex items-center gap-1" title="Potong dari deposit pelanggan (Sisa Deposit: Rp {{ number_format($selected_customer->deposit, 0, ',', '.') }})">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                    Potong Deposit
+                                                </button>
+                                            </form>
+                                        @endif
                                         <button type="button" @click="openPayModal({{ $trx->id }})" class="px-3 py-1.5 bg-blue-600 text-white text-[11px] font-black rounded-lg shadow-sm shadow-blue-100 hover:bg-blue-700 transition-all flex items-center gap-1.5">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
                                             Tambah Pembayaran
@@ -393,6 +411,42 @@
                 <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
                     <button type="button" @click="payModalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</button>
                     <button type="submit" class="px-5 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm font-bold text-white shadow-lg shadow-green-100 transition-all">Simpan Pembayaran</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOP UP DEPOSIT MODAL -->
+    <div x-show="depositModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center" style="display: none;">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="depositModalOpen = false" x-transition.opacity></div>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden transform transition-all" x-transition>
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h3 class="text-lg font-bold text-slate-800">Isi Deposit Pelanggan</h3>
+                <button @click="depositModalOpen = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form action="{{ route('customer.deposit.topup', $selected_customer->id ?? 0) }}" method="POST">
+                @csrf
+                <div class="p-6 space-y-4">
+                    <div class="p-3 bg-emerald-50 rounded-xl space-y-1 text-xs border border-emerald-100">
+                        <div class="flex justify-between">
+                            <span class="text-emerald-700 font-bold uppercase tracking-widest">Saldo Deposit Saat Ini</span>
+                            <span class="font-black text-emerald-800">Rp {{ number_format($selected_customer->deposit ?? 0, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Nominal Top-Up Deposit (Rp) <span class="text-red-500">*</span></label>
+                        <input type="number" name="nominal" required placeholder="Contoh: 500000" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-emerald-500 focus:border-emerald-500 bg-white font-black text-emerald-600">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-1.5">Catatan / Keterangan</label>
+                        <input type="text" name="catatan" placeholder="Contoh: Titip uang cash / Transfer" class="w-full border border-slate-300 rounded-lg text-sm p-2.5 focus:ring-emerald-500 focus:border-emerald-500 bg-white">
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+                    <button type="button" @click="depositModalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white shadow-lg shadow-emerald-100 transition-all">Simpan Deposit</button>
                 </div>
             </form>
         </div>
@@ -689,6 +743,7 @@ function customerApp() {
         editModalOpen: false, 
         deleteModalOpen: false,
         payModalOpen: false,
+        depositModalOpen: false,
         editTrxModalOpen: false,
         refundTrxModalOpen: false,
         editForm: {},

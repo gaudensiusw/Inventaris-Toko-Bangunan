@@ -448,9 +448,9 @@
     <div x-data="productManager()" x-init="currentPageProductIds = {{ json_encode($products->pluck('id')->toArray()) }}">
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
+            <a href="{{ route('product.index') }}" class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4 hover:border-blue-400 transition-all cursor-pointer group">
                 <div
-                    class="w-12 h-12 bg-blue-50 text-[#2563eb] rounded-full flex items-center justify-center flex-shrink-0">
+                    class="w-12 h-12 bg-blue-50 text-[#2563eb] rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
@@ -460,11 +460,11 @@
                     <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Total Products</p>
                     <h3 class="text-2xl font-bold text-slate-800">{{ $totalProducts }}</h3>
                 </div>
-            </div>
+            </a>
 
-            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
+            <a href="{{ route('product.index', ['stock_status' => 'low']) }}" class="bg-white border {{ request('stock_status') === 'low' ? 'ring-2 ring-orange-500 border-orange-500' : 'border-slate-200' }} rounded-xl p-5 shadow-sm flex items-center gap-4 hover:border-orange-400 transition-all cursor-pointer group">
                 <div
-                    class="w-12 h-12 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    class="w-12 h-12 bg-orange-50 text-orange-600 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
@@ -472,23 +472,23 @@
                     </svg>
                 </div>
                 <div>
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Low Stock</p>
-                    <h3 class="text-2xl font-bold text-slate-800">{{ $lowStockCount }}</h3>
+                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Sisa Sedikit (Low Stock)</p>
+                    <h3 class="text-2xl font-bold text-orange-600">{{ $lowStockCount }}</h3>
                 </div>
-            </div>
+            </a>
 
-            <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm flex items-center gap-4">
-                <div class="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center flex-shrink-0">
+            <a href="{{ route('product.index', ['stock_status' => 'out']) }}" class="bg-white border {{ request('stock_status') === 'out' ? 'ring-2 ring-red-500 border-red-500' : 'border-slate-200' }} rounded-xl p-5 shadow-sm flex items-center gap-4 hover:border-red-400 transition-all cursor-pointer group">
+                <div class="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                 </div>
                 <div>
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Out of Stock</p>
-                    <h3 class="text-2xl font-bold text-slate-800">{{ $outOfStockCount }}</h3>
+                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Stok Habis (Out of Stock)</p>
+                    <h3 class="text-2xl font-bold text-red-600">{{ $outOfStockCount }}</h3>
                 </div>
-            </div>
+            </a>
         </div>
 
         <!-- Alert Messages -->
@@ -552,6 +552,11 @@
                         <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama barang atau SKU..." class="pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg text-sm w-full focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                     </div>
                     <div class="flex gap-2">
+                        <select name="stock_status" onchange="this.form.submit()" class="pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all appearance-none cursor-pointer font-bold {{ request('stock_status') === 'low' ? 'text-amber-600 bg-amber-50 border-amber-300' : (request('stock_status') === 'out' ? 'text-red-600 bg-red-50 border-red-300' : 'text-slate-700') }}" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px;">
+                            <option value="" class="text-slate-700 font-normal">Status Stok (Semua)</option>
+                            <option value="low" {{ request('stock_status') == 'low' ? 'selected' : '' }} class="text-amber-600 font-bold bg-amber-50">Sisa Sedikit (<= Min)</option>
+                            <option value="out" {{ request('stock_status') == 'out' ? 'selected' : '' }} class="text-red-600 font-bold bg-red-50">Stok Habis (0)</option>
+                        </select>
                         <select name="category" onchange="this.form.submit()" class="pl-4 pr-10 py-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all appearance-none cursor-pointer" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2364748b%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px;">
                             <option value="">Semua Kategori</option>
                             @foreach($categories as $cat)
@@ -570,7 +575,7 @@
                             @endforeach
                         </select>
                     </div>
-                    @if(request('search') || request('category') || request('supplier'))
+                    @if(request('search') || request('category') || request('supplier') || request('stock_status'))
                         <a href="{{ route('product.index') }}" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-bold flex items-center gap-2 transition-all">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             Bersihkan

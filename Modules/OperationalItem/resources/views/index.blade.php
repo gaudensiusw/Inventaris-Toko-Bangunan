@@ -27,6 +27,100 @@
         </div>
     @endif
 
+    <!-- SECTION TOTALAN & FILTER OPERASIONAL (SESUAI SKETSA) -->
+    <div class="mb-6 space-y-4">
+        <!-- Top Banner / Summary Card -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-100 pb-5 mb-5">
+                <div>
+                    <h2 class="text-xl font-black text-slate-800 uppercase tracking-wide">Inventaris Operasional</h2>
+                    <p class="text-xs text-slate-500 mt-1">Kelola aset dan pengeluaran operasional toko</p>
+                </div>
+                <button @click="addModalOpen = true" class="bg-[#0f172a] hover:bg-slate-800 text-white px-4 py-2.5 rounded-xl text-sm font-bold shadow-md transition-all flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    + Tambah Aset
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Total Pengeluaran Bulan Terpilih -->
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50/50 p-4 rounded-xl border border-blue-100/80">
+                    <p class="text-[11px] font-black text-blue-600 uppercase tracking-widest mb-1">
+                        Bln {{ $listBulan[$bulan] ?? $bulan }} {{ $tahun }} (Totalan Jumlah)
+                    </p>
+                    <h3 class="text-2xl font-black text-blue-700">Rp {{ number_format($totalBulanIni, 0, ',', '.') }}</h3>
+                    <p class="text-[10px] text-slate-500 mt-1 font-medium">{{ $itemsBulanIni->count() }} transaksi bulan ini</p>
+                </div>
+
+                <!-- Total Keseluruhan Pengeluaran -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Totalan Aset Keseluruhan</p>
+                    <h3 class="text-2xl font-black text-slate-800">Rp {{ number_format($totalKeseluruhan, 0, ',', '.') }}</h3>
+                    <p class="text-[10px] text-slate-500 mt-1 font-medium">{{ $items->count() }} total barang recorded</p>
+                </div>
+
+                <!-- Form Filter Bulan | Tahun -->
+                <form action="{{ route('operationalitem.index') }}" method="GET" class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
+                    <p class="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Filter Bulan / Tahun</p>
+                    <div class="flex items-center gap-2">
+                        <select name="bulan" class="flex-1 bg-white border border-slate-300 rounded-lg text-xs p-2 font-bold text-slate-700 focus:ring-blue-500 focus:border-blue-500">
+                            @foreach($listBulan as $key => $nama)
+                                <option value="{{ $key }}" {{ $bulan == $key ? 'selected' : '' }}>{{ $nama }}</option>
+                            @endforeach
+                        </select>
+                        <select name="tahun" class="w-24 bg-white border border-slate-300 rounded-lg text-xs p-2 font-bold text-slate-700 focus:ring-blue-500 focus:border-blue-500">
+                            @for($y = date('Y'); $y >= date('Y') - 5; $y--)
+                                <option value="{{ $y }}" {{ $tahun == $y ? 'selected' : '' }}>{{ $y }}</option>
+                            @endfor
+                        </select>
+                        <button type="submit" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-sm">
+                            Filter
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- List Barang Per Bulan (Sesuai Sketsa) -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+            <div class="flex justify-between items-center mb-3">
+                <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                    List Barang Per Bulan ({{ $listBulan[$bulan] ?? $bulan }} {{ $tahun }})
+                </h4>
+                <span class="text-xs font-bold text-blue-600">Totalan: Rp {{ number_format($totalBulanIni, 0, ',', '.') }}</span>
+            </div>
+            @if($itemsBulanIni->count() > 0)
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left">
+                        <thead class="bg-slate-50 text-slate-500 border-y border-slate-100">
+                            <tr>
+                                <th class="py-2 px-3 font-bold uppercase">Nama Barang</th>
+                                <th class="py-2 px-3 font-bold uppercase">Kategori</th>
+                                <th class="py-2 px-3 font-bold uppercase">Jumlah</th>
+                                <th class="py-2 px-3 font-bold uppercase">Harga Satuan</th>
+                                <th class="py-2 px-3 font-bold uppercase text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @foreach($itemsBulanIni as $bItem)
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-2.5 px-3 font-bold text-slate-800">{{ $bItem->nama }}</td>
+                                <td class="py-2.5 px-3 text-slate-500">{{ $bItem->kategori ?: '-' }}</td>
+                                <td class="py-2.5 px-3 text-slate-700 font-medium">{{ number_format($bItem->jumlah, 0) }} {{ $bItem->satuan }}</td>
+                                <td class="py-2.5 px-3 text-slate-600">Rp {{ number_format($bItem->harga, 0, ',', '.') }}</td>
+                                <td class="py-2.5 px-3 font-bold text-blue-600 text-right">Rp {{ number_format($bItem->jumlah * $bItem->harga, 0, ',', '.') }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @else
+                <p class="text-xs text-slate-400 italic py-3 text-center">Tidak ada catatan pengeluaran barang operasional pada bulan {{ $listBulan[$bulan] ?? $bulan }} {{ $tahun }}.</p>
+            @endif
+        </div>
+    </div>
+
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <div class="p-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
             <div>

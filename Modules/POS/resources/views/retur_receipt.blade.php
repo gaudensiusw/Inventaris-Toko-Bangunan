@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Struk Retur Penjualan - {{ $refund->no_transaksi }}</title>
+    @php
+        $paperSize = request('paper_size', '80');
+        $widthClass = match($paperSize) {
+            '58' => '58mm',
+            'a4' => '100%',
+            default => '80mm',
+        };
+        $maxWidth = match($paperSize) {
+            '58' => '220px',
+            'a4' => '750px',
+            default => '320px',
+        };
+    @endphp
     <style>
         * {
             margin: 0;
@@ -15,23 +28,25 @@
         body {
             background-color: #f1f5f9;
             display: flex;
-            justify-content: center;
-            align-items: flex-start;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
             min-height: 100vh;
             padding: 20px;
         }
 
         .receipt {
             background: #fff;
-            width: 320px;
-            padding: 16px;
+            width: {{ $widthClass }};
+            max-width: {{ $maxWidth }};
+            padding: {{ $paperSize === '58' ? '10px' : ($paperSize === 'a4' ? '24px' : '16px') }};
             border-radius: 4px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         .store-name {
             text-align: center;
-            font-size: 16px;
+            font-size: {{ $paperSize === '58' ? '13px' : ($paperSize === 'a4' ? '20px' : '16px') }};
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -67,7 +82,7 @@
         .title-badge {
             text-align: center;
             font-weight: bold;
-            font-size: 13px;
+            font-size: {{ $paperSize === '58' ? '11px' : '13px' }};
             text-transform: uppercase;
             margin: 6px 0;
             background-color: #000;
@@ -78,7 +93,7 @@
         .info-row {
             display: flex;
             justify-content: space-between;
-            font-size: 11px;
+            font-size: {{ $paperSize === '58' ? '9.5px' : '11px' }};
             margin-bottom: 3px;
         }
 
@@ -92,7 +107,7 @@
 
         .item-row {
             margin-bottom: 6px;
-            font-size: 11px;
+            font-size: {{ $paperSize === '58' ? '9.5px' : '11px' }};
         }
 
         .item-name {
@@ -108,7 +123,7 @@
         .grand-total {
             display: flex;
             justify-content: space-between;
-            font-size: 14px;
+            font-size: {{ $paperSize === '58' ? '12px' : ($paperSize === 'a4' ? '18px' : '14px') }};
             font-weight: bold;
             margin-top: 4px;
         }
@@ -129,9 +144,43 @@
         }
 
         .no-print {
-            position: fixed;
-            top: 20px;
-            right: 20px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+            max-width: {{ $maxWidth }};
+        }
+
+        .paper-selector {
+            display: flex;
+            gap: 6px;
+            background: #e2e8f0;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .btn-size {
+            flex: 1;
+            padding: 6px 10px;
+            border: none;
+            background: transparent;
+            font-size: 11px;
+            font-weight: bold;
+            color: #475569;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn-size.active {
+            background: white;
+            color: #0f172a;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .action-btns {
             display: flex;
             gap: 10px;
         }
@@ -148,6 +197,8 @@
             font-family: sans-serif;
             font-size: 14px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex: 1;
+            text-align: center;
         }
 
         .btn-back {
@@ -161,6 +212,8 @@
             text-decoration: none;
             font-family: sans-serif;
             font-size: 14px;
+            flex: 1;
+            text-align: center;
         }
 
         @media print {
@@ -170,7 +223,8 @@
             }
             .receipt {
                 box-shadow: none;
-                width: 100%;
+                width: {{ $widthClass }};
+                max-width: 100%;
                 padding: 0;
             }
             .no-print {
@@ -182,8 +236,15 @@
 <body>
 
 <div class="no-print">
-    <a href="{{ route('pos.retur.index') }}" class="btn-back">← Kembali ke Retur</a>
-    <button onclick="window.print()" class="btn-print">🖨️ Cetak Struk Retur</button>
+    <div class="paper-selector">
+        <a href="{{ request()->fullUrlWithQuery(['paper_size' => '58']) }}" class="btn-size {{ $paperSize === '58' ? 'active' : '' }}">📄 Thermal 58mm</a>
+        <a href="{{ request()->fullUrlWithQuery(['paper_size' => '80']) }}" class="btn-size {{ $paperSize === '80' ? 'active' : '' }}">📄 Thermal 80mm</a>
+        <a href="{{ request()->fullUrlWithQuery(['paper_size' => 'a4']) }}" class="btn-size {{ $paperSize === 'a4' ? 'active' : '' }}">📜 Kertas A4</a>
+    </div>
+    <div class="action-btns">
+        <a href="{{ route('pos.retur.index') }}" class="btn-back">← Kembali ke Retur</a>
+        <button onclick="window.print()" class="btn-print">🖨️ Cetak Struk Retur</button>
+    </div>
 </div>
 
 <div class="receipt">

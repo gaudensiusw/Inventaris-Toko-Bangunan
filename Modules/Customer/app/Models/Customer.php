@@ -20,6 +20,7 @@ class Customer extends Model
         'alamat',
         'limit_kredit',
         'tenor_bayar',
+        'deposit',
         'status'
     ];
 

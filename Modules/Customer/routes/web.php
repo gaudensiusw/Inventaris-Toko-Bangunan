@@ -10,5 +10,7 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/customers/transaction/{id}', [CustomerController::class, 'updateTransaction'])->name('customer.transaction.update');
     Route::post('/customers/transaction/{id}/refund', [CustomerController::class, 'processRefund'])->name('customer.transaction.refund');
     Route::post('/customers/pay/{id}', [CustomerController::class, 'payTransaction'])->name('customer.pay');
+    Route::post('/customers/{id}/deposit', [CustomerController::class, 'topUpDeposit'])->name('customer.deposit.topup');
+    Route::post('/customers/pay-deposit/{id}', [CustomerController::class, 'payWithDeposit'])->name('customer.pay.deposit');
     Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customer.destroy');
 });

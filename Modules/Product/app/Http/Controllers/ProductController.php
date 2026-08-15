@@ -33,6 +33,15 @@ class ProductController extends Controller
             $query->where('supplier_id', $request->get('supplier'));
         }
 
+        if ($request->filled('stock_status')) {
+            $status = $request->get('stock_status');
+            if ($status === 'low') {
+                $query->whereRaw('stok <= min_stok AND stok > 0');
+            } elseif ($status === 'out') {
+                $query->where('stok', '<=', 0);
+            }
+        }
+
         $totalProducts  = Cache::remember('products_total_count', 30, fn() => Product::count());
         $lowStockCount  = Cache::remember('products_low_stock_count', 30, fn() => Product::whereRaw('stok <= min_stok')->where('stok', '>', 0)->count());
         $outOfStockCount = Cache::remember('products_out_of_stock_count', 30, fn() => Product::where('stok', '<=', 0)->count());
