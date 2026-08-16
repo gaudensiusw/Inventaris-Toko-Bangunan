@@ -114,6 +114,16 @@
                     </template>
                 </div>
             </div>
+            <!-- Saldo Deposit Badge (If Available) -->
+            <template x-if="selectedCustomerDeposit > 0 && nama_pelanggan">
+                <div class="flex items-center justify-between bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-sm">
+                    <span class="flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Saldo Deposit:
+                    </span>
+                    <span class="font-black text-emerald-700 text-xs" x-text="formatCurrency(selectedCustomerDeposit)"></span>
+                </div>
+            </template>
             <!-- Phone Number (Optional) -->
             <div class="flex items-center gap-3">
                 <label class="text-xs font-bold text-slate-500 uppercase w-24 flex-shrink-0">No. Telp</label>
@@ -434,9 +444,37 @@
 
                 <h3 class="text-lg font-bold text-slate-800 text-center mb-1">Konfirmasi Pembayaran</h3>
                 <p class="text-sm text-slate-500 text-center mb-1">Total: <span class="font-black text-blue-600 text-base" x-text="formatCurrency(total_tagihan)"></span></p>
-                <p class="text-xs text-slate-400 text-center mb-5">
+                <p class="text-xs text-slate-400 text-center mb-4">
                     <span x-text="cart.length + ' barang • ' + metode_pembayaran + ' • ' + opsi_pengiriman"></span>
                 </p>
+
+                <!-- Deposit Deduction Toggle (If Customer has deposit) -->
+                <template x-if="selectedCustomerDeposit > 0">
+                    <div class="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2 text-left">
+                        <label class="flex items-center gap-2.5 cursor-pointer">
+                            <input type="checkbox" x-model="use_deposit" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500">
+                            <span class="text-xs font-bold text-emerald-900">Gunakan Saldo Deposit Pelanggan</span>
+                        </label>
+                        <div class="text-[11px] text-emerald-700 space-y-1 pt-1.5 border-t border-emerald-200/80">
+                            <div class="flex justify-between">
+                                <span>Saldo Deposit:</span>
+                                <span class="font-bold" x-text="formatCurrency(selectedCustomerDeposit)"></span>
+                            </div>
+                            <template x-if="use_deposit">
+                                <div>
+                                    <div class="flex justify-between font-black text-emerald-800">
+                                        <span>Potongan Deposit:</span>
+                                        <span x-text="'- ' + formatCurrency(Math.min(selectedCustomerDeposit, total_tagihan))"></span>
+                                    </div>
+                                    <div class="flex justify-between font-bold text-slate-700 pt-1">
+                                        <span>Sisa Tagihan Bayar:</span>
+                                        <span class="text-blue-700 font-black" x-text="formatCurrency(Math.max(0, total_tagihan - selectedCustomerDeposit))"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
 
                 <p class="text-sm font-bold text-slate-700 text-center mb-3">Apakah ingin mencetak struk?</p>
 
@@ -531,6 +569,8 @@ function posSystem() {
 
         nama_pelanggan: '',
         telp_pelanggan: '',
+        selectedCustomerDeposit: 0,
+        use_deposit: false,
         jatuh_tempo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         metode_pembayaran: 'Cash',
         opsi_pengiriman: 'Ambil Sendiri',
@@ -736,6 +776,8 @@ function posSystem() {
         selectCustomer(c) {
             this.nama_pelanggan = c.nama;
             this.telp_pelanggan = c.telp || '';
+            this.selectedCustomerDeposit = Number(c.deposit) || 0;
+            this.use_deposit = this.selectedCustomerDeposit > 0;
             const tenor = c.tenor_bayar || 30;
             this.jatuh_tempo = new Date(Date.now() + tenor * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
             this.showCustomerDropdown = false;
@@ -746,6 +788,8 @@ function posSystem() {
             if (confirm('Kosongkan semua item di keranjang?')) {
                 this.cart = [];
                 this.nama_pelanggan = '';
+                this.selectedCustomerDeposit = 0;
+                this.use_deposit = false;
                 this.catatan = '';
                 this.biaya_addon = 0;
                 this.keterangan_addon = '';
@@ -856,6 +900,7 @@ function posSystem() {
                     body: JSON.stringify({
                         nama_pelanggan:   this.nama_pelanggan || null,
                         telp_pelanggan:   this.telp_pelanggan || null,
+                        use_deposit:      this.use_deposit,
                         jatuh_tempo:      this.metode_pembayaran === 'Bon' ? this.jatuh_tempo : null,
                         items:            this.cart,
                         subtotal:         this.subtotal,

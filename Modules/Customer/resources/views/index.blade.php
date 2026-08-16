@@ -305,13 +305,10 @@
                                     </a>
                                     @if($trx->status_pembayaran !== 'lunas')
                                         @if(($selected_customer->deposit ?? 0) > 0)
-                                            <form action="{{ route('customer.pay.deposit', $trx->id) }}" method="POST" class="inline" onsubmit="return confirm('Gunakan deposit untuk membayar/memotong bon ini?')">
-                                                @csrf
-                                                <button type="submit" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black rounded-lg shadow-sm shadow-emerald-100 transition-all flex items-center gap-1" title="Potong dari deposit pelanggan (Sisa Deposit: Rp {{ number_format($selected_customer->deposit, 0, ',', '.') }})">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                    Potong Deposit
-                                                </button>
-                                            </form>
+                                            <button type="button" @click="openPayDepositModal({{ $trx->id }})" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black rounded-lg shadow-sm shadow-emerald-100 transition-all flex items-center gap-1" title="Potong dari deposit pelanggan (Sisa Deposit: Rp {{ number_format($selected_customer->deposit, 0, ',', '.') }})">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                Potong Deposit
+                                            </button>
                                         @endif
                                         <button type="button" @click="openPayModal({{ $trx->id }})" class="px-3 py-1.5 bg-blue-600 text-white text-[11px] font-black rounded-lg shadow-sm shadow-blue-100 hover:bg-blue-700 transition-all flex items-center gap-1.5">
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
@@ -447,6 +444,57 @@
                 <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
                     <button type="button" @click="depositModalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</button>
                     <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white shadow-lg shadow-emerald-100 transition-all">Simpan Deposit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PAY DEPOSIT CARD MODAL (MODERN POPUP) -->
+    <div x-show="payDepositModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center" style="display: none;">
+        <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" @click="payDepositModalOpen = false" x-transition.opacity></div>
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm relative z-10 m-4 overflow-hidden transform transition-all" x-transition>
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-emerald-50/60">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-800">Potong Saldo Deposit</h3>
+                </div>
+                <button @click="payDepositModalOpen = false" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form :action="`/customers/pay-deposit/${payDepositForm.id}`" method="POST">
+                @csrf
+                <div class="p-6 space-y-4">
+                    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
+                        <div class="flex justify-between">
+                            <span class="text-slate-500 font-bold uppercase tracking-wider">No. Transaksi</span>
+                            <span class="font-black text-slate-800" x-text="payDepositForm.no_transaksi"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500 font-bold uppercase tracking-wider">Sisa Hutang Bon</span>
+                            <span class="font-black text-red-600" x-text="'Rp ' + new Number(payDepositForm.sisa).toLocaleString('id-ID')"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500 font-bold uppercase tracking-wider">Deposit Pelanggan</span>
+                            <span class="font-black text-emerald-600" x-text="'Rp ' + new Number(payDepositForm.deposit).toLocaleString('id-ID')"></span>
+                        </div>
+                        <div class="pt-2 border-t border-slate-200 flex justify-between font-bold">
+                            <span class="text-slate-800 font-black uppercase tracking-wider">Akan Dipotong</span>
+                            <span class="font-black text-emerald-700 text-sm" x-text="'Rp ' + new Number(payDepositForm.nominal_potong).toLocaleString('id-ID')"></span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-slate-500 text-center leading-relaxed">
+                        Apakah Anda yakin ingin memotong deposit sebesar <strong class="text-emerald-700" x-text="'Rp ' + new Number(payDepositForm.nominal_potong).toLocaleString('id-ID')"></strong> untuk melunasi/mencicil Bon ini?
+                    </p>
+                </div>
+                <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50/50">
+                    <button type="button" @click="payDepositModalOpen = false" class="px-4 py-2 bg-white border border-slate-300 rounded-lg text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm font-bold text-white shadow-lg shadow-emerald-100 transition-all flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        Ya, Potong Sekarang
+                    </button>
                 </div>
             </form>
         </div>
@@ -744,11 +792,13 @@ function customerApp() {
         deleteModalOpen: false,
         payModalOpen: false,
         depositModalOpen: false,
+        payDepositModalOpen: false,
         editTrxModalOpen: false,
         refundTrxModalOpen: false,
         editForm: {},
         deleteForm: {},
         payForm: { id: null, total_tagihan: 0, jumlah_bayar: 0, sisa: 0, bayar: 0 },
+        payDepositForm: { id: null, no_transaksi: '', sisa: 0, deposit: 0, nominal_potong: 0 },
         editTrxForm: { id: null, no_transaksi: '', items: [] },
         refundTrxForm: { id: null, no_transaksi: '', items: [], alasan: 'Salah Beli / Ganti Barang Lain' },
         availableProducts: @json($products ?? []),
@@ -849,6 +899,21 @@ function customerApp() {
                 bayar: trx.total_tagihan - trx.jumlah_bayar
             };
             this.payModalOpen = true;
+        },
+        openPayDepositModal(trxId) {
+            const trx = this.customerTransactions.find(t => t.id == trxId);
+            if (!trx) return;
+            const sisa = Number(trx.total_tagihan) - Number(trx.jumlah_bayar);
+            const deposit = Number({{ $selected_customer->deposit ?? 0 }});
+            const nominal_potong = Math.min(sisa, deposit);
+            this.payDepositForm = {
+                id: trx.id,
+                no_transaksi: trx.no_transaksi,
+                sisa: sisa,
+                deposit: deposit,
+                nominal_potong: nominal_potong
+            };
+            this.payDepositModalOpen = true;
         }
     };
 }

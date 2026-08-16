@@ -326,6 +326,13 @@
             </span>
         </div>
 
+        @if($pos->pelanggan && $pos->pelanggan->nama !== 'Umum')
+        <div class="info-row" style="margin-top: 4px; color: #047857; font-weight: bold;">
+            <span>Sisa Deposit Pelanggan:</span>
+            <span>Rp {{ number_format($pos->pelanggan->deposit, 0, ',', '.') }}</span>
+        </div>
+        @endif
+
         @if($pos->catatan)
         <hr class="divider" style="margin-top: 10px">
         <div style="font-size: 10px; color: #666;">

@@ -24,7 +24,7 @@ class POSController extends Controller
         ->get();
 
         $categories = Category::select('id', 'nama')->get();
-        $customers = Customer::select('id', 'nama', 'kode', 'telp', 'tenor_bayar')->get();
+        $customers = Customer::select('id', 'nama', 'kode', 'telp', 'tenor_bayar', 'deposit')->get();
 
         return view('pos::index', compact('products', 'categories', 'customers'));
     }
@@ -108,23 +108,8 @@ class POSController extends Controller
                 }
             }
 
-            // If payment is Bon, handle debt logic
-            $status_pembayaran = 'lunas';
-            $jatuh_tempo = null;
-            $jumlah_bayar = $request->total_tagihan;
-            $pelanggan_id = null;
-            $nama_pelanggan = $request->nama_pelanggan ?: 'Umum';
-
-            if ($request->metode_pembayaran === 'Bon') {
-                if (!$request->nama_pelanggan || strtolower($request->nama_pelanggan) === 'umum') {
-                    throw new \Exception("Pembayaran BON wajib menyertakan Nama Pelanggan yang spesifik.");
-                }
-                $status_pembayaran = 'belum_bayar';
-                $jumlah_bayar = 0; 
-                $jatuh_tempo = $request->jatuh_tempo ?: now()->addDays(30);
-            }
-
             // Find existing or create new customer for ANY payment method if customer name is provided
+            $customer = null;
             if ($request->filled('nama_pelanggan') && strtolower($request->nama_pelanggan) !== 'umum') {
                 $customer = Customer::firstOrCreate(
                     ['nama' => $request->nama_pelanggan],
@@ -143,11 +128,6 @@ class POSController extends Controller
 
                 $pelanggan_id = $customer->id;
                 $nama_pelanggan = $customer->nama;
-
-                // Adjust jatuh_tempo for Bon based on customer preference
-                if ($request->metode_pembayaran === 'Bon') {
-                    $jatuh_tempo = $request->jatuh_tempo ?: now()->addDays($customer->tenor_bayar ?: 30);
-                }
             } else {
                 // If customer name is empty or is 'umum', link to the default 'Umum' customer
                 $umumCustomer = Customer::firstOrCreate(
@@ -162,6 +142,48 @@ class POSController extends Controller
                 );
                 $pelanggan_id = $umumCustomer->id;
                 $nama_pelanggan = 'Umum';
+            }
+
+            // Handle Deposit Deduction Logic (Flexible & Automatic)
+            $potongan_deposit = 0;
+            $shouldUseDeposit = $request->boolean('use_deposit') || ($request->metode_pembayaran === 'Bon' && $customer && $customer->deposit > 0);
+
+            if ($shouldUseDeposit && $customer && $customer->deposit > 0) {
+                $potongan_deposit = min($customer->deposit, $request->total_tagihan);
+                if ($potongan_deposit > 0) {
+                    $customer->decrement('deposit', $potongan_deposit);
+                }
+            }
+
+            $status_pembayaran = 'lunas';
+            $jatuh_tempo = null;
+            $jumlah_bayar = $request->total_tagihan;
+
+            if ($request->metode_pembayaran === 'Deposit') {
+                $jumlah_bayar = $potongan_deposit;
+                $status_pembayaran = ($potongan_deposit >= $request->total_tagihan && $request->total_tagihan > 0) ? 'lunas' : 'sebagian';
+            } elseif ($request->metode_pembayaran === 'Bon') {
+                if (!$request->nama_pelanggan || strtolower($request->nama_pelanggan) === 'umum') {
+                    throw new \Exception("Pembayaran BON wajib menyertakan Nama Pelanggan yang spesifik.");
+                }
+                $jumlah_bayar = $potongan_deposit;
+                if ($jumlah_bayar >= $request->total_tagihan && $request->total_tagihan > 0) {
+                    $status_pembayaran = 'lunas';
+                } elseif ($jumlah_bayar > 0) {
+                    $status_pembayaran = 'sebagian';
+                } else {
+                    $status_pembayaran = 'belum_bayar';
+                }
+                $jatuh_tempo = $request->jatuh_tempo ?: now()->addDays($customer ? ($customer->tenor_bayar ?: 30) : 30);
+            } else {
+                // Cash / Transfer / Lainnya
+                $status_pembayaran = 'lunas';
+                $jumlah_bayar = $request->total_tagihan;
+            }
+
+            $catatan = $request->catatan;
+            if ($potongan_deposit > 0) {
+                $catatan = trim(($catatan ? $catatan . ' | ' : '') . '[Dipotong Deposit: Rp ' . number_format($potongan_deposit, 0, ',', '.') . ']');
             }
 
             $no_transaksi = 'TRX-' . date('Ymd') . '-' . strtoupper(bin2hex(random_bytes(3)));
@@ -182,7 +204,7 @@ class POSController extends Controller
                 'jatuh_tempo'      => $jatuh_tempo,
                 'metode_pembayaran'=> $request->metode_pembayaran,
                 'opsi_pengiriman'  => $request->opsi_pengiriman,
-                'catatan'          => $request->catatan,
+                'catatan'          => $catatan,
                 'status'           => 'checkout',
                 'status_pembayaran'=> $status_pembayaran,
             ]);
