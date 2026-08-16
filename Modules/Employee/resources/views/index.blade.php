@@ -102,7 +102,7 @@
                                 @endif
                             </td>
                             <td class="py-4 px-3 xl:px-5 text-right space-x-2 whitespace-nowrap">
-                                <button onclick="event.stopPropagation(); openEditModal({{ $emp->id }}, '{{ $emp->kode_karyawan }}', {{ json_encode($emp->nama) }}, '{{ $emp->jabatan_id }}', '{{ $emp->tanggal_masuk->format('Y-m-d') }}', {{ $emp->aktif ? 'true' : 'false' }}, '{{ $emp->no_hp }}', '{{ $emp->email }}', {{ json_encode($emp->alamat) }}, {{ $emp->bonus_tetap ?? 500000 }}, {{ $emp->potongan ?? 0 }}, {{ json_encode($emp->keterangan_potongan ?? '') }})" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors" title="Edit">
+                                <button onclick="event.stopPropagation(); openEditModal({{ $emp->id }}, '{{ $emp->kode_karyawan }}', {{ json_encode($emp->nama) }}, '{{ $emp->jabatan_id }}', '{{ $emp->tanggal_masuk->format('Y-m-d') }}', {{ $emp->aktif ? 'true' : 'false' }}, '{{ $emp->no_hp }}', '{{ $emp->email }}', {{ json_encode($emp->alamat) }}, {{ $emp->bonus_tetap ?? 500000 }}, {{ $emp->potongan ?? 0 }}, {{ json_encode($emp->keterangan_potongan ?? []) }})" class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors" title="Edit">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                 </button>
                                 @if($emp->aktif)
@@ -357,13 +357,20 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 mt-5">
-                        <div class="col-span-1 sm:col-span-2 bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-center justify-between">
-                            <span class="text-sm font-bold text-blue-900">Total Potongan Saat Ini</span>
-                            <span class="text-sm font-bold text-red-600" id="editTotalPotonganText">Rp 0</span>
+                        <div class="col-span-1 sm:col-span-2 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-bold text-blue-900">Total Potongan / Kasbon Aktif</span>
+                                <span class="text-sm font-bold text-red-600" id="editTotalPotonganText">Rp 0</span>
+                            </div>
+                            <div id="editRiwayatPotonganContainer" class="mt-2.5 pt-2.5 border-t border-blue-200/60 hidden">
+                                <p class="text-xs font-semibold text-blue-800 mb-1.5">Rincian Kasbon Tercatat:</p>
+                                <div id="editRiwayatPotonganList" class="space-y-1 text-xs text-slate-700 max-h-32 overflow-y-auto pr-1">
+                                </div>
+                            </div>
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">Tambah Potongan Baru (Kasbon)</label>
-                            <input type="number" id="editPotongan" name="potongan" class="w-full border-slate-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            <input type="number" id="editPotongan" name="potongan" class="w-full border-slate-200 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="0">
                             <p class="text-xs text-slate-500 mt-1">Akan ditambahkan ke total potongan</p>
                         </div>
                         <div>
@@ -846,6 +853,41 @@
         document.getElementById('editPotongan').value = '';
         document.getElementById('editKetPotongan').value = '';
         document.getElementById('editTotalPotonganText').textContent = formatRp(potongan || 0);
+
+        // Parse and display current deduction history
+        let listKet = [];
+        if (Array.isArray(keterangan_potongan)) {
+            listKet = keterangan_potongan;
+        } else if (typeof keterangan_potongan === 'string' && keterangan_potongan.trim().startsWith('[')) {
+            try {
+                listKet = JSON.parse(keterangan_potongan);
+            } catch (e) {
+                if (keterangan_potongan) listKet = [{ keterangan: keterangan_potongan, nominal: potongan || 0 }];
+            }
+        } else if (keterangan_potongan) {
+            listKet = [{ keterangan: keterangan_potongan, nominal: potongan || 0 }];
+        }
+
+        const container = document.getElementById('editRiwayatPotonganContainer');
+        const listDiv = document.getElementById('editRiwayatPotonganList');
+        if (listDiv && container) {
+            listDiv.innerHTML = '';
+            if (listKet && listKet.length > 0) {
+                listKet.forEach(item => {
+                    const ket = (typeof item === 'object' ? item.keterangan : item) || 'Kasbon';
+                    const nom = typeof item === 'object' && item.nominal ? formatRp(item.nominal) : '-';
+                    const tgl = typeof item === 'object' && item.tanggal ? ` (${item.tanggal})` : '';
+                    
+                    const row = document.createElement('div');
+                    row.className = 'flex justify-between items-center py-1 px-2.5 bg-white rounded-lg border border-blue-100 text-xs';
+                    row.innerHTML = `<span class="font-medium text-slate-700">&bull; ${ket}<span class="text-slate-400 text-[11px]">${tgl}</span></span><span class="font-bold text-red-600">${nom}</span>`;
+                    listDiv.appendChild(row);
+                });
+                container.classList.remove('hidden');
+            } else {
+                container.classList.add('hidden');
+            }
+        }
         
         updateEditGajiPokok();
         document.getElementById('modalEdit').classList.remove('hidden');

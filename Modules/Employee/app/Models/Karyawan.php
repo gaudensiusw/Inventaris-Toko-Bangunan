@@ -38,6 +38,7 @@ class Karyawan extends Model
     protected $casts = [
         'tanggal_masuk' => 'date',
         'aktif' => 'boolean',
+        'keterangan_potongan' => 'array',
     ];
 
     public function jabatan()

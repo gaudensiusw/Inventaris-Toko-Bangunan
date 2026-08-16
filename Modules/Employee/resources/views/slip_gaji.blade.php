@@ -72,14 +72,27 @@
             <td>Bonus / Tunjangan</td>
             <td class="text-right">Rp {{ number_format($bonus, 0, ',', '.') }}</td>
         </tr>
-        @if(!empty($potongan_details))
+        @if(!empty($potongan_details) && is_array($potongan_details) && count($potongan_details) > 0)
             <tr>
-                <td colspan="2" style="font-weight: bold; padding-top: 10px;">Rincian Potongan / Pengurangan:</td>
+                <td colspan="2" style="font-weight: bold; padding-top: 10px; background-color: #fafafa;">Rincian Potongan / Kasbon:</td>
             </tr>
             @foreach($potongan_details as $item)
+            @php
+                $itemKet = is_array($item) ? ($item['keterangan'] ?? 'Potongan') : (is_string($item) ? $item : 'Potongan');
+                $itemNom = is_array($item) ? floatval($item['nominal'] ?? 0) : 0;
+                $itemTgl = is_array($item) && !empty($item['tanggal']) ? \Carbon\Carbon::parse($item['tanggal'])->translatedFormat('d/m/Y') : null;
+            @endphp
             <tr>
-                <td style="padding-left: 15px; color: #555;">- {{ $item['keterangan'] }}</td>
-                <td class="text-right" style="color: #d32f2f;">Rp {{ number_format($item['nominal'], 0, ',', '.') }}</td>
+                <td style="padding-left: 15px; color: #555;">
+                    &bull; {{ $itemKet }} @if($itemTgl) <span style="font-size: 11px; color: #888;">({{ $itemTgl }})</span> @endif
+                </td>
+                <td class="text-right" style="color: #d32f2f;">
+                    @if($itemNom > 0)
+                        Rp {{ number_format($itemNom, 0, ',', '.') }}
+                    @else
+                        -
+                    @endif
+                </td>
             </tr>
             @endforeach
             <tr>

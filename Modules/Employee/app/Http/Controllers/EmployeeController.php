@@ -115,24 +115,30 @@ class EmployeeController extends Controller
             'email' => 'nullable|email',
             'bonus_tetap' => 'nullable|numeric|min:0',
             'potongan' => 'nullable|numeric|min:0',
-            'keterangan_potongan' => 'nullable|string|max:255',
+            'keterangan_potongan' => 'nullable|string',
             'foto_wajah' => 'nullable|array|max:3',
             'foto_wajah.*' => 'image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        $newPotongan = $employee->potongan + ($request->potongan ?? 0);
+        $newPotongan = ($employee->potongan ?? 0) + ($request->potongan ?? 0);
         
         $newKet = $employee->keterangan_potongan;
-        if ($request->filled('keterangan_potongan') || $request->potongan > 0) {
-            $existingArr = $employee->keterangan_potongan ? json_decode($employee->keterangan_potongan, true) : [];
+        if ($request->filled('keterangan_potongan') || ($request->filled('potongan') && $request->potongan > 0)) {
+            $existingArr = is_array($employee->keterangan_potongan)
+                ? $employee->keterangan_potongan
+                : ($employee->keterangan_potongan ? json_decode($employee->keterangan_potongan, true) : []);
+
             if (!is_array($existingArr)) {
-                $existingArr = $employee->keterangan_potongan ? [['keterangan' => $employee->keterangan_potongan, 'nominal' => 0]] : [];
+                $existingArr = $employee->keterangan_potongan ? [['keterangan' => (string)$employee->keterangan_potongan, 'nominal' => 0, 'tanggal' => null]] : [];
             }
+
             $existingArr[] = [
-                'keterangan' => $request->keterangan_potongan ?? 'Kasbon',
-                'nominal' => $request->potongan ?? 0
+                'keterangan' => $request->keterangan_potongan ?: 'Kasbon',
+                'nominal' => (float)($request->potongan ?? 0),
+                'tanggal' => now()->toDateString()
             ];
-            $newKet = json_encode($existingArr);
+
+            $newKet = $existingArr;
         }
 
         $employee->update([
@@ -329,13 +335,21 @@ class EmployeeController extends Controller
         $total_gaji = $total_gaji_pokok + $bonus - $potongan;
 
         $potongan_details = [];
-        if ($keterangan_potongan) {
-            $decoded = json_decode($keterangan_potongan, true);
-            if (is_array($decoded)) {
-                $potongan_details = $decoded;
+        $rawPotongan = $keterangan_potongan ?? $employee->keterangan_potongan;
+
+        if ($rawPotongan) {
+            if (is_array($rawPotongan)) {
+                $potongan_details = $rawPotongan;
             } else {
-                $potongan_details = [['keterangan' => $keterangan_potongan, 'nominal' => $potongan]];
+                $decoded = json_decode($rawPotongan, true);
+                if (is_array($decoded)) {
+                    $potongan_details = $decoded;
+                } else {
+                    $potongan_details = [['keterangan' => $rawPotongan, 'nominal' => $potongan, 'tanggal' => null]];
+                }
             }
+        } elseif ($potongan > 0) {
+            $potongan_details = [['keterangan' => 'Kasbon / Potongan', 'nominal' => $potongan, 'tanggal' => null]];
         }
 
         $monthNamesIndo = [
@@ -460,7 +474,7 @@ class EmployeeController extends Controller
             'jumlah_hari_kerja' => $jumlahHariKerja,
             'total_gaji_pokok' => $totalGajiPokok,
             'bonus_mingguan' => $bonus, // bonus disimpan di kolom bonus_mingguan/bonus_tetap
-            'catatan' => $keterangan_potongan ?? 'Pembayaran gaji',
+            'catatan' => is_array($keterangan_potongan) ? json_encode($keterangan_potongan) : ($keterangan_potongan ?? 'Pembayaran gaji'),
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -503,7 +517,7 @@ class EmployeeController extends Controller
                 'tanggal_pembayaran' => $now->toDateTimeString(),
                 'bonus' => $bonus,
                 'potongan' => $potongan,
-                'keterangan_potongan' => $keterangan_potongan,
+                'keterangan_potongan' => is_array($keterangan_potongan) ? json_encode($keterangan_potongan) : $keterangan_potongan,
                 'month' => $month,
                 'year' => $year
             ])
