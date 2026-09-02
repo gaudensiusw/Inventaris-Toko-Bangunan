@@ -38,15 +38,19 @@ class SupplierController extends Controller
 
     public function destroy(Supplier $supplier)
     {
-        // soft delete jika ada produk, but standard delete for now.
-        // Usually we would check $supplier->products()->count() > 0
-        if ($supplier->products()->count() > 0) {
-            // we could perform soft delete here if SoftDeletes was added,
-            // or just disallow
-            return redirect()->route('supplier.index')->with('error', 'Cannot delete supplier with active products.');
+        if ($supplier->products()->exists()) {
+            return redirect()->route('supplier.index')->with('error', 'Gagal menghapus: Supplier ini masih memiliki produk aktif yang terikat.');
         }
 
-        $supplier->delete();
-        return redirect()->route('supplier.index')->with('success', 'Supplier deleted successfully.');
+        if ($supplier->pembelians()->exists()) {
+            return redirect()->route('supplier.index')->with('error', 'Gagal menghapus: Supplier ini memiliki riwayat transaksi pembelian yang terikat.');
+        }
+
+        try {
+            $supplier->delete();
+            return redirect()->route('supplier.index')->with('success', 'Supplier berhasil dihapus.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            return redirect()->route('supplier.index')->with('error', 'Gagal menghapus: Supplier ini masih terikat dengan data transaksi lain.');
+        }
     }
 }

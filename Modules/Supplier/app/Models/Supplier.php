@@ -26,4 +26,9 @@ class Supplier extends Model
     {
         return $this->hasMany(Product::class, 'supplier_id');
     }
+
+    public function pembelians()
+    {
+        return $this->hasMany(\Modules\Pembelian\Models\Pembelian::class, 'supplier_id');
+    }
 }
